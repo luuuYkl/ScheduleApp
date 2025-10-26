@@ -16,14 +16,15 @@ export async function generateDailyLog(userId: number, tasks: Task[]): Promise<L
   const done = tasks.filter(t => t.status === "done").length;
   const total = tasks.length;
   
-  // 生成日志内容(这里用模板,实际项目中可替换为 AI API)
+  // 生成日志内容
   const content = generateLogContent(tasks, done, total);
   
-  // 构造日志条目
+  const today = new Date().toISOString().slice(0, 10);
+  
   return {
     id: Date.now(),
     user_id: userId,
-    date: new Date().toISOString().slice(0, 10),
+    date: today,
     content,
     tasks_done: done,
     tasks_total: total,

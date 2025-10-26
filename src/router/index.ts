@@ -26,12 +26,34 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => {
-  const store = useUserStore();
-  const token = store.token || localStorage.getItem("token");
+router.beforeEach(async (to, from) => {
+  try {
+    const store = useUserStore();
 
-  if (to.meta.requiresAuth && !token) {
-    return { path: "/login", query: { redirect: to.fullPath } };
+    // 尝试恢复用户信息（从 localStorage 或后端）
+    try {
+      await store.restore();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[ROUTER] user restore failed:", e);
+    }
+
+    const token = store.token ?? localStorage.getItem("token");
+    const user = store.user;
+
+    // 调试输出：路由目标 / token / user 状态
+    // eslint-disable-next-line no-console
+    console.log(`[ROUTER] to=${to.fullPath} requiresAuth=${!!to.meta.requiresAuth} token=${token ? "YES" : "NO"} user=${user ? "YES" : "NO"}`);
+
+    if (to.meta.requiresAuth && !token) {
+      // eslint-disable-next-line no-console
+      console.warn(`[ROUTER] unauthenticated -> redirect to /login (from ${from.fullPath})`);
+      return { path: "/login", query: { redirect: to.fullPath } };
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[ROUTER] guard error:", err);
+    return true;
   }
   return true;
 });

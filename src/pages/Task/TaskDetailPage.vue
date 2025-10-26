@@ -25,11 +25,10 @@
 
       <section class="block">
         <TaskCheckBox
-          :checked="task.status === 'done'"
+          v-model="isTaskDone"
           :disabled="toggling"
-          @toggle="toggle"
         >
-          {{ task.status === 'done' ? '标记为未完成' : '标记为已完成' }}
+          {{ isTaskDone ? '标记为未完成' : '标记为已完成' }}
         </TaskCheckBox>
 
         <div class="ops">
@@ -63,6 +62,63 @@ const toggling = ref(false);
 // 当前任务
 const task = computed(() => taskStore.tasks.find(t => t.id === id));
 
+// 使用计算属性处理任务完成状态
+const isTaskDone = computed({
+  get: () => {
+    const isDone = task.value?.status === 'done';
+    console.log('[Debug] isTaskDone.get:', isDone);
+    return isDone;
+  },
+  set: async (newValue: boolean) => {
+    console.log('[Debug] isTaskDone.set 开始, newValue:', newValue);
+    
+    if (!task.value) {
+      console.error('[Error] task.value 为空');
+      return;
+    }
+
+    console.log('[Debug] 当前任务:', {
+      id: task.value.id,
+      status: task.value.status,
+      plan_id: task.value.plan_id
+    });
+
+    toggling.value = true;
+    try {
+      console.log('[Debug] 开始更新任务状态');
+      await taskStore.toggleTaskStatus(task.value.id);
+      console.log('[Debug] 任务状态更新完成');
+
+      if (newValue) {
+        const userId = userStore.user?.id;
+        console.log('[Debug] 用户ID:', userId);
+        
+        if (!userId) {
+          console.error('[Error] 用户未登录或ID无效');
+          return;
+        }
+
+        const planTasks = taskStore.tasks.filter(t => t.plan_id === task.value!.plan_id);
+        console.log('[Debug] 找到相关计划任务:', planTasks.length, '个');
+        console.log('[Debug] 任务详情:', planTasks);
+
+        try {
+          console.log('[Debug] 开始生成日志');
+          const newLog = await logStore.generateTodayLog(userId, planTasks);
+          console.log('[Debug] 日志生成成功:', newLog);
+        } catch (err) {
+          console.error('[Error] 生成日志失败:', err);
+        }
+      }
+    } catch (err) {
+      console.error('[Error] 更新任务状态失败:', err);
+    } finally {
+      toggling.value = false;
+      console.log('[Debug] 操作完成');
+    }
+  }
+});
+
 // 计划层面的整体进度（同 plan_id 的所有任务计算）
 const planProgress = computed(() => {
   if (!task.value) return null;
@@ -78,29 +134,6 @@ onMounted(async () => {
     await taskStore.loadTasks();
   }
 });
-
-async function toggle() {
-  if (!task.value) return;
-  toggling.value = true;
-  try {
-    await taskStore.toggleTaskStatus(task.value.id);
-    
-    // 任务完成时,生成日志
-    if (task.value.status === 'done') {
-      const userId = userStore.user?.id;
-      if (userId) {
-        // 获取同一计划的所有任务
-        const planTasks = taskStore.tasks.filter(
-          t => t.plan_id === task.value!.plan_id
-        );
-        // 生成日志
-        await logStore.generateTodayLog(userId, planTasks);
-      }
-    }
-  } finally {
-    toggling.value = false;
-  }
-}
 
 function back() {
   router.back();

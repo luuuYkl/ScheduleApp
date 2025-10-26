@@ -1,28 +1,33 @@
 <template>
-  <label class="row" :class="{ disabled }">
+  <div class="task-checkbox">
     <input
       type="checkbox"
-      :checked="checked"
-      :disabled="disabled"
-      @change="$emit('toggle')"
+      :checked="modelValue"
+      @change="handleChange"
     />
-    <span class="text"><slot>标记完成</slot></span>
-  </label>
+    <slot></slot>
+  </div>
 </template>
 
 <script setup lang="ts">
 defineProps<{
-  checked: boolean;
-  disabled?: boolean;
+  modelValue: boolean;
 }>();
-defineEmits<{
-  (e: 'toggle'): void
+
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean];
+  'change': [value: boolean];
 }>();
+
+// 处理 checkbox 改变事件
+function handleChange(e: Event) {
+  const target = e.target as HTMLInputElement;
+  emit('update:modelValue', target.checked);
+  emit('change', target.checked);
+}
 </script>
 
 <style scoped>
-.row { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; }
-.row input { width: 18px; height: 18px; }
-.text { user-select: none; }
-.disabled { opacity: .6; cursor: not-allowed; }
+.task-checkbox { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; }
+.task-checkbox input { width: 18px; height: 18px; }
 </style>
