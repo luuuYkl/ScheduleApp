@@ -46,12 +46,16 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTaskStore } from "@/store/tasks";
+import { useLogStore } from "@/store/log"; // 新增
+import { useUserStore } from "@/store/user"; // 新增
 import TaskProgress from "@/components/task/TaskProgress.vue";
 import TaskCheckBox from "@/components/task/TaskCheckBox.vue";
 
 const route = useRoute();
 const router = useRouter();
 const taskStore = useTaskStore();
+const logStore = useLogStore(); // 新增
+const userStore = useUserStore(); // 新增
 
 const id = Number(route.params.id);
 const toggling = ref(false);
@@ -80,6 +84,19 @@ async function toggle() {
   toggling.value = true;
   try {
     await taskStore.toggleTaskStatus(task.value.id);
+    
+    // 任务完成时,生成日志
+    if (task.value.status === 'done') {
+      const userId = userStore.user?.id;
+      if (userId) {
+        // 获取同一计划的所有任务
+        const planTasks = taskStore.tasks.filter(
+          t => t.plan_id === task.value!.plan_id
+        );
+        // 生成日志
+        await logStore.generateTodayLog(userId, planTasks);
+      }
+    }
   } finally {
     toggling.value = false;
   }

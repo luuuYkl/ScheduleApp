@@ -256,3 +256,28 @@ const backendAPI: APIInterface = {
 // 4) 导出自动切换接口（唯一导出）
 // ================================
 export const API: APIInterface = APP_CONFIG.USE_MOCK_API ? mockAPI : backendAPI;
+
+/*
+  方便调用的认证工具函数
+  - 会根据 APP_CONFIG.USE_MOCK_API 自动调用 mockAPI 或 backendAPI
+  - 登录/注册成功后会把 token 和 user 写入 localStorage（若返回包含 token）
+*/
+export async function login(username: string, password: string) {
+  const user = await API.login(username, password);
+  if (user?.token) localStorage.setItem("token", user.token);
+  localStorage.setItem("user", JSON.stringify(user));
+  return user;
+}
+
+export async function register(payload: { username: string; email?: string; password: string }) {
+  const user = await API.register(payload);
+  if (user?.token) localStorage.setItem("token", user.token);
+  localStorage.setItem("user", JSON.stringify(user));
+  return user;
+}
+
+// 可选：导出一个 logout 助手
+export function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}

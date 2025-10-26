@@ -1,108 +1,85 @@
-import Card from "@/components/common/Card.vue";
-import Button from "@/components/common/Button.vue";
-import Modal from "@/components/common/Modal.vue";
-import { ref } from "vue";
-const show = ref(false);
-function confirm() {
-    alert("任务已添加！");
-    show.value = false;
+/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
+import { useRouter } from "vue-router";
+import PlanOverview from "@/components/home/PlanOverview.vue";
+import TaskList from "@/components/home/TaskList.vue";
+import { usePlanStore } from "@/store/plans";
+import { useTaskStore } from "@/store/tasks";
+const router = useRouter();
+const planStore = usePlanStore();
+const taskStore = useTaskStore();
+function goCreate() {
+    router.push("/plan/create");
+}
+function goLog() {
+    router.push("/log");
+}
+async function refresh() {
+    await Promise.all([planStore.loadPlans(), taskStore.loadTasks()]);
 }
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
-/** @type {[typeof Card, typeof Card, ]} */ ;
+// CSS variable injection 
+// CSS variable injection end 
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "page home" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "grid" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "actions card" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "btns" },
+});
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.goLog) },
+    ...{ class: "secondary" },
+});
 // @ts-ignore
-const __VLS_0 = __VLS_asFunctionalComponent(Card, new Card({}));
-const __VLS_1 = __VLS_0({}, ...__VLS_functionalComponentArgsRest(__VLS_0));
-const { default: __VLS_3 } = __VLS_2.slots;
-__VLS_asFunctionalElement(__VLS_elements.h2, __VLS_elements.h2)({});
-/** @type {[typeof Button, typeof Button, ]} */ ;
+[goLog,];
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (__VLS_ctx.refresh) },
+});
 // @ts-ignore
-const __VLS_4 = __VLS_asFunctionalComponent(Button, new Button({
-    ...{ 'onClick': {} },
-    type: "primary",
+[refresh,];
+/** @type {[typeof PlanOverview, ]} */ ;
+// @ts-ignore
+const __VLS_0 = __VLS_asFunctionalComponent(PlanOverview, new PlanOverview({
+    ...{ 'onCreate': {} },
 }));
-const __VLS_5 = __VLS_4({
-    ...{ 'onClick': {} },
-    type: "primary",
-}, ...__VLS_functionalComponentArgsRest(__VLS_4));
-let __VLS_7;
-let __VLS_8;
-const __VLS_9 = ({ click: {} },
-    { onClick: (...[$event]) => {
-            __VLS_ctx.show = true;
-            // @ts-ignore
-            [show,];
-        } });
-const { default: __VLS_10 } = __VLS_6.slots;
-var __VLS_6;
+const __VLS_1 = __VLS_0({
+    ...{ 'onCreate': {} },
+}, ...__VLS_functionalComponentArgsRest(__VLS_0));
+let __VLS_3;
+let __VLS_4;
+const __VLS_5 = ({ create: {} },
+    { onCreate: (__VLS_ctx.goCreate) });
+// @ts-ignore
+[goCreate,];
 var __VLS_2;
-/** @type {[typeof Modal, typeof Modal, ]} */ ;
+/** @type {[typeof TaskList, ]} */ ;
 // @ts-ignore
-const __VLS_11 = __VLS_asFunctionalComponent(Modal, new Modal({
-    visible: (__VLS_ctx.show),
-    title: "新任务",
-}));
-const __VLS_12 = __VLS_11({
-    visible: (__VLS_ctx.show),
-    title: "新任务",
-}, ...__VLS_functionalComponentArgsRest(__VLS_11));
-const { default: __VLS_14 } = __VLS_13.slots;
-// @ts-ignore
-[show,];
-__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({});
-{
-    const { footer: __VLS_15 } = __VLS_13.slots;
-    /** @type {[typeof Button, typeof Button, ]} */ ;
-    // @ts-ignore
-    const __VLS_16 = __VLS_asFunctionalComponent(Button, new Button({
-        ...{ 'onClick': {} },
-        type: "secondary",
-    }));
-    const __VLS_17 = __VLS_16({
-        ...{ 'onClick': {} },
-        type: "secondary",
-    }, ...__VLS_functionalComponentArgsRest(__VLS_16));
-    let __VLS_19;
-    let __VLS_20;
-    const __VLS_21 = ({ click: {} },
-        { onClick: (...[$event]) => {
-                __VLS_ctx.show = false;
-                // @ts-ignore
-                [show,];
-            } });
-    const { default: __VLS_22 } = __VLS_18.slots;
-    var __VLS_18;
-    /** @type {[typeof Button, typeof Button, ]} */ ;
-    // @ts-ignore
-    const __VLS_23 = __VLS_asFunctionalComponent(Button, new Button({
-        ...{ 'onClick': {} },
-        type: "primary",
-    }));
-    const __VLS_24 = __VLS_23({
-        ...{ 'onClick': {} },
-        type: "primary",
-    }, ...__VLS_functionalComponentArgsRest(__VLS_23));
-    let __VLS_26;
-    let __VLS_27;
-    const __VLS_28 = ({ click: {} },
-        { onClick: (__VLS_ctx.confirm) });
-    const { default: __VLS_29 } = __VLS_25.slots;
-    // @ts-ignore
-    [confirm,];
-    var __VLS_25;
-}
-var __VLS_13;
+const __VLS_7 = __VLS_asFunctionalComponent(TaskList, new TaskList({}));
+const __VLS_8 = __VLS_7({}, ...__VLS_functionalComponentArgsRest(__VLS_7));
+/** @type {__VLS_StyleScopedClasses['page']} */ ;
+/** @type {__VLS_StyleScopedClasses['home']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['card']} */ ;
+/** @type {__VLS_StyleScopedClasses['btns']} */ ;
+/** @type {__VLS_StyleScopedClasses['secondary']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
-        Card: Card,
-        Button: Button,
-        Modal: Modal,
-        show: show,
-        confirm: confirm,
+        PlanOverview: PlanOverview,
+        TaskList: TaskList,
+        goCreate: goCreate,
+        goLog: goLog,
+        refresh: refresh,
     }),
 });
 export default (await import('vue')).defineComponent({});
