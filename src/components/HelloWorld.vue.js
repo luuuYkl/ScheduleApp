@@ -1,4 +1,3 @@
-/// <reference types="../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { ref } from 'vue';
 const __VLS_props = defineProps();
 const count = ref(0);

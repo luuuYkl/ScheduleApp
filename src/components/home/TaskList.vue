@@ -29,17 +29,25 @@
 </template>
 
 <script setup lang="ts">
+
 import { computed, onMounted } from "vue";
 import { useTaskStore } from "@/store/tasks";
+import { useLogStore } from "@/store/log";
+import { useUserStore } from "@/store/user";
 import { useRouter } from "vue-router";
 
 const props = defineProps<{ planId?: number }>();
 
+
 const taskStore = useTaskStore();
+const logStore = useLogStore();
+const userStore = useUserStore();
 const router = useRouter();
 
+
+const todayStr = new Date().toISOString().slice(0, 10);
 const tasks = computed(() => {
-  const list = taskStore.tasks;
+  const list = taskStore.tasks.filter((t: any) => t.task_date === todayStr);
   return props.planId ? list.filter((t: any) => t.plan_id === props.planId) : list;
 });
 
@@ -47,8 +55,15 @@ onMounted(async () => {
   await taskStore.loadTasks(props.planId);
 });
 
+
 async function toggle(taskId: number) {
   await taskStore.toggleTaskStatus(taskId);
+  // 勾选后生成日志
+  const userId = userStore.user?.id;
+  if (userId) {
+    // 只生成一次日志（可根据实际需求调整，比如只在勾选为 done 时生成）
+    await logStore.generateTodayLog(userId, taskStore.tasks);
+  }
 }
 
 function open(id: number) {

@@ -4,10 +4,19 @@
     <header>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
         <h1>{{ APP_CONFIG.APP_NAME }}</h1>
-        <div style="font-size:.9rem;color:var(--color-muted)">
-          <!-- 显示当前用户或未登录 -->
-          <span v-if="user?.username">已登录：{{ user.username }}</span>
-          <span v-else>未登录</span>
+        <div style="display:flex;align-items:center;gap:.75rem;">
+          <div style="font-size:.9rem;color:var(--color-muted)">
+            <span v-if="user?.username">已登录：{{ user.username }}</span>
+            <span v-else>未登录</span>
+          </div>
+          <img
+            v-if="user?.username"
+            :src="avatarUrl"
+            class="avatar-header"
+            alt="用户头像"
+            @click="goProfile"
+            title="点击查看个人资料"
+          />
         </div>
       </div>
     </header>
@@ -27,17 +36,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";  // <!-- 导入 computed -->
+import { computed } from "vue";
 import { useUserStore } from "@/store/user";
 import { APP_CONFIG } from "@/config";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 // 计算属性：判断是否显示底部导航栏
 const route = useRoute();
+const router = useRouter();
 const showBottomNav = computed(() => route.meta.showBottomNav ?? true);
 
 const userStore = useUserStore();
 const user = computed(() => userStore.user);
+const avatarUrl = computed(() =>
+  user.value?.username
+    ? `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(user.value.username)}`
+    : 'https://api.dicebear.com/7.x/identicon/svg?seed=default'
+);
+
+function goProfile() {
+  router.push("/user/profile");
+}
 
 // 调试输出：在应用启动时打印本地存储的 token/user
 // eslint-disable-next-line no-console
@@ -45,6 +64,19 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
 </script>
 
 <style scoped>
+/* 头像样式 */
+.avatar-header {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #3b82f6;
+  background: #f3f4f6;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.avatar-header:hover {
+  box-shadow: 0 0 0 2px #2563eb44;
+}
 :root {
   --footer-height: 64px; /* 可根据需要调整 */
 }

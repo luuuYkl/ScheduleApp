@@ -1,4 +1,3 @@
-/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { ref } from "vue";
 import { useUserStore } from "@/store/user";
 const props = defineProps();

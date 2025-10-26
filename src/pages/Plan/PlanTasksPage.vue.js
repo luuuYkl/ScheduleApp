@@ -1,42 +1,54 @@
-/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
-import { useUserStore } from "@/store/user";
 import { useTaskStore } from "@/store/tasks";
+import { useUserStore } from "@/store/user"; // 新增
 const route = useRoute();
-const userStore = useUserStore();
 const taskStore = useTaskStore();
+const userStore = useUserStore(); // 新增
 const planId = Number(route.params.id);
 const list = computed(() => taskStore.tasks.filter(x => x.plan_id === planId));
-// 新增表单
 const form = reactive({
     title: "",
-    task_date: new Date().toISOString().slice(0, 10)
+    task_date: new Date().toISOString().slice(0, 10),
 });
+const submitting = ref(false);
 async function addTask() {
     if (!form.title)
-        return alert("请填写标题");
-    await taskStore.createTask({
-        plan_id: planId,
-        user_id: userStore.user?.id || 1,
-        title: form.title,
-        task_date: form.task_date
-    });
-    form.title = "";
-    await taskStore.loadTasks(planId);
+        return alert("请填写任务标题");
+    if (!form.task_date)
+        return alert("请选择任务日期");
+    const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id") || 0);
+    if (!userId)
+        return alert("请先登录");
+    submitting.value = true;
+    try {
+        await taskStore.createTask({
+            plan_id: planId,
+            user_id: userId,
+            title: form.title,
+            task_date: form.task_date,
+        });
+        // 重置表单
+        form.title = "";
+        form.task_date = new Date().toISOString().slice(0, 10);
+        // 刷新任务列表（可选，如果 store 已自动更新则不需要）
+        await taskStore.loadTasks(planId);
+    }
+    catch (e) {
+        alert(e?.message || "添加失败，请重试");
+    }
+    finally {
+        submitting.value = false;
+    }
 }
-// 完成切换
 async function toggle(id) {
     await taskStore.toggleTaskStatus(id);
 }
-// 删除
 async function remove(id) {
     if (!confirm("确认删除该任务？"))
         return;
     await taskStore.deleteTask(id);
-    await taskStore.loadTasks(planId);
 }
-// 行内编辑
 const editingId = ref(null);
 const edit = reactive({ id: 0, title: "", task_date: "" });
 function startEdit(t) {
@@ -48,16 +60,12 @@ function startEdit(t) {
 function cancelEdit() {
     editingId.value = null;
 }
-/**
- * ✅ 修复：updateTask 需要两个参数 (id, payload)
- */
 async function saveEdit() {
     await taskStore.updateTask(edit.id, {
         title: edit.title,
-        task_date: edit.task_date
+        task_date: edit.task_date,
     });
     editingId.value = null;
-    await taskStore.loadTasks(planId);
 }
 onMounted(async () => {
     await taskStore.loadTasks(planId);
@@ -67,11 +75,12 @@ const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
+/** @type {__VLS_StyleScopedClasses['form-row']} */ ;
+/** @type {__VLS_StyleScopedClasses['primary']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "page" },
-    ...{ style: {} },
 });
 __VLS_asFunctionalElement(__VLS_elements.h1, __VLS_elements.h1)({
     ...{ class: "mb-4" },
@@ -80,32 +89,43 @@ __VLS_asFunctionalElement(__VLS_elements.h1, __VLS_elements.h1)({
 // @ts-ignore
 [planId,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "card" },
-    ...{ style: {} },
+    ...{ class: "card mb-4" },
 });
 __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({});
+__VLS_asFunctionalElement(__VLS_elements.form, __VLS_elements.form)({
+    ...{ onSubmit: (__VLS_ctx.addTask) },
+    ...{ class: "add-form" },
+});
+// @ts-ignore
+[addTask,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "row" },
+    ...{ class: "form-row" },
 });
 __VLS_asFunctionalElement(__VLS_elements.input)({
     value: (__VLS_ctx.form.title),
     type: "text",
-    placeholder: "任务标题（如：第N天打卡）",
+    placeholder: "任务标题",
+    required: true,
 });
 // @ts-ignore
 [form,];
 __VLS_asFunctionalElement(__VLS_elements.input)({
     type: "date",
+    required: true,
 });
 (__VLS_ctx.form.task_date);
 // @ts-ignore
 [form,];
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (__VLS_ctx.addTask) },
+    type: "submit",
     ...{ class: "primary" },
+    disabled: (__VLS_ctx.submitting),
 });
 // @ts-ignore
-[addTask,];
+[submitting,];
+(__VLS_ctx.submitting ? '添加中...' : '添加任务');
+// @ts-ignore
+[submitting,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "card" },
 });
@@ -211,20 +231,12 @@ else {
         ...{ class: "text-gray" },
     });
 }
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "mt-2" },
-});
-__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.$router.push('/home');
-            // @ts-ignore
-            [$router,];
-        } },
-});
 /** @type {__VLS_StyleScopedClasses['page']} */ ;
 /** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
-/** @type {__VLS_StyleScopedClasses['row']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['add-form']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-row']} */ ;
 /** @type {__VLS_StyleScopedClasses['primary']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['list']} */ ;
@@ -237,13 +249,13 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 /** @type {__VLS_StyleScopedClasses['edit']} */ ;
 /** @type {__VLS_StyleScopedClasses['primary']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-gray']} */ ;
-/** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
         planId: planId,
         list: list,
         form: form,
+        submitting: submitting,
         addTask: addTask,
         toggle: toggle,
         remove: remove,

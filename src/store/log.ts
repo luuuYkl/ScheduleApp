@@ -22,44 +22,34 @@ export const useLogStore = defineStore("log", () => {
     return logs.value;
   }
   
-  // 生成今日日志
+  // 生成或更新今日日志（每天只保留一条日志，反复勾选只更新内容）
   async function generateTodayLog(userId: number, tasks: Task[]) {
-    console.log('[LogStore] 开始生成日志:', {
-      userId,
-      tasksCount: tasks.length,
-      tasks: tasks.map(t => ({
-        id: t.id,
-        status: t.status,
-        title: t.title
-      }))
-    });
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `logs_${userId}`;
+    // 每次都直接从 localStorage 读取，保证唯一性
+    let existingLogs: LogEntry[] = JSON.parse(localStorage.getItem(key) || '[]');
+    let todayLogIndex = existingLogs.findIndex(log => log.date === today);
+    let newLog = await generateDailyLog(userId, tasks);
 
-    try {
-      const newLog = await generateDailyLog(userId, tasks);
-      console.log('[LogStore] 生成日志结果:', newLog);
-
-      // 保存日志
-      if (APIAny.saveLog) {
-        console.log('[LogStore] 使用API保存日志');
-        await APIAny.saveLog(newLog);
-      } else {
-        console.log('[LogStore] 使用localStorage保存日志');
-        logs.value.unshift(newLog);
-        
-        const key = `logs_${userId}`;
-        const existingLogs = JSON.parse(localStorage.getItem(key) || '[]');
-        console.log('[LogStore] 现有日志数:', existingLogs.length);
-        
-        existingLogs.unshift(newLog);
-        localStorage.setItem(key, JSON.stringify(existingLogs));
-        console.log('[LogStore] 日志保存完成');
-      }
-
-      return newLog;
-    } catch (err) {
-      console.error('[LogStore] 错误:', err);
-      throw err;
+    if (todayLogIndex !== -1) {
+      // 覆盖当天日志内容
+      newLog.id = existingLogs[todayLogIndex].id;
+      existingLogs[todayLogIndex] = newLog;
+    } else {
+      // 只保留一条当天日志，移除所有同日旧日志
+      existingLogs = existingLogs.filter(log => log.date !== today);
+      existingLogs.unshift(newLog);
     }
+
+    // 保存
+    if (APIAny.saveLog) {
+      await APIAny.saveLog(newLog);
+    } else {
+      localStorage.setItem(key, JSON.stringify(existingLogs));
+    }
+    // 只同步当天日志和历史日志
+    logs.value = [...existingLogs];
+    return newLog;
   }
   
   return {
