@@ -85,6 +85,7 @@ export const usePlanStore = defineStore("plans", () => {
   }
 
   // 切换任务完成状态（done <-> pending），并更新后端与本地缓存
+  // 同时触发日志生成
   async function toggleTaskStatus(id: number) {
     const t = tasks.value.find((x) => x.id === id);
     if (!t) return null;
@@ -92,6 +93,29 @@ export const usePlanStore = defineStore("plans", () => {
     const updated = await API.updateTask(id, { status: newStatus });
     const i = tasks.value.findIndex((x) => x.id === id);
     if (i !== -1) tasks.value[i] = updated;
+    
+    // 切换状态后，触发日志生成
+    try {
+      const { useLogStore } = await import("@/store/log");
+      const { useUserStore } = await import("@/store/user");
+      
+      const logStore = useLogStore();
+      const userStore = useUserStore();
+      const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+      
+      // 获取所有今天的任务来生成日志
+      const today = new Date().toISOString().slice(0, 10);
+      const todayTasks = tasks.value.filter(t => t.task_date === today);
+      
+      if (todayTasks.length > 0) {
+        await logStore.generateTodayLog(userId, todayTasks);
+        console.log("✅ 日志已自动生成/更新");
+      }
+    } catch (e) {
+      console.warn("生成日志失败:", e);
+      // 不阻断任务状态切换
+    }
+    
     return updated;
   }
 

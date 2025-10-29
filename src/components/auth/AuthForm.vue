@@ -60,8 +60,7 @@ async function onSubmit() {
         password: form.value.password 
       });
     }
-    // 立即同步 userStore 的 user/token，保证响应式
-    await store.restore();
+    // 登录/注册成功，立即触发成功事件
     emit("success");
   } catch (e: any) {
     error.value = e?.message || "操作失败，请重试";

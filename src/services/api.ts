@@ -28,26 +28,7 @@ const mockPlans = ref<Plan[]>([
   },
 ]);
 
-const mockTasks = ref<Task[]>([
-  {
-    id: 1,
-    plan_id: 1,
-    user_id: 1,
-    title: "学习 Vue3 第1天",
-    task_date: "2025-10-09",
-    status: "done",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    plan_id: 1,
-    user_id: 1,
-    title: "学习 Vue3 第2天",
-    task_date: "2025-10-10",
-    status: "pending",
-    created_at: new Date().toISOString(),
-  },
-]);
+const mockTasks = ref<Task[]>([]);
 
 const mockStreaks = ref<Streak[]>([
   { id: 1, user_id: 1, current_streak: 3, longest_streak: 10, last_checkin: "2025-10-09" },

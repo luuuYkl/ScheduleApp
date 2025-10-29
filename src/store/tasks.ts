@@ -108,9 +108,32 @@ export const useTaskStore = defineStore("tasks", () => {
 
   /**
    * 切换任务状态（页面期望的方法名，内部复用旧方法）
+   * 同时触发日志生成
    */
   async function toggleTaskStatus(taskId: number) {
-    return toggleStatus(taskId);
+    await toggleStatus(taskId);
+    
+    // 切换状态后，触发日志生成
+    try {
+      const { useLogStore } = await import("@/store/log");
+      const { useUserStore } = await import("@/store/user");
+      
+      const logStore = useLogStore();
+      const userStore = useUserStore();
+      const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+      
+      // 获取所有今天的任务来生成日志
+      const today = new Date().toISOString().slice(0, 10);
+      const todayTasks = tasks.value.filter(t => t.task_date === today);
+      
+      if (todayTasks.length > 0) {
+        await logStore.generateTodayLog(userId, todayTasks);
+        console.log("✅ 日志已自动生成/更新");
+      }
+    } catch (e) {
+      console.warn("生成日志失败:", e);
+      // 不阻断任务状态切换
+    }
   }
 
   // ---------- 兼容别名（如果别的页面用了旧名字也能正常工作） ----------
