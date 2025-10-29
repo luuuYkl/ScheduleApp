@@ -1,4 +1,3 @@
-/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { ref, watch } from "vue";
 const props = withDefaults(defineProps(), {
     mode: "create",

@@ -40,10 +40,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
 import { useTaskStore } from "@/store/tasks";
-import { useRoute } from "vue-router";
 
 const taskStore = useTaskStore();
-const planId = useRoute().params.id;
 
 // 当前月份和年份
 const currentMonth = ref<number>(new Date().getMonth());
@@ -62,7 +60,7 @@ const daysInMonth = computed(() => {
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const dateStr = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const tasks = taskStore.tasks.filter(
-      (task: any) => task.plan_id === Number(planId) && task.task_date === dateStr
+      (task: any) => task.task_date === dateStr
     );
     days.push({ date: dateStr, tasks });
   }
@@ -109,8 +107,9 @@ function isAllTasksDone(day: any) {
   return day.tasks.every((task: any) => task.status === 'done');
 }
 
+
 onMounted(async () => {
-  await taskStore.loadTasks(Number(planId)); // 加载任务
+  await taskStore.loadTasks(); // 加载所有任务
 });
 </script>
 

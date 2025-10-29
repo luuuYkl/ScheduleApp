@@ -1,4 +1,3 @@
-/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import { computed, onMounted } from "vue";
 import { useTaskStore } from "@/store/tasks";
 import { useRouter } from "vue-router";

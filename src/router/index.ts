@@ -7,6 +7,8 @@ import LogPage from "@/pages/Log/LogPage.vue";
 import TaskDetailPage from "@/pages/Task/TaskDetailPage.vue";
 import LoginPage from "@/components/auth/LoginPage.vue";
 import RegisterPage from "@/components/auth/RegisterPage.vue";
+
+import ProfilePage from "@/pages/User/ProfilePage.vue";
 import { useUserStore } from "@/store/user";
 
 const routes = [
@@ -17,6 +19,7 @@ const routes = [
   { path: "/plan/calendar/:id", component: PlanCalendarPage, props: true, meta: { requiresAuth: true } },
   { path: "/log", component: LogPage, meta: { requiresAuth: true } },
   { path: "/task/:id", component: TaskDetailPage, props: true, meta: { requiresAuth: true } },
+  { path: "/user/profile", component: ProfilePage, meta: { requiresAuth: true } },
   { path: "/login", component: LoginPage, meta: { showBottomNav: false } },
   { path: "/register", component: RegisterPage, meta: { showBottomNav: false } },
 ];

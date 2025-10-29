@@ -1,4 +1,3 @@
-/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 import AuthForm from "@/components/auth/AuthForm.vue";
 import { useRouter } from "vue-router";
 const router = useRouter();

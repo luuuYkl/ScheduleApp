@@ -1,84 +1,76 @@
-/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
-import { onMounted, ref, computed } from "vue";
-import { useStreakStore } from "@/store/streak";
+import { onMounted, computed } from "vue";
+import { useLogStore } from "@/store/log";
 import { useUserStore } from "@/store/user";
-const streakStore = useStreakStore();
+const logStore = useLogStore();
 const userStore = useUserStore();
-const loading = ref(false);
-const streak = computed(() => streakStore.streak);
+const logs = computed(() => logStore.logs);
 onMounted(async () => {
-    const userId = userStore.user?.id ?? 1; // 简化：mock场景默认1
-    await streakStore.loadStreak(userId);
+    const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+    await logStore.loadLogs(userId);
 });
-async function checkIn() {
-    loading.value = true;
-    try {
-        const userId = userStore.user?.id ?? 1;
-        await streakStore.doCheckIn(userId);
-    }
-    finally {
-        loading.value = false;
-    }
-}
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_elements;
 let __VLS_components;
 let __VLS_directives;
+// CSS variable injection 
+// CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-    ...{ class: "page card" },
+    ...{ class: "page" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "card" },
     ...{ style: {} },
 });
-__VLS_asFunctionalElement(__VLS_elements.h1, __VLS_elements.h1)({
+__VLS_asFunctionalElement(__VLS_elements.h2, __VLS_elements.h2)({
     ...{ class: "mb-2" },
 });
-if (__VLS_ctx.streak) {
+if (__VLS_ctx.logs.length) {
     // @ts-ignore
-    [streak,];
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
-    __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({});
-    __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({});
-    (__VLS_ctx.streak.current_streak);
-    // @ts-ignore
-    [streak,];
-    __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({});
-    __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({});
-    (__VLS_ctx.streak.longest_streak);
-    // @ts-ignore
-    [streak,];
-    __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({});
-    __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({});
-    (__VLS_ctx.streak.last_checkin || '无');
-    // @ts-ignore
-    [streak,];
+    [logs,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "mt-2" },
+        ...{ class: "log-list" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-        ...{ onClick: (__VLS_ctx.checkIn) },
-        ...{ class: "primary" },
-        disabled: (__VLS_ctx.loading),
-    });
-    // @ts-ignore
-    [checkIn, loading,];
-    (__VLS_ctx.loading ? '签到中...' : '今日签到');
-    // @ts-ignore
-    [loading,];
+    for (const [log] of __VLS_getVForSourceType((__VLS_ctx.logs))) {
+        // @ts-ignore
+        [logs,];
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            key: (log.id),
+            ...{ class: "log-item" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "log-header" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({});
+        (log.date);
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            ...{ class: "completion" },
+        });
+        (Math.round((log.tasks_done / log.tasks_total) * 100));
+        __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+            ...{ class: "log-content" },
+        });
+        (log.content);
+    }
 }
 else {
-    __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({});
+    __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+        ...{ class: "text-gray" },
+    });
 }
 /** @type {__VLS_StyleScopedClasses['page']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['primary']} */ ;
+/** @type {__VLS_StyleScopedClasses['log-list']} */ ;
+/** @type {__VLS_StyleScopedClasses['log-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['log-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['completion']} */ ;
+/** @type {__VLS_StyleScopedClasses['log-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup: () => ({
-        loading: loading,
-        streak: streak,
-        checkIn: checkIn,
+        logs: logs,
     }),
 });
 export default (await import('vue')).defineComponent({});

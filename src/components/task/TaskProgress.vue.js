@@ -1,4 +1,3 @@
-/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 const props = withDefaults(defineProps(), {
     label: "进度",
 });

@@ -2,7 +2,7 @@
   <div class="page">
     <h1 class="mb-4">计划 #{{ planId }} 的日历</h1>
 
-    <CalendarView />
+  <CalendarView :planId="planId" />
   </div>
 </template>
 

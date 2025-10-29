@@ -1,4 +1,3 @@
-/// <reference types="../../../node_modules/.vue-global-types/vue_3.5_0.d.ts" />
 const __VLS_props = defineProps();
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};

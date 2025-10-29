@@ -71,50 +71,26 @@ const isTaskDone = computed({
   },
   set: async (newValue: boolean) => {
     console.log('[Debug] isTaskDone.set 开始, newValue:', newValue);
-    
     if (!task.value) {
       console.error('[Error] task.value 为空');
       return;
     }
-
-    console.log('[Debug] 当前任务:', {
-      id: task.value.id,
-      status: task.value.status,
-      plan_id: task.value.plan_id
-    });
-
     toggling.value = true;
     try {
-      console.log('[Debug] 开始更新任务状态');
       await taskStore.toggleTaskStatus(task.value.id);
-      console.log('[Debug] 任务状态更新完成');
-
-      if (newValue) {
-        const userId = userStore.user?.id;
-        console.log('[Debug] 用户ID:', userId);
-        
-        if (!userId) {
-          console.error('[Error] 用户未登录或ID无效');
-          return;
-        }
-
-        const planTasks = taskStore.tasks.filter(t => t.plan_id === task.value!.plan_id);
-        console.log('[Debug] 找到相关计划任务:', planTasks.length, '个');
-        console.log('[Debug] 任务详情:', planTasks);
-
-        try {
-          console.log('[Debug] 开始生成日志');
-          const newLog = await logStore.generateTodayLog(userId, planTasks);
-          console.log('[Debug] 日志生成成功:', newLog);
-        } catch (err) {
-          console.error('[Error] 生成日志失败:', err);
-        }
+      // 勾选或取消都应更新当天日志
+      const userId = userStore.user?.id;
+      if (!userId) {
+        console.error('[Error] 用户未登录或ID无效');
+        return;
       }
+      // 只同步同计划下所有任务（如需全量可改为 taskStore.tasks）
+      const planTasks = taskStore.tasks.filter(t => t.plan_id === task.value!.plan_id);
+      await logStore.generateTodayLog(userId, planTasks);
     } catch (err) {
-      console.error('[Error] 更新任务状态失败:', err);
+      console.error('[Error] 更新任务状态或生成日志失败:', err);
     } finally {
       toggling.value = false;
-      console.log('[Debug] 操作完成');
     }
   }
 });
