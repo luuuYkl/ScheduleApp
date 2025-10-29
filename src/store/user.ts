@@ -12,12 +12,27 @@ export const useUserStore = defineStore("user", () => {
   // 恢复用户：从 localStorage 尝试恢复，若只有 token 则调用后端获取 profile
   async function restore() {
     try {
-      // 已有 user，直接返回
-      if (user.value) return user.value;
+      // 已有 user 和 token，直接返回（避免重复请求）
+      if (user.value && token.value) return user.value;
 
       // 若有 token，但 user 为空，尝试通过后端获取用户信息
       const tk = token.value ?? localStorage.getItem("token");
       if (!tk) return null;
+
+      // 尝试从 localStorage 恢复用户信息
+      const storedUser = localStorage.getItem("user");
+      if (storedUser && !user.value) {
+        try {
+          user.value = JSON.parse(storedUser);
+          token.value = tk;
+          if (user.value) return user.value;
+        } catch (e) {
+          // JSON 解析失败，继续尝试后端
+        }
+      }
+
+      // 如果已经有 user，直接返回
+      if (user.value) return user.value;
 
       // 尝试常见的 profile 接口名
       const fn = APIAny.me || APIAny.getProfile || APIAny.fetchProfile;

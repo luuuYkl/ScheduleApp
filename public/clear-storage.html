@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>清理存储 - 日程管理App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      color: #1d4ed8;
+      margin-bottom: 10px;
+      font-size: 2rem;
+    }
+    
+    p {
+      color: #6b7280;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    
+    .storage-info {
+      background: #f3f4f6;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .storage-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .storage-item:last-child {
+      border-bottom: none;
+    }
+    
+    .storage-key {
+      font-weight: 600;
+      color: #374151;
+    }
+    
+    .storage-value {
+      color: #6b7280;
+      font-size: 0.875rem;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      flex: 1;
+      min-width: 140px;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+    }
+    
+    .btn-warning {
+      background: linear-gradient(135deg, #d97706 0%, #c2410c 100%);
+      color: white;
+    }
+    
+    .btn-warning:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(217, 119, 6, 0.3);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(29, 78, 216, 0.3);
+    }
+    
+    .status-message {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 10px;
+      font-weight: 500;
+      text-align: center;
+      display: none;
+    }
+    
+    .status-message.success {
+      background: #d1fae5;
+      color: #065f46;
+      display: block;
+    }
+    
+    .status-message.info {
+      background: #dbeafe;
+      color: #1e3a8a;
+      display: block;
+    }
+    
+    .empty-state {
+      text-align: center;
+      color: #9ca3af;
+      padding: 20px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗑️ 清理存储</h1>
+    <p>清理浏览器缓存和本地存储，重新开始测试</p>
+    
+    <div class="storage-info">
+      <h3 style="margin-bottom: 15px; color: #374151;">当前存储数据</h3>
+      <div id="storageList"></div>
+    </div>
+    
+    <div class="button-group">
+      <button class="btn-danger" onclick="clearAll()">
+        🔥 清空所有数据
+      </button>
+      <button class="btn-warning" onclick="clearAuth()">
+        🔐 仅清除登录
+      </button>
+      <button class="btn-primary" onclick="goHome()">
+        🏠 返回首页
+      </button>
+    </div>
+    
+    <div id="statusMessage" class="status-message"></div>
+  </div>
+
+  <script>
+    // 显示当前存储的数据
+    function displayStorage() {
+      const storageList = document.getElementById('storageList');
+      const items = [];
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        items.push({ key, value });
+      }
+      
+      if (items.length === 0) {
+        storageList.innerHTML = '<div class="empty-state">✨ 本地存储为空</div>';
+      } else {
+        storageList.innerHTML = items.map(item => `
+          <div class="storage-item">
+            <span class="storage-key">${item.key}</span>
+            <span class="storage-value">${item.value.substring(0, 30)}${item.value.length > 30 ? '...' : ''}</span>
+          </div>
+        `).join('');
+      }
+    }
+    
+    // 显示状态消息
+    function showMessage(message, type = 'success') {
+      const statusMessage = document.getElementById('statusMessage');
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message ${type}`;
+      
+      setTimeout(() => {
+        statusMessage.style.display = 'none';
+      }, 3000);
+    }
+    
+    // 清空所有数据
+    function clearAll() {
+      if (confirm('确定要清空所有本地存储数据吗？这将删除登录信息、计划、任务等所有数据。')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // 清除所有 cookies
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        showMessage('✅ 所有数据已清空！页面将在2秒后刷新...', 'success');
+        displayStorage();
+        
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      }
+    }
+    
+    // 仅清除登录信息
+    function clearAuth() {
+      if (confirm('确定要清除登录信息吗？')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        
+        showMessage('✅ 登录信息已清除！', 'success');
+        displayStorage();
+        
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+      }
+    }
+    
+    // 返回首页
+    function goHome() {
+      window.location.href = '/';
+    }
+    
+    // 页面加载时显示存储数据
+    displayStorage();
+    
+    // 每3秒刷新一次显示
+    setInterval(displayStorage, 3000);
+  </script>
+</body>
+</html>
