@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { LogEntry } from "@/services/generate-log";
 import { generateDailyLog } from "@/services/generate-log";
-import type { Task } from "@/services/api.types"; // 新增：导入 Task 类型
+import type { Task } from "@/services/api.types"; // 导入 Task 类型
 import * as API from "@/services/api";
 
 const APIAny = API as any;
