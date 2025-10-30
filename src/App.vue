@@ -1,13 +1,14 @@
 <template>
   <div id="app">
-    <!-- 顶部导航栏 -->
-    <header>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
-        <h1>{{ APP_CONFIG.APP_NAME }}</h1>
-        <div style="display:flex;align-items:center;gap:.75rem;">
-          <div style="font-size:.9rem;color:var(--color-muted)">
-            <span v-if="user?.username">已登录：{{ user.username }}</span>
-            <span v-else>未登录</span>
+    <!-- 固定顶部栏 -->
+    <header class="app-fixed-header">
+      <div class="inner">
+        <div class="left">
+          <h1 class="app-name">{{ APP_CONFIG.APP_NAME }}</h1>
+        </div>
+        <div class="right">
+          <div class="user-info" v-if="user">
+            <span class="username">{{ user.username }}</span>
           </div>
           <img
             v-if="user?.username"
@@ -64,94 +65,68 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
 </script>
 
 <style scoped>
-/* 头像样式 */
-.avatar-header {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid #3b82f6;
-  background: #f3f4f6;
-  cursor: pointer;
-  transition: box-shadow 0.2s;
-}
-.avatar-header:hover {
-  box-shadow: 0 0 0 2px #2563eb44;
-}
-:root {
-  --footer-height: 64px; /* 可根据需要调整 */
-}
+/* 变量 */
+:root { --footer-height: 64px; --header-height: 64px; }
 
-/* 容器布局：确保主内容占满剩余高度 */
-#app {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  /* 保证内容不会遮挡 footer（兼容 fixed footer） */
-  box-sizing: border-box;
-}
+/* 布局容器 */
+#app { min-height: 100vh; display: flex; flex-direction: column; }
 
-/* 顶部 header 固定样式 */
-header {
-  padding: 10px;
-  text-align: center;
-  background-color: #f5f5f5;
-}
-
-/* 主区域占据剩余空间，便于将 footer 保持在页面底部 */
-main {
-  flex: 1 1 auto;
-  padding-bottom: calc(var(--footer-height) + env(safe-area-inset-bottom, 12px));
-  box-sizing: border-box;
-}
-
-/* 底部导航的通用样式 */
-/* 修改：footer 固定显示在视口底部，始终可见，不会被页面内容挤下去 */
-footer.bottom-nav {
+/* 固定顶部栏样式 */
+.app-fixed-header {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9999;
+  top: 0; left: 0; right: 0;
+  height: var(--header-height);
+  background: #ffffffcc;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 1000;
   display: flex;
-  justify-content: space-around;
   align-items: center;
-  height: var(--footer-height);
-  padding: 0 12px;
-  background-color: #3b82f6;
-  color: white;
-  box-shadow: 0 -4px 18px rgba(16,24,40,0.06);
-  /* 兼容刘海屏安全区 */
-  padding-bottom: env(safe-area-inset-bottom, 0);
 }
+.app-fixed-header .inner {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.app-fixed-header .app-name { font-size: 1.25rem; margin: 0; }
+.app-fixed-header .right { display: flex; align-items: center; gap: .75rem; }
+.username { font-size: .9rem; color: var(--color-muted); }
 
-/* 导航链接样式 */
-.nav-item {
-  text-decoration: none;
-  color: white;
-  font-weight: bold;
-}
+/* 头像样式 */
+.avatar-header { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--color-primary); background: #f3f4f6; cursor: pointer; transition: box-shadow .2s, transform .2s; }
+.avatar-header:hover { box-shadow: 0 0 0 2px #2563eb44; transform: translateY(-2px); }
 
-/* 小屏（移动端）：固定在视口底部，主区域增加底部内边距以避免遮挡 */
-@media (max-width: 640px) {
-  footer.bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 100;
-    box-shadow: 0 -4px 18px rgba(16,24,40,0.06);
-  }
-  main {
-    padding-bottom: calc(var(--footer-height) + 12px); /* 额外留白 */
-  }
-}
+/* 主内容偏移，避免被固定 header 遮挡 */
+main { flex: 1 1 auto; padding-top: var(--header-height); padding-bottom: calc(var(--footer-height) + 1rem); box-sizing: border-box; }
 
-/* 中大屏（桌面）：footer 在文档流内，始终在页面底部（由于 main flex:1），适配更大视口 */
-@media (min-width: 641px) {
-  footer.bottom-nav {
-    position: relative;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-  }
+/* 固定底部导航 - 始终固定在视口底部 */
+footer.bottom-nav { 
+  position: fixed; 
+  left: 0; 
+  right: 0; 
+  bottom: 0; 
+  z-index: 999; 
+  display: flex; 
+  justify-content: space-around; 
+  align-items: center; 
+  height: var(--footer-height); 
+  padding: 0 12px; 
+  background: var(--color-primary); 
+  color: #fff; 
+  box-shadow: 0 -4px 18px rgba(16,24,40,0.06); 
+  padding-bottom: env(safe-area-inset-bottom, 0); 
 }
+.nav-item { text-decoration: none; color: #fff; font-weight: 600; }
+
+/* 暗色主题适配 */
+html.dark .app-fixed-header { background: #1f2937cc; border-bottom-color: #374151; }
+html.dark .app-fixed-header .app-name { color: #f3f4f6; }
+html.dark .username { color: #9ca3af; }
+html.dark .avatar-header { background: #374151; border-color: #3b82f6; }
 </style>

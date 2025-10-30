@@ -1,5 +1,5 @@
 <template>
-  <div class="page plan-create" style="max-width:720px;margin:0 auto;">
+  <div class="page plan-create" style="max-width:720px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;">
     <h1>{{ editId ? "编辑计划" : "创建新计划" }}</h1>
 
     <!-- 表单内容 -->
@@ -27,16 +27,6 @@
           <small class="error" v-if="errors.end_date">{{ errors.end_date }}</small>
         </label>
       </div>
-
-      <label>
-        频率
-        <select v-model="form.frequency">
-          <option value="daily">每天</option>
-          <option value="weekly">每周</option>
-          <option value="monthly">每月</option>
-          <option value="once">仅一次</option>
-        </select>
-      </label>
 
       <div class="ops">
         <button class="primary" type="submit" :disabled="submitting">
@@ -78,7 +68,6 @@ const form = reactive({
   description: "",
   start_date: "",
   end_date: "",
-  frequency: "daily",
 });
 
 // 验证错误集合
@@ -109,7 +98,6 @@ async function loadForEdit() {
   form.description = plan.description ?? "";
   form.start_date = plan.start_date ?? "";
   form.end_date = plan.end_date ?? "";
-  form.frequency = plan.frequency ?? "daily";
 }
 
 // 基本表单校验
@@ -144,7 +132,6 @@ async function createPlan() {
     description: form.description?.trim() ?? "",
     start_date: form.start_date,
     end_date: form.end_date,
-    frequency: form.frequency,
   };
 
   try {
@@ -194,7 +181,29 @@ onMounted(async () => {
 .form label { display:flex; flex-direction:column; font-weight:600; }
 .row { display:flex; gap:.6rem; }
 .ops { display:flex; gap:.5rem; margin-top:.6rem; }
-.primary { background:#3b82f6; color:#fff; border:none; padding:.5rem 1rem; border-radius:6px; }
-.secondary { background:#f1f5f9; border:1px solid #d1d5db; padding:.5rem 1rem; border-radius:6px; }
+.primary { 
+  background: var(--color-primary, #3b82f6); 
+  color: #fff; 
+  border: none; 
+  padding: .5rem 1rem; 
+  border-radius: 6px; 
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.primary:hover {
+  background: var(--color-primary-dark, #2563eb);
+}
+.secondary { 
+  background: #6b7280; 
+  color: #fff; 
+  border: none; 
+  padding: .5rem 1rem; 
+  border-radius: 6px; 
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.secondary:hover {
+  background: #4b5563;
+}
 .error { color:#ef4444; font-size:0.85rem; }
 </style>

@@ -8,34 +8,49 @@ import { ref } from "vue";
 import type {
   APIInterface, User, Plan, Task, Streak,
   RegisterPayload, UpdatePlanPayload,
-  CreateTaskPayload, UpdateTaskPayload
+  CreateTaskPayload, UpdateTaskPayload,
+  ScheduleItem, CreateSchedulePayload, UpdateSchedulePayload
 } from "./api.types";
 
 // ================================
 // Mock 数据存储（内存中的假数据）
 // ================================
 
-/** Mock 用户数据 */
-const mockUsers = ref<User[]>([
-  { id: 1, username: "demoUser", email: "demo@example.com", token: "mock-token-123456" },
-]);
+// 从 localStorage 加载用户数据,确保刷新后仍保留注册用户
+function loadMockUsers(): User[] {
+  const stored = localStorage.getItem('mockUsers');
+  console.log('[Mock API] Loading users from localStorage:', stored);
+  if (stored) {
+    try {
+      const users = JSON.parse(stored);
+      console.log('[Mock API] Loaded users:', users);
+      return users;
+    } catch(e) {
+      console.warn('Failed to parse mockUsers from localStorage:', e);
+    }
+  }
+  // 默认用户
+  const defaultUsers = [{ id: 1, username: "demoUser", email: "demo@example.com", token: "mock-token-123456" }];
+  console.log('[Mock API] Using default users:', defaultUsers);
+  return defaultUsers;
+}
+
+function saveMockUsers(users: User[]) {
+  console.log('[Mock API] Saving users to localStorage:', users);
+  localStorage.setItem('mockUsers', JSON.stringify(users));
+}
+
+/** Mock 用户数据（持久化到 localStorage） */
+const mockUsers = ref<User[]>(loadMockUsers());
 
 /** Mock 计划数据 */
-const mockPlans = ref<Plan[]>([
-  {
-    id: 1,
-    user_id: 1,
-    title: "学习 Vue3 框架",
-    description: "每天学习 2 小时，持续 30 天",
-    start_date: "2025-10-01",
-    end_date: "2025-10-30",
-    frequency: "daily",
-    created_at: new Date().toISOString(),
-  },
-]);
+const mockPlans = ref<Plan[]>([]);
 
 /** Mock 任务数据（已清空示例） */
 const mockTasks = ref<Task[]>([]);
+
+/** Mock 日程数据（独立） */
+const mockSchedules = ref<ScheduleItem[]>([]);
 
 /** Mock 签到记录数据 */
 const mockStreaks = ref<Streak[]>([
@@ -51,8 +66,14 @@ const mockAPI: APIInterface = {
   
   /** 登录验证 */
   async login(username: string, _password: string): Promise<User> {
+    console.log('[Mock API] Login attempt for username:', username);
+    console.log('[Mock API] Current mockUsers:', mockUsers.value);
     const user = mockUsers.value.find(u => u.username === username);
-    if (!user) throw new Error("用户名不存在");
+    if (!user) {
+      console.error('[Mock API] User not found:', username);
+      throw new Error("用户名不存在");
+    }
+    console.log('[Mock API] Login successful:', user);
     return { ...user };
   },
   
@@ -60,7 +81,7 @@ const mockAPI: APIInterface = {
   async register(payload: RegisterPayload): Promise<User> {
     const exists = mockUsers.value.some(u => u.username === payload.username);
     if (exists) throw new Error("用户名已存在");
-    const id = mockUsers.value.length + 1;
+    const id = (mockUsers.value.at(-1)?.id ?? 0) + 1;
     const user: User = {
       id,
       username: payload.username,
@@ -68,6 +89,7 @@ const mockAPI: APIInterface = {
       token: `mock-token-${id}`,
     };
     mockUsers.value.push(user);
+    saveMockUsers(mockUsers.value); // 持久化到 localStorage
     return user;
   },
   
@@ -142,6 +164,8 @@ const mockAPI: APIInterface = {
       task_date: payload.task_date,
       status: payload.status ?? "pending",
       note: payload.note,
+      repeat_type: payload.repeat_type ?? "none",
+      repeat_end_date: payload.repeat_end_date,
       created_at: new Date().toISOString(),
     };
     mockTasks.value.push(task);
@@ -188,6 +212,39 @@ const mockAPI: APIInterface = {
     s.last_checkin = new Date().toISOString().split("T")[0];
     if (s.current_streak > s.longest_streak) s.longest_streak = s.current_streak;
     return { ...s };
+  },
+
+  // ---------- 日程管理 ----------
+  async fetchSchedules(date?: string): Promise<ScheduleItem[]> {
+    if (date) return mockSchedules.value.filter(s => s.date === date).map(s => ({ ...s }));
+    return mockSchedules.value.map(s => ({ ...s }));
+  },
+  async createSchedule(payload: CreateSchedulePayload): Promise<ScheduleItem> {
+    const id = (mockSchedules.value.at(-1)?.id ?? 0) + 1;
+    const item: ScheduleItem = {
+      id,
+      user_id: payload.user_id,
+      title: payload.title,
+      date: payload.date,
+      start_time: payload.start_time,
+      end_time: payload.end_time,
+      description: payload.description,
+      completed: payload.completed ?? false,
+      created_at: new Date().toISOString()
+    };
+    mockSchedules.value.push(item);
+    return { ...item };
+  },
+  async updateSchedule(id: number, payload: UpdateSchedulePayload): Promise<ScheduleItem> {
+    const idx = mockSchedules.value.findIndex(s => s.id === id);
+    if (idx === -1) throw new Error('日程不存在');
+    mockSchedules.value[idx] = { ...mockSchedules.value[idx], ...payload };
+    return { ...mockSchedules.value[idx] };
+  },
+  async deleteSchedule(id: number): Promise<{ success: boolean }> {
+    const idx = mockSchedules.value.findIndex(s => s.id === id);
+    if (idx !== -1) mockSchedules.value.splice(idx,1);
+    return { success: true };
   },
 };
 
@@ -280,6 +337,25 @@ const backendAPI: APIInterface = {
   
   async checkIn(userId: number): Promise<Streak> {
     const { data } = await realAPI.post<Streak>(`/streak/checkin`, { userId });
+    return data;
+  },
+
+  // ---------- 日程管理 ----------
+  async fetchSchedules(date?: string): Promise<ScheduleItem[]> {
+    const url = date ? `/schedules?date=${date}` : '/schedules';
+    const { data } = await realAPI.get<ScheduleItem[]>(url);
+    return data;
+  },
+  async createSchedule(payload: CreateSchedulePayload): Promise<ScheduleItem> {
+    const { data } = await realAPI.post<ScheduleItem>('/schedules', payload);
+    return data;
+  },
+  async updateSchedule(id: number, payload: UpdateSchedulePayload): Promise<ScheduleItem> {
+    const { data } = await realAPI.put<ScheduleItem>(`/schedules/${id}`, payload);
+    return data;
+  },
+  async deleteSchedule(id: number): Promise<{ success: boolean }> {
+    const { data } = await realAPI.delete<{ success: boolean }>(`/schedules/${id}`);
     return data;
   },
 };

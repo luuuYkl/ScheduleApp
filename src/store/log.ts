@@ -5,7 +5,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { LogEntry } from "@/services/generate-log";
 import { generateDailyLog } from "@/services/generate-log";
-import type { Task } from "@/services/api.types";
+import type { Task, ScheduleItem } from "@/services/api.types";
 import * as API from "@/services/api";
 
 const APIAny = API as any;
@@ -44,9 +44,10 @@ export const useLogStore = defineStore("log", () => {
    * 每天只保留一条日志，多次调用会覆盖更新当天内容
    * @param userId 用户ID
    * @param tasks 今日任务列表
+   * @param schedules 今日日程列表
    * @returns 生成的日志对象
    */
-  async function generateTodayLog(userId: number, tasks: Task[]) {
+  async function generateTodayLog(userId: number, tasks: Task[], schedules: ScheduleItem[] = []) {
     const today = new Date().toISOString().slice(0, 10);
     const key = `logs_${userId}`;
     
@@ -54,8 +55,8 @@ export const useLogStore = defineStore("log", () => {
     let existingLogs: LogEntry[] = JSON.parse(localStorage.getItem(key) || '[]');
     const todayLogIndex = existingLogs.findIndex(log => log.date === today);
     
-    // 生成新的日志内容
-    const newLog = await generateDailyLog(userId, tasks);
+    // 生成新的日志内容（包含任务和日程）
+    const newLog = await generateDailyLog(userId, tasks, schedules);
 
     if (todayLogIndex !== -1) {
       // 当天已有日志，覆盖更新（保持ID）

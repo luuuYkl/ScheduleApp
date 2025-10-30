@@ -47,6 +47,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useTaskStore } from "@/store/tasks";
 import { useLogStore } from "@/store/log"; // 新增
 import { useUserStore } from "@/store/user"; // 新增
+import { usePlanStore } from "@/store/plans"; // 新增
 import TaskProgress from "@/components/task/TaskProgress.vue";
 import TaskCheckBox from "@/components/task/TaskCheckBox.vue";
 
@@ -55,6 +56,7 @@ const router = useRouter();
 const taskStore = useTaskStore();
 const logStore = useLogStore(); // 新增
 const userStore = useUserStore(); // 新增
+const planStore = usePlanStore(); // 新增
 
 const id = Number(route.params.id);
 const toggling = ref(false);
@@ -95,20 +97,36 @@ const isTaskDone = computed({
   }
 });
 
-// 计划层面的整体进度（同 plan_id 的所有任务计算）
+// 计划层面的整体进度（同 plan_id 的所有任务在计划时间范围内计算）
 const planProgress = computed(() => {
   if (!task.value) return null;
-  const list = taskStore.tasks.filter(t => t.plan_id === task.value!.plan_id);
-  if (list.length === 0) return 0;
-  const done = list.filter(t => t.status === "done").length;
-  return Math.round((done / list.length) * 100);
+  
+  // 获取当前任务所属的计划
+  const plan = planStore.plans.find((p: any) => p.id === task.value!.plan_id);
+  if (!plan) return 0;
+  
+  const startDate = new Date(plan.start_date);
+  const endDate = new Date(plan.end_date);
+  
+  // 筛选属于该计划且在计划日期范围内的所有任务
+  const tasksInRange = taskStore.tasks.filter((t: any) => {
+    if (t.plan_id !== task.value!.plan_id) return false;
+    const taskDate = new Date(t.task_date);
+    return taskDate >= startDate && taskDate <= endDate;
+  });
+  
+  if (tasksInRange.length === 0) return 0;
+  const done = tasksInRange.filter((t: any) => t.status === "done").length;
+  return Math.round((done / tasksInRange.length) * 100);
 });
 
 onMounted(async () => {
-  // 若刷新后 store 为空，加载一次任务（简单做法：全量加载）
+  // 若刷新后 store 为空，加载一次任务和计划数据
   if (!task.value) {
     await taskStore.loadTasks();
   }
+  // 加载计划数据以便计算进度
+  await planStore.loadPlans();
 });
 
 function back() {
