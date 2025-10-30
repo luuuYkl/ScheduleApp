@@ -24,6 +24,9 @@ export interface Plan {
 /** 任务状态枚举 */
 export type TaskStatus = "pending" | "done" | "missed";
 
+/** 任务重复类型 */
+export type TaskRepeatType = "none" | "daily" | "monthly";
+
 /** 任务模型 */
 export interface Task {
   id: number;
@@ -33,7 +36,43 @@ export interface Task {
   task_date: string;  // 格式: YYYY-MM-DD
   status: TaskStatus;
   note?: string;      // 备注
+  repeat_type?: TaskRepeatType; // 重复类型，默认 'none'
+  repeat_end_date?: string; // 重复结束日期 (YYYY-MM-DD)，仅当 repeat_type 不为 'none' 时有效
   created_at?: string;
+}
+
+/** 独立日程（不属于计划） */
+export interface ScheduleItem {
+  id: number;
+  user_id: number;
+  title: string;
+  date: string; // YYYY-MM-DD
+  start_time?: string; // HH:MM 可选
+  end_time?: string;   // HH:MM 可选
+  description?: string;
+  completed?: boolean; // 是否完成
+  created_at?: string;
+}
+
+/** 创建日程请求 */
+export interface CreateSchedulePayload {
+  user_id: number;
+  title: string;
+  date: string;
+  start_time?: string;
+  end_time?: string;
+  description?: string;
+  completed?: boolean;
+}
+
+/** 更新日程请求 */
+export interface UpdateSchedulePayload {
+  title?: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+  description?: string;
+  completed?: boolean;
 }
 
 /** 连续签到记录模型 */
@@ -69,6 +108,8 @@ export interface CreateTaskPayload {
   task_date: string;      // 格式: YYYY-MM-DD
   status?: TaskStatus;    // 默认为 pending
   note?: string;
+  repeat_type?: TaskRepeatType; // 重复类型
+  repeat_end_date?: string; // 重复结束日期
 }
 
 /** 任务更新请求参数 */
@@ -77,6 +118,8 @@ export interface UpdateTaskPayload {
   task_date?: string;
   status?: TaskStatus;
   note?: string;
+  repeat_type?: TaskRepeatType;
+  repeat_end_date?: string;
 }
 
 /** 
@@ -119,4 +162,14 @@ export interface APIInterface {
   fetchStreak(userId: number): Promise<Streak>;
   /** 执行签到（增加连续天数） */
   checkIn(userId: number): Promise<Streak>;
+
+  // ========== 日程管理（独立于计划） ==========
+  /** 获取用户所有日程（可选按日期过滤） */
+  fetchSchedules(date?: string): Promise<ScheduleItem[]>;
+  /** 创建日程 */
+  createSchedule(payload: CreateSchedulePayload): Promise<ScheduleItem>;
+  /** 更新日程 */
+  updateSchedule(id: number, payload: UpdateSchedulePayload): Promise<ScheduleItem>;
+  /** 删除日程 */
+  deleteSchedule(id: number): Promise<{ success: boolean }>;
 }

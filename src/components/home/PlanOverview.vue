@@ -83,14 +83,28 @@ onMounted(async () => {
 /*
   progressFor(planId)
   - 计算给定计划的任务完成率（百分比整数）
-  - 策略：查找属于该计划的任务，统计状态为 'done' 的数量 / 总数
+  - 策略：统计计划时间范围内的所有任务实例（包括重复任务的每次重复）
+  - 对于重复任务，统计其在计划持续期间内的所有日期的任务
   - 返回 0-100 的整数
 */
 function progressFor(planId: number) {
-  const ts = taskStore.tasks.filter((t: any) => t.plan_id === planId);
-  if (ts.length === 0) return 0;
-  const done = ts.filter((t: any) => t.status === "done").length;
-  return Math.round((done / ts.length) * 100);
+  const plan = plans.value.find((p: any) => p.id === planId);
+  if (!plan) return 0;
+
+  const startDate = new Date(plan.start_date);
+  const endDate = new Date(plan.end_date);
+
+  // 筛选属于该计划且在计划日期范围内的所有任务
+  const tasksInRange = taskStore.tasks.filter((t: any) => {
+    if (t.plan_id !== planId) return false;
+    const taskDate = new Date(t.task_date);
+    return taskDate >= startDate && taskDate <= endDate;
+  });
+
+  if (tasksInRange.length === 0) return 0;
+  
+  const done = tasksInRange.filter((t: any) => t.status === "done").length;
+  return Math.round((done / tasksInRange.length) * 100);
 }
 
 /*

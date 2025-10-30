@@ -52,16 +52,6 @@
                 </svg>
                 <strong>{{ formatDate(log.date) }}</strong>
               </div>
-              
-              <div class="log-stats">
-                <div class="stat-item">
-                  <span class="stat-label">完成</span>
-                  <span class="stat-value">{{ log.tasks_done }}/{{ log.tasks_total }}</span>
-                </div>
-                <div class="completion-badge" :class="getCompletionClass(log)">
-                  {{ Math.round((log.tasks_done / log.tasks_total) * 100) }}%
-                </div>
-              </div>
             </div>
             
             <div class="log-body">
@@ -202,11 +192,13 @@ onMounted(async () => {
 .log-page {
   min-height: 100vh;
   background: var(--color-gray-50);
+  padding-bottom: calc(var(--footer-height, 64px) + 1rem);
 }
 
 .page-container {
   max-width: 900px;
   margin: 0 auto;
+  padding-top: calc(var(--header-height, 64px) + 1rem);
 }
 
 /* ============ 页面头部 ============ */

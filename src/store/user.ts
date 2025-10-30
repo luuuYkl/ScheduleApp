@@ -91,9 +91,17 @@ export const useUserStore = defineStore("user", () => {
    */
   async function login(username: string, password: string) {
     if (APIAny.login) {
-      const res = await APIAny.login({ username, password });
-      token.value = res?.token ?? res?.data?.token ?? null;
-      user.value = res?.user ?? res?.data?.user ?? null;
+      // 正确调用签名 login(username, password)
+      const res = await APIAny.login(username, password);
+      // mockAPI 直接返回 User 对象
+      if (res && typeof res === 'object' && 'id' in res) {
+        token.value = res.token ?? null;
+        user.value = res;
+      } else {
+        // 兼容后端返回 { user, token }
+        token.value = res?.token ?? res?.data?.token ?? null;
+        user.value = res?.user ?? res?.data?.user ?? null;
+      }
     } else {
       // Fallback：Mock 登录
       token.value = "mock-token-123456";
@@ -113,8 +121,13 @@ export const useUserStore = defineStore("user", () => {
   async function register(payload: any) {
     if (APIAny.register) {
       const res = await APIAny.register(payload);
-      token.value = res?.token ?? res?.data?.token ?? null;
-      user.value = res?.user ?? res?.data?.user ?? null;
+      if (res && typeof res === 'object' && 'id' in res) {
+        token.value = res.token ?? null;
+        user.value = res;
+      } else {
+        token.value = res?.token ?? res?.data?.token ?? null;
+        user.value = res?.user ?? res?.data?.user ?? null;
+      }
     } else {
       // Fallback：Mock 注册
       token.value = "mock-token-123456";
@@ -125,6 +138,7 @@ export const useUserStore = defineStore("user", () => {
     if (user.value) localStorage.setItem("user", JSON.stringify(user.value));
     return user.value;
   }
+  const fn = APIAny.me || APIAny.getProfile || APIAny.fetchProfile || APIAny.fetchUser;
 
   /**
    * 用户登出

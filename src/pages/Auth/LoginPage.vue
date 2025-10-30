@@ -1,5 +1,5 @@
 <template>
-  <div class="page card" style="max-width:420px;margin:2rem auto;">
+  <div class="page card" style="max-width:420px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;">
     <h1 class="mb-4 text-center">登录</h1>
 
     <div class="mb-2">
@@ -40,7 +40,7 @@ async function login() {
   loading.value = true;
   error.value = "";
   try {
-    await userStore.loginUser(username.value, password.value);
+    await userStore.login(username.value, password.value);
     router.push("/home");
   } catch (err: any) {
     error.value = err.message || "登录失败";
