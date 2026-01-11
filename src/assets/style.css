@@ -7,22 +7,47 @@
 
 html, body, #app {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  background-color: #f9fafb;
-  color: #333;
-  line-height: 1.5;
+  font-family: "Inter", "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background-color: var(--bg-main, #0E1117);
+  color: var(--text-main, #E5E7EB);
+  line-height: 1.6;
 }
 
-/* ====== 通用颜色变量 ====== */
+/* ====== 通用颜色变量（与 style.css 保持一致）====== */
 :root {
-  --color-primary: #3b82f6;   /* 主色：蓝色 */
-  --color-primary-dark: #2563eb;
-  --color-secondary: #10b981; /* 辅色：绿色 */
-  --color-danger: #ef4444;    /* 警告：红色 */
-  --color-gray: #6b7280;      /* 中性灰 */
-  --color-bg: #ffffff;
-  --color-border: #e5e7eb;
+  /* 背景层级 - 蓝灰黑 */
+  --bg-main: #0E1117;
+  --bg-card: #161B22;
+  --bg-elevated: #21262D;
+  
+  /* AI 色 */
+  --ai-main: #6366F1;
+  --ai-light: #818CF8;
+  --ai-soft: #C7D2FE;
+  --ai-bg: rgba(99, 102, 241, 0.12);
+  
+  /* 状态色 */
+  --success: #22C55E;
+  --success-bg: rgba(34, 197, 94, 0.12);
+  --warning: #F59E0B;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --error: #EF4444;
+  --error-bg: rgba(239, 68, 68, 0.12);
+  
+  /* 文字 - 永不纯白 */
+  --text-main: #E5E7EB;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --text-emphasis: #F3F4F6;
+  
+  /* 软边界 */
+  --border-main: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.03);
+  --border-emphasis: rgba(255, 255, 255, 0.12);
+  
+  --radius: 12px;
+  --radius-sm: 8px;
+  --spacing-section: 32px;
 }
 
 /* ====== 通用布局类 ====== */
@@ -43,69 +68,103 @@ html, body, #app {
   padding: 0 1rem;
 }
 
-/* ====== 按钮样式 ====== */
+/* ====== 按钮样式（使用新配色）====== */
 button {
   cursor: pointer;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 0.6rem 1rem;
-  font-size: 0.95rem;
+  font-size: 14px;
   font-weight: 500;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.2s ease, opacity 0.2s ease;
+  font-family: inherit;
 }
 button.primary {
-  background-color: var(--color-primary);
+  background-color: var(--ai-main);
   color: #fff;
 }
 button.primary:hover {
-  background-color: var(--color-primary-dark);
+  background-color: var(--ai-light);
+}
+button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 button.secondary {
-  background-color: var(--color-secondary);
-  color: #fff;
+  background-color: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-main);
+}
+button.secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 button.danger {
-  background-color: var(--color-danger);
+  background-color: var(--error);
   color: #fff;
 }
-
-/* ====== 卡片组件基础样式 ====== */
-.card {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+button.danger:hover {
+  background-color: #DC2626;
 }
 
-/* ====== 表单元素 ====== */
+/* ====== 卡片组件基础样式（微玻璃态软边界）====== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+/* ====== 表单元素（暗色风格）====== */
 input, select, textarea {
   width: 100%;
-  padding: 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  font-size: 0.95rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg-main);
+  color: var(--text-main);
   outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 input:focus, select:focus, textarea:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  border-color: var(--ai-main);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
 }
 
-/* ====== 标题和文字 ====== */
+/* ====== 标题和文字（避免纯白并列）====== */
 h1, h2, h3, h4, h5 {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-main);    /* 柔和白 */
+  letter-spacing: -0.01em;
+  line-height: 1.3;           /* 紧凑标题 */
 }
 h1 {
-  font-size: 1.75rem;
+  font-size: 24px;
+  color: var(--text-emphasis); /* 仅一级标题强调 */
 }
 h2 {
-  font-size: 1.5rem;
+  font-size: 20px;
+}
+h3 {
+  font-size: 18px;
 }
 p {
   margin: 0.5rem 0;
-  color: var(--color-gray);
+  color: var(--text-secondary);  /* 次级灰 */
+  line-height: 1.7;              /* 舒适正文 */
 }
 
 /* ====== 辅助工具类 ====== */

@@ -175,29 +175,215 @@ onMounted(async () => { await taskStore.loadTasks(); });
 </script>
 
 <style scoped>
- .calendar { padding:1rem; background: var(--color-bg,#fff); border-radius:12px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
- .calendar-header { display:flex; flex-direction:column; gap:.5rem; margin-bottom:1rem; }
- .calendar-header .nav { display:flex; justify-content:space-between; align-items:center; }
- .calendar-header .label { font-weight:600; }
- .view-toggle { display:flex; gap:.5rem; justify-content:center; }
- .view-toggle button { padding:.4rem .8rem; border-radius:20px; font-size:.75rem; background:#f1f5f9; color:#333; border:1px solid var(--color-border); }
- .view-toggle button.active { background: var(--color-primary); color:#fff; }
- .days { display:grid; grid-template-columns: repeat(7,1fr); gap:.5rem; }
- .day-name { text-align:center; font-weight:600; font-size:.75rem; letter-spacing:.05em; color: var(--color-gray,#555); }
- .day { padding:.5rem .25rem; background:#f8fafc; border-radius:6px; text-align:center; cursor:pointer; display:flex; flex-direction:column; gap:.25rem; min-height:70px; }
- .day:hover { background: var(--color-primary-light,#eaf2fe); }
- .day.has-tasks { border:1px solid var(--color-primary); }
- .day.done { background:#d1fad3; }
- .blank { background: transparent; }
- .task-count { font-size:.65rem; color: var(--color-primary-dark); }
- .week-grid .day { min-height:90px; }
- .months-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:.75rem; }
- .month-box { background:#f1f5f9; padding:.75rem .5rem; border-radius:8px; cursor:pointer; border:1px solid var(--color-border); display:flex; flex-direction:column; gap:.25rem; }
- .month-box:hover { background: var(--color-primary-light); border-color: var(--color-primary); }
- .month-name { font-weight:600; font-size:.85rem; }
- .month-meta { font-size:.7rem; color: var(--color-gray); }
- .task-list { margin-top:1rem; }
- .task-list ul { list-style:none; padding:0; margin:0; }
- .task-list li { display:flex; justify-content:space-between; padding:.5rem; border-bottom:1px solid var(--color-border); font-size:.85rem; }
- @media (max-width:640px) { .months-grid { grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); } }
+.calendar { 
+  padding: 1rem; 
+  background: var(--bg-main, #0E1117);  /* 深蓝灰背景 */
+  border-radius: 12px; 
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-subtle);
+}
+
+.calendar-header { 
+  display: flex; 
+  flex-direction: column; 
+  gap: .5rem; 
+  margin-bottom: 1rem; 
+}
+
+.calendar-header .nav { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+}
+
+.calendar-header .nav button {
+  padding: 0.5rem 1rem;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.calendar-header .nav button:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  border-color: var(--border-emphasis);
+}
+
+.calendar-header .label { 
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-main);
+}
+
+.view-toggle { 
+  display: flex; 
+  gap: .5rem; 
+  justify-content: center; 
+}
+
+.view-toggle button { 
+  padding: .5rem 1rem; 
+  border-radius: 20px; 
+  font-size: 13px; 
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-main);
+  transition: all 0.2s;
+}
+
+.view-toggle button.active { 
+  background: var(--ai-main);
+  color: var(--text-emphasis);
+  border-color: var(--ai-main);
+}
+
+.view-toggle button:hover:not(.active) {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  border-color: var(--border-emphasis);
+}
+
+.days { 
+  display: grid; 
+  grid-template-columns: repeat(7, 1fr); 
+  gap: .5rem; 
+}
+
+.day-name { 
+  text-align: center; 
+  font-weight: 600; 
+  font-size: 12px; 
+  letter-spacing: .05em; 
+  color: var(--text-muted);
+  padding: 0.5rem 0;
+}
+
+.day { 
+  padding: .5rem .25rem; 
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px; 
+  text-align: center; 
+  cursor: pointer; 
+  display: flex; 
+  flex-direction: column; 
+  gap: .25rem; 
+  min-height: 70px;
+  transition: all 0.2s;
+}
+
+.day:hover { 
+  background: var(--bg-card-hover);
+  border-color: var(--border-main);
+  transform: translateY(-1px);
+}
+
+.day .date {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.day.has-tasks { 
+  border: 1px solid var(--ai-main);
+  background: var(--ai-bg);
+}
+
+.day.done { 
+  background: var(--success-bg);
+  border-color: var(--success);
+}
+
+.day.done .date {
+  color: var(--success);
+}
+
+.blank { 
+  background: transparent; 
+}
+
+.task-count { 
+  font-size: 11px; 
+  color: var(--ai-soft);
+  font-weight: 500;
+}
+
+.week-grid .day { 
+  min-height: 90px; 
+}
+
+.months-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+  gap: .75rem; 
+}
+
+.month-box { 
+  background: var(--bg-card);
+  padding: .75rem .5rem; 
+  border-radius: 8px; 
+  cursor: pointer; 
+  border: 1px solid var(--border-main);
+  display: flex; 
+  flex-direction: column; 
+  gap: .25rem;
+  transition: all 0.2s;
+}
+
+.month-box:hover { 
+  background: var(--bg-card-hover);
+  border-color: var(--ai-main);
+  transform: translateY(-1px);
+}
+
+.month-name { 
+  font-weight: 600; 
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.month-meta { 
+  font-size: 12px; 
+  color: var(--text-secondary);
+}
+
+.task-list { 
+  margin-top: var(--spacing-section);
+  padding: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius);
+}
+
+.task-list h3 {
+  margin-bottom: 1rem;
+  color: var(--text-main);
+}
+
+.task-list ul { 
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
+}
+
+.task-list li { 
+  display: flex; 
+  justify-content: space-between; 
+  padding: .75rem; 
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.task-list li:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 640px) { 
+  .months-grid { 
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+  } 
+}
 </style>

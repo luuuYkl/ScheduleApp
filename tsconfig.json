@@ -8,6 +8,7 @@
     "strict": true,
     "jsx": "preserve",
     "isolatedModules": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "types": ["node"],

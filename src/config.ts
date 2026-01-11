@@ -2,6 +2,13 @@
 // 🌐 全局项目配置文件
 // 用于管理 Mock/真实后端切换、环境配置、接口地址等。
 
+// 扩展 ImportMeta 类型以包含环境变量
+declare global {
+  interface ImportMeta {
+    env: Record<string, any>;
+  }
+}
+
 export const APP_CONFIG = {
   /**
    * 🧩 模式开关
@@ -33,4 +40,26 @@ export const APP_CONFIG = {
    * false = 关闭调试输出
    */
   DEBUG_MODE: true,
+
+  /**
+   * 🤖 AI 功能配置
+   * 用于日程优化建议功能
+   */
+  AI_ENABLED: true, // 启用 AI 功能
+  AI_API_KEY: "", // OpenAI API Key，通过 .env.local 配置
+  AI_API_BASE_URL: "https://api.deepseek.com/v1", // DeepSeek API 基础地址
+  AI_MODEL: "deepseek-chat", // DeepSeek 模型名称
 };
+
+// 在运行时从环境变量加载配置
+export function loadEnvConfig() {
+  if (import.meta.env.VITE_OPENAI_API_KEY) {
+    APP_CONFIG.AI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+  }
+  if (import.meta.env.VITE_OPENAI_BASE_URL) {
+    APP_CONFIG.AI_API_BASE_URL = import.meta.env.VITE_OPENAI_BASE_URL;
+  }
+}
+
+// 应用启动时自动加载
+loadEnvConfig();

@@ -18,5 +18,16 @@ function handleCreated(){
 </script>
 
 <style scoped>
-.form-container { max-width: 560px; margin: 0 auto; }
+.schedule-page {
+  padding-top: calc(var(--header-height, 64px) + 1.5rem);
+  padding-bottom: calc(var(--footer-height, 64px) + 1rem);
+  padding-left: 1rem;
+  padding-right: 1rem;
+  min-height: 100vh;
+}
+
+.form-container { 
+  max-width: 560px; 
+  margin: 0 auto; 
+}
 </style>

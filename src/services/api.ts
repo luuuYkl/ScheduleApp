@@ -162,6 +162,8 @@ const mockAPI: APIInterface = {
       user_id: payload.user_id,
       title: payload.title,
       task_date: payload.task_date,
+      start_time: payload.start_time,
+      end_time: payload.end_time,
       status: payload.status ?? "pending",
       note: payload.note,
       repeat_type: payload.repeat_type ?? "none",

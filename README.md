@@ -12,6 +12,7 @@
 ## 核心功能
 - 用户注册 / 登录（本地持久化 token & 用户）
 - 计划管理（开始/结束日期、描述）
+- **AI 智能优化**：分析计划并提供优化建议，自动拆解任务清单
 - 任务管理（支持每日 / 每月重复，备注，状态切换）
 - 日程管理（独立于计划的 Schedule 项）
 - 每日日志自动生成（列出已完成任务与日程并鼓励）
@@ -20,6 +21,13 @@
 - 移动端固定顶部栏 + 底部导航
 
 ## 最近更新内容（2025-10）
+### AI 智能优化功能（新增）
+- 集成 OpenAI API，提供计划优化建议
+- AI 分析计划时长、标题、描述的合理性
+- 自动生成推荐任务清单并支持一键添加
+- 支持 Mock 模式（无 API Key 时仍可使用基础建议）
+- 详细使用说明见 [AI_FEATURE_GUIDE.md](AI_FEATURE_GUIDE.md)
+
 ### UI/布局优化
 - 顶部栏固定（避免滚动时隐藏），底部导航始终固定
 - 页面内容添加顶部/底部内边距避免被遮挡
@@ -47,6 +55,11 @@
 ## 运行与开发
 ```
 npm install
+
+# 可选：配置 AI 功能（复制并编辑环境变量）
+cp .env.example .env.local
+# 在 .env.local 中填入你的 OpenAI API Key
+
 npm run dev      # 启动开发服务器
 npm run build    # 构建生产包（包含类型检查）
 npm run test     # 运行测试
@@ -67,14 +80,21 @@ export const APP_CONFIG = {
 ```
 src/
 	components/        # 业务与通用组件
+	  plan/
+	    AISuggestions.vue  # AI 建议展示组件
 	pages/             # 路由页面
 	store/             # Pinia stores
 	services/          # API / 工具 / 类型
+	  ai.ts            # AI 优化服务
+	  api.types.ts     # API 类型（含 AI 相关类型）
 	router/            # 路由配置与守卫
 	assets/            # 样式与静态资源
+	config.ts          # 全局配置（含 AI 配置）
 ```
 
 ## 后续可改进方向
+- AI 功能增强：支持任务优先级排序、时间冲突检测
+- AI 个性化：根据用户历史数据提供更精准的建议
 - 首页任务日期切换（今天 / 未来 / 历史）
 - 首页对重复任务也做分组展示
 - 计划进度可选择统计维度（仅首次、全部重复实例）

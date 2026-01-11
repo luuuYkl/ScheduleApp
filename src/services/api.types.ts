@@ -25,7 +25,7 @@ export interface Plan {
 export type TaskStatus = "pending" | "done" | "missed";
 
 /** 任务重复类型 */
-export type TaskRepeatType = "none" | "daily" | "monthly";
+export type TaskRepeatType = "none" | "daily" | "weekly" | "monthly";
 
 /** 任务模型 */
 export interface Task {
@@ -34,6 +34,8 @@ export interface Task {
   user_id: number;
   title: string;
   task_date: string;  // 格式: YYYY-MM-DD
+  start_time?: string; // HH:MM 可选
+  end_time?: string;   // HH:MM 可选
   status: TaskStatus;
   note?: string;      // 备注
   repeat_type?: TaskRepeatType; // 重复类型，默认 'none'
@@ -52,6 +54,46 @@ export interface ScheduleItem {
   description?: string;
   completed?: boolean; // 是否完成
   created_at?: string;
+}
+
+/** AI 优化建议项 */
+export interface AISuggestion {
+  type: 'warning' | 'suggestion' | 'info';
+  message: string;
+  field?: string; // 相关的字段（如 'start_date', 'end_date'）
+}
+
+/** AI 优化计划请求 */
+export interface AIOptimizePlanRequest {
+  title: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  user_context?: string; // 可选的用户上下文信息
+}
+
+/** AI 推荐任务（包含时间/重复/描述） */
+export interface AIRecommendedTask {
+  title: string;
+  task_date?: string;
+  start_time?: string; // HH:MM
+  end_time?: string;   // HH:MM
+  note?: string;       // 描述/备注
+  repeat_type?: TaskRepeatType;
+  repeat_end_date?: string;
+}
+
+/** AI 优化计划响应 */
+export interface AIOptimizePlanResponse {
+  suggestions: AISuggestion[];
+  optimized_plan?: {
+    title?: string;
+    description?: string;
+    start_date?: string;
+    end_date?: string;
+    recommended_tasks?: AIRecommendedTask[]; // 推荐的任务列表（含时间/重复/描述）
+  };
+  reasoning?: string; // AI 的推理过程说明
 }
 
 /** 创建日程请求 */
@@ -106,6 +148,8 @@ export interface CreateTaskPayload {
   user_id: number;
   title: string;
   task_date: string;      // 格式: YYYY-MM-DD
+  start_time?: string;    // HH:MM
+  end_time?: string;      // HH:MM
   status?: TaskStatus;    // 默认为 pending
   note?: string;
   repeat_type?: TaskRepeatType; // 重复类型
@@ -116,6 +160,8 @@ export interface CreateTaskPayload {
 export interface UpdateTaskPayload {
   title?: string;
   task_date?: string;
+  start_time?: string;
+  end_time?: string;
   status?: TaskStatus;
   note?: string;
   repeat_type?: TaskRepeatType;
@@ -172,4 +218,8 @@ export interface APIInterface {
   updateSchedule(id: number, payload: UpdateSchedulePayload): Promise<ScheduleItem>;
   /** 删除日程 */
   deleteSchedule(id: number): Promise<{ success: boolean }>;
+
+  // ========== AI 功能 ==========
+  /** AI 优化计划建议 */
+  optimizePlanWithAI?(request: AIOptimizePlanRequest): Promise<AIOptimizePlanResponse>;
 }

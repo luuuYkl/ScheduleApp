@@ -1,5 +1,5 @@
 <template>
-  <div class="page card" style="max-width:640px;margin:0 auto;">
+  <div class="page card" style="max-width:640px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;">
     <h1>编辑计划</h1>
     <p class="text-gray">当前计划 ID：{{ planId }}</p>
 

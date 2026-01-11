@@ -2,9 +2,6 @@
   <div class="profile-page card" style="max-width:560px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;">
     <div class="header-row">
       <h2>个人中心</h2>
-      <button class="mini-btn" @click="toggleTheme" :title="`切换到${theme==='light'?'暗色':'浅色'}主题`">
-        {{ theme === 'light' ? '🌙 暗色' : '☀️ 浅色' }}
-      </button>
     </div>
     <div class="avatar-box">
       <img :src="avatarUrl" class="avatar" alt="用户头像" />
@@ -56,22 +53,6 @@ const avatarUrl = computed(() =>
     ? `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(user.value.username)}`
     : 'https://api.dicebear.com/7.x/identicon/svg?seed=default'
 );
-
-// 主题切换
-const theme = ref(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
-function applyTheme() {
-  const root = document.documentElement;
-  if (theme.value === 'dark') {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
-  localStorage.setItem('theme', theme.value);
-}
-function toggleTheme() {
-  theme.value = theme.value === 'light' ? 'dark' : 'light';
-  applyTheme();
-}
 
 // 统计相关
 const planStore = usePlanStore();

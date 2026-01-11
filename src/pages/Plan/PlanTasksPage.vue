@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page plan-tasks-page">
     <h1 class="mb-4">计划 #{{ planId }} 的任务</h1>
 
     <!-- 新增:任务添加表单 -->
@@ -58,34 +58,11 @@
 
     <!-- 任务列表 -->
     <div class="card">
-      <h3>任务列表</h3>
+      <h3 class="section-title">任务列表</h3>
       <ul v-if="list.length" class="list">
         <li v-for="t in list" :key="t.id" class="item">
-          <div class="left">
-              <input 
-                type="checkbox" 
-                :checked="t._isGrouped ? t._displayStatus === 'done' : t.status === 'done'" 
-                @change="toggle(t)" 
-              />
-            <div class="info">
-              <strong>{{ t.title }}</strong>
-                <span v-if="t._isGrouped" class="repeat-badge">
-                {{ t.repeat_type === 'daily' ? '📅 每日' : '📆 每月' }}
-                  ({{ t._doneCount }}/{{ t._totalCount }})
-              </span>
-                <small v-if="t._isGrouped">{{ t._dateRange }}</small>
-                <small v-else>{{ t.task_date }} · {{ t.status }}</small>
-              <small v-if="t.note" class="note">{{ t.note }}</small>
-            </div>
-          </div>
-
-          <div class="ops" v-if="editingId !== t.id">
-            <button class="secondary" @click="startEdit(t)">编辑</button>
-              <button class="danger" @click="remove(t)">删除</button>
-          </div>
-
-          <!-- 行内编辑态 -->
-          <div class="edit" v-else>
+          <!-- 编辑态：完整表单 -->
+          <div v-if="editingId === t.id" class="edit-mode">
             <input v-model="edit.title" type="text" placeholder="标题" />
             <input 
               v-model="edit.task_date" 
@@ -107,12 +84,82 @@
               :max="planEndDate"
               placeholder="结束日期"
             />
-            <button class="primary" @click="saveEdit">保存</button>
-            <button @click="cancelEdit">取消</button>
+            <div class="edit-actions">
+              <button class="primary" @click="saveEdit">保存</button>
+              <button class="secondary" @click="cancelEdit">取消</button>
+            </div>
           </div>
+
+          <!-- 展示态：5层信息结构 -->
+          <template v-else>
+            <!-- 左列：日期 -->
+            <div class="time-col">
+              <span v-if="t._isGrouped">{{ formatDate(t.task_date) }}</span>
+              <span v-else>{{ formatDate(t.task_date) }}</span>
+            </div>
+
+            <!-- 右列：内容 -->
+            <div class="content-col">
+              <!-- 第一行：勾选 + 状态圆点 + 标题 -->
+              <div class="row title-row">
+                <input 
+                  type="checkbox" 
+                  class="checkbox"
+                  :checked="t._isGrouped ? t._displayStatus === 'done' : t.status === 'done'" 
+                  @change="toggle(t)" 
+                />
+                <span 
+                  class="status-dot" 
+                  :class="t._isGrouped ? t._displayStatus : t.status"
+                ></span>
+                <span 
+                  class="title" 
+                  :class="{ completed: t._isGrouped ? t._displayStatus === 'done' : t.status === 'done' }"
+                >
+                  {{ t.title }}
+                </span>
+              </div>
+
+              <!-- 第二行：副信息 -->
+              <div class="row meta">
+                <span v-if="t._isGrouped">
+                  {{ t.repeat_type === 'daily' ? '📅 每日重复' : '📆 每月重复' }}
+                </span>
+                <span v-if="t._isGrouped">
+                  · {{ t._dateRange }}
+                </span>
+                <span v-if="t.note">
+                  · {{ t.note }}
+                </span>
+              </div>
+
+              <!-- 第三行：标签与操作 -->
+              <div class="row tags">
+                <span v-if="t._isGrouped" class="tag progress-tag">
+                  {{ t._doneCount }}/{{ t._totalCount }} 已完成
+                </span>
+                <span 
+                  v-else 
+                  class="tag" 
+                  :class="t.status"
+                >
+                  {{ statusLabel(t.status) }}
+                </span>
+                <span 
+                  v-if="t.repeat_type && t.repeat_type !== 'none'" 
+                  class="tag repeat-tag"
+                >
+                  {{ t.repeat_type === 'daily' ? '每日' : '每月' }}
+                </span>
+                <div class="spacer"></div>
+                <button class="op-btn edit-btn" @click="startEdit(t)">编辑</button>
+                <button class="op-btn delete-btn" @click="remove(t)">删除</button>
+              </div>
+            </div>
+          </template>
         </li>
       </ul>
-      <p v-else class="text-gray">暂无任务，先添加一个吧～</p>
+      <p v-else class="empty">暂无任务，先添加一个吧～</p>
     </div>
   </div>
 </template>
@@ -301,6 +348,24 @@ const edit = reactive({
   repeat_end_date: ""
 });
 
+// 辅助函数
+function formatDate(dateStr: string): string {
+  const today = new Date().toISOString().slice(0, 10);
+  if (dateStr === today) return '今天';
+  const d = new Date(dateStr + 'T00:00:00');
+  const todayDate = new Date(today + 'T00:00:00');
+  const diff = Math.floor((d.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 1) return '明天';
+  if (diff === -1) return '昨天';
+  return dateStr.slice(5); // MM-DD
+}
+
+function statusLabel(status: string): string {
+  if (status === 'done') return '✔ 已完成';
+  if (status === 'missed') return '⚠ 逾期';
+  return '○ 未开始';
+}
+
 function startEdit(t: any) {
   editingId.value = t.id;
   edit.id = t.id;
@@ -335,88 +400,318 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.plan-tasks-page {
+  padding-top: calc(var(--header-height, 64px) + 1rem);
+  padding-bottom: calc(var(--footer-height, 64px) + 1rem);
+  padding-left: 1rem;
+  padding-right: 1rem;
+  min-height: 100vh;
 }
-.item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-}
+
+/* 添加表单 */
 .add-form {
   margin-top: 1rem;
 }
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr auto 1fr auto;
   gap: 0.75rem;
   align-items: start;
 }
+
 .repeat-row {
   grid-template-columns: 1fr 1fr auto;
   margin-top: 0.75rem;
   align-items: end;
 }
+
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
+
 .field label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-gray);
+  color: var(--text-secondary);
 }
-.repeat-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
-  margin-left: 0.5rem;
-  background: var(--color-primary-light, #eaf2fe);
-  color: var(--color-primary);
-  border-radius: 12px;
+
+/* 任务列表 - 5层信息结构 */
+.section-title {
+  font-size: 16px;
   font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 1rem;
 }
-.edit {
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 列表项两列网格：左时间（固定宽），右内容 */
+.item {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  column-gap: 12px;
+  padding: 12px 0;
+}
+
+.item + .item {
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* 编辑模式：占据全宽 */
+.edit-mode {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--border-main);
+}
+
+.edit-mode input,
+.edit-mode select {
+  width: 100%;
+}
+
+.edit-actions {
   display: flex;
   gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* 时间/日期列：左对齐，等宽数字，弱颜色 */
+.time-col {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* 内容列 */
+.content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-row {
+  gap: 8px;
+}
+
+/* 勾选框 */
+.checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* 状态圆点 */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.status-dot.pending {
+  background: var(--warning);
+}
+
+.status-dot.done {
+  background: var(--success);
+}
+
+.status-dot.missed {
+  background: var(--error);
+}
+
+.status-dot.partial {
+  background: var(--info);
+}
+
+/* 标题：视觉中心 */
+.title {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.2;
+  overflow: hidden;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.title.completed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* 副信息：影响决策的内容 */
+.meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  gap: 6px;
   flex-wrap: wrap;
+}
+
+/* 标签：辅助感知 */
+.tags {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background: rgba(99, 102, 241, 0.08);
+  color: #6366F1;
+  font-size: 11px;
+  border-radius: 6px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.tag.done {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.tag.pending {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.tag.missed {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.tag.repeat-tag {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+}
+
+.tag.progress-tag {
+  background: var(--info-bg);
+  color: var(--info);
+  font-weight: 500;
+}
+
+.spacer {
   flex: 1;
 }
-.edit input, .edit select {
-  flex: 1;
-  min-width: 120px;
+
+/* 操作按钮 */
+.op-btn {
+  background: transparent;
+  border: 1px solid var(--border-main);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
-@media (max-width: 640px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  .repeat-row {
-    grid-template-columns: 1fr;
-  }
-  .edit {
-    flex-direction: column;
-  }
-  .edit input, .edit select {
-    width: 100%;
-  }
+
+.op-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-main);
 }
-.note { color: var(--color-gray); display:block; margin-top:2px; }
+
+.delete-btn:hover {
+  background: var(--error-bg);
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* 空状态 */
+.empty {
+  color: var(--text-muted);
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* 按钮样式 */
 .primary {
-  background: var(--color-primary);
+  background: var(--ai-main);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
 }
+
+.primary:hover {
+  background: var(--ai-light);
+}
+
 .primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.secondary {
+  background: transparent;
+  border: 1px solid var(--border-main);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.secondary:hover {
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .repeat-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .item {
+    grid-template-columns: 48px 1fr;
+    column-gap: 8px;
+  }
+  
+  .time-col {
+    font-size: 11px;
+  }
+  
+  .title {
+    font-size: 13px;
+  }
+  
+  .meta {
+    font-size: 11px;
+  }
 }
 </style>

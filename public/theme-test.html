@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>主题测试</title>
+  <style>
+    :root {
+      --bg-main: #0E1117;
+      --text-main: #E5E7EB;
+    }
+    
+    [data-theme="dark"] {
+      --bg-main: #0E1117;
+      --text-main: #E5E7EB;
+    }
+    
+    [data-theme="light"] {
+      --bg-main: #F8FAFC;
+      --text-main: #0F172A;
+    }
+    
+    body {
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: system-ui, sans-serif;
+      padding: 2rem;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+    
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>主题切换测试</h1>
+  <p>当前主题: <span id="current-theme">dark</span></p>
+  <p>背景色: <span id="bg-color"></span></p>
+  <p>文字色: <span id="text-color"></span></p>
+  
+  <button onclick="toggleTheme()">切换主题</button>
+  <button onclick="setDark()">设为暗色</button>
+  <button onclick="setLight()">设为浅色</button>
+  
+  <script>
+    function updateDisplay() {
+      const theme = document.documentElement.getAttribute('data-theme');
+      const bgColor = getComputedStyle(document.body).backgroundColor;
+      const textColor = getComputedStyle(document.body).color;
+      
+      document.getElementById('current-theme').textContent = theme;
+      document.getElementById('bg-color').textContent = bgColor;
+      document.getElementById('text-color').textContent = textColor;
+      
+      console.log('Theme:', theme);
+      console.log('BG:', bgColor);
+      console.log('Text:', textColor);
+    }
+    
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const newTheme = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      updateDisplay();
+    }
+    
+    function setDark() {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      updateDisplay();
+    }
+    
+    function setLight() {
+      document.documentElement.setAttribute('data-theme', 'light');
+      updateDisplay();
+    }
+    
+    updateDisplay();
+  </script>
+</body>
+</html>

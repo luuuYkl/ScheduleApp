@@ -3,30 +3,19 @@
     <div class="page-container">
       <!-- 页面头部 -->
       <header class="page-header">
-        <div class="header-content">
-          <div class="header-actions">
-            <button class="modern-btn btn-primary" @click="generateLog" :disabled="generating">
-              <svg v-if="!generating" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <div v-else class="btn-spinner">
-                <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"/>
-                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                </svg>
-              </div>
-              {{ generating ? '生成中...' : '生成今日日志' }}
-            </button>
-            <button class="modern-btn btn-secondary" @click="refreshLogs" :disabled="loading">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M21 12a9 9 0 11-6.219-8.56" stroke="currentColor" stroke-width="2" fill="none"/>
-                <path d="M15 4v4h4" stroke="currentColor" stroke-width="2" fill="none"/>
-              </svg>
-              刷新
-            </button>
-          </div>
-        </div>
+        <div class="header-content"></div>
       </header>
+
+      <!-- AI 复盘面板 -->
+      <section class="ai-review-section">
+        <div class="section-title">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+          </svg>
+          AI 智能复盘
+        </div>
+        <AIReviewPanel />
+      </section>
 
       <!-- 日志列表 -->
       <main class="log-content">
@@ -72,10 +61,6 @@
             </svg>
           </div>
           <h3>暂无日志记录</h3>
-          <p>完成今天的任务后，点击"生成今日日志"按钮创建您的第一条日志</p>
-          <button class="modern-btn btn-primary" @click="generateLog" :disabled="generating">
-            {{ generating ? '生成中...' : '立即生成' }}
-          </button>
         </div>
       </main>
     </div>
@@ -86,16 +71,15 @@
 import { onMounted, computed, ref } from "vue";
 import { useLogStore } from "@/store/log";
 import { useUserStore } from "@/store/user";
-import { useTaskStore } from "@/store/tasks";
 import type { LogEntry } from "@/services/generate-log";
+import AIReviewPanel from "@/components/log/AIReviewPanel.vue";
 
 const logStore = useLogStore();
 const userStore = useUserStore();
-const taskStore = useTaskStore();
 
 const logs = computed(() => logStore.logs);
 const loading = ref(false);
-const generating = ref(false);
+// 仅保留自动加载与 AI 复盘功能
 
 // 格式化日期
 function formatDate(dateStr: string): string {
@@ -128,51 +112,7 @@ function getCompletionClass(log: LogEntry): string {
   return 'low';
 }
 
-// 刷新日志
-async function refreshLogs() {
-  loading.value = true;
-  try {
-    const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
-    await logStore.loadLogs(userId);
-  } catch (e) {
-    console.error("刷新日志失败:", e);
-  } finally {
-    loading.value = false;
-  }
-}
-
-// 手动生成今日日志
-async function generateLog() {
-  generating.value = true;
-  try {
-    const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
-    
-    // 加载所有任务
-    await taskStore.loadTasks();
-    
-    // 获取今天的任务
-    const today = new Date().toISOString().slice(0, 10);
-    const todayTasks = taskStore.tasks.filter(t => t.task_date === today);
-    
-    if (todayTasks.length === 0) {
-      alert("今天还没有任务，请先创建一些任务");
-      return;
-    }
-    
-    // 生成日志
-    await logStore.generateTodayLog(userId, todayTasks);
-    
-    // 刷新日志列表
-    await logStore.loadLogs(userId);
-    
-    console.log("✅ 日志生成成功！");
-  } catch (e: any) {
-    console.error("生成日志失败:", e);
-    alert(e?.message || "生成日志失败，请重试");
-  } finally {
-    generating.value = false;
-  }
-}
+// 移除手动生成与刷新操作，保留自动加载
 
 onMounted(async () => {
   loading.value = true;
@@ -371,6 +311,30 @@ onMounted(async () => {
 .log-time {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+/* ============ AI 复盘面板 ============ */
+.ai-review-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 1.25rem 0;
+}
+
+.section-title svg {
+  color: var(--ai-main);
 }
 
 /* ============ 加载状态 ============ */
