@@ -10,16 +10,6 @@
           <div class="user-info" v-if="user">
             <span class="username">{{ user.username }}</span>
           </div>
-          <!-- 主题切换按钮 -->
-          <button 
-            class="theme-toggle"
-            @click="userStore.toggleTheme()"
-            :title="`切换到${userStore.theme === 'dark' ? '浅色' : '暗色'}模式`"
-            aria-label="切换主题"
-          >
-            <span class="icon" v-if="userStore.theme === 'dark'">☀️</span>
-            <span class="icon" v-else>🌙</span>
-          </button>
           <img
             v-if="user?.username"
             :src="avatarUrl"
@@ -189,41 +179,6 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
   transform: translateY(-2px);
   border-color: var(--ai-light);
-}
-
-/* 主题切换按钮 */
-.theme-toggle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: transparent;
-  border: 1px solid var(--border-main);
-  color: var(--text-main);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: background-color 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-  flex-shrink: 0;
-}
-
-.theme-toggle:hover {
-  background: var(--bg-card);
-  border-color: var(--ai-main);
-  box-shadow: 0 0 0 4px var(--ai-bg);
-  transform: rotate(20deg);
-}
-
-.theme-toggle:active {
-  transform: rotate(20deg) scale(0.95);
-}
-
-.theme-toggle .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
 }
 
 /* 主内容偏移，避免被固定 header 遮挡 */
