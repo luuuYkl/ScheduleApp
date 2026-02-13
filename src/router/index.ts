@@ -35,7 +35,7 @@ router.beforeEach(async (to, from) => {
   try {
     const store = useUserStore();
 
-    // 尝试恢复用户信息（从 localStorage 或后端）
+    // 尝试恢复用户信息（从安全存储或后端）
     try {
       await store.restore();
     } catch (e) {
@@ -43,7 +43,7 @@ router.beforeEach(async (to, from) => {
       console.warn("[ROUTER] user restore failed:", e);
     }
 
-    const token = store.token ?? localStorage.getItem("token");
+    const token = store.token;
     const user = store.user;
 
     // 调试输出：路由目标 / token / user 状态

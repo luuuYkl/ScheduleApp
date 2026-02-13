@@ -1,0 +1,22 @@
+name: migration-doc-lint
+
+on:
+  pull_request:
+    paths:
+      - 'docs/migration/**'
+      - 'mobile/**'
+      - '.github/workflows/migration-doc-lint.yml'
+      - 'scripts/migration/**'
+      - 'docs/ANDROID_HARMONY_NEXT_MIGRATION_PLAN.md'
+
+jobs:
+  migration-baseline-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify migration baseline artifacts
+        run: bash scripts/migration/verify-migration-baseline.sh
+      - name: Generate phase1 status report
+        run: bash scripts/migration/generate-phase1-report.sh
+      - name: Validate runtime auth path
+        run: bash scripts/migration/validate-runtime-auth-path.sh

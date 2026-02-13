@@ -101,7 +101,7 @@ watch(() => userStore.theme, (newTheme) => {
 
 // 调试输出：在应用启动时打印本地存储的 token/user
 // eslint-disable-next-line no-console
-console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:", localStorage.getItem("user"));
+console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
 </script>
 
 <style scoped>
