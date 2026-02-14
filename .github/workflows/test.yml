@@ -1,0 +1,160 @@
+# .github/workflows/test.yml
+# CI/CD测试门禁配置
+
+name: Test Gate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ScheduleApp/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ScheduleApp
+      run: npm ci
+      
+    - name: Type checking
+      working-directory: ScheduleApp
+      run: npm run build
+      
+    - name: Run unit tests
+      working-directory: ScheduleApp
+      run: npm run test
+      
+    - name: Generate coverage report
+      working-directory: ScheduleApp
+      run: npm run coverage
+      
+    - name: Check test coverage threshold
+      working-directory: ScheduleApp
+      run: |
+        # 检查覆盖率是否达到最低要求 (70%)
+        COVERAGE_FILE="./coverage/coverage-summary.json"
+        if [ -f "$COVERAGE_FILE" ]; then
+          TOTAL_COVERAGE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$COVERAGE_FILE')).total.lines.pct)")
+          echo "Total coverage: $TOTAL_COVERAGE%"
+          if (( $(echo "$TOTAL_COVERAGE < 70" | bc -l) )); then
+            echo "Coverage below threshold of 70%"
+            exit 1
+          fi
+        else
+          echo "Coverage file not found"
+          exit 1
+        fi
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./ScheduleApp/coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+      continue-on-error: true
+      
+    - name: Security audit
+      working-directory: ScheduleApp
+      run: npm audit --audit-level=high
+      
+    - name: Save test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.node-version }}
+        path: |
+          ScheduleApp/coverage/
+          ScheduleApp/test-results/
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: ScheduleApp/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ScheduleApp
+      run: npm ci
+      
+    - name: Run ESLint
+      working-directory: ScheduleApp
+      run: npx eslint . --ext .ts,.vue
+      
+    - name: Run Prettier check
+      working-directory: ScheduleApp
+      run: npx prettier --check "src/**/*.{ts,vue}"
+      
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: ScheduleApp/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ScheduleApp
+      run: npm ci
+      
+    - name: Production build
+      working-directory: ScheduleApp
+      run: npm run build
+      
+    - name: Save build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: production-build
+        path: ScheduleApp/dist/
+
+  quality-gate:
+    runs-on: ubuntu-latest
+    needs: [test, lint, build]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Quality gate check
+      run: |
+        echo "✅ All quality checks passed!"
+        echo "🚀 Ready for deployment"
+        
+    - name: Create release (main branch only)
+      if: github.ref == 'refs/heads/main'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        draft: false
+        prerelease: false

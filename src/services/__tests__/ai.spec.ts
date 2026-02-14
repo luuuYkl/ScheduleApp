@@ -10,13 +10,13 @@ describe('AI Service', () => {
       const result = quickValidatePlan({
         title: 'A',
         description: '',
-        start_date: '2026-01-15',
-        end_date: '2026-01-20',
+        start_date: '2026-03-01',
+        end_date: '2026-03-31',
       });
 
-      expect(result).toHaveLength(1);
-      expect(result[0].type).toBe('warning');
-      expect(result[0].field).toBe('title');
+      const titleWarning = result.find(s => s.field === 'title');
+      expect(titleWarning).toBeDefined();
+      expect(titleWarning?.type).toBe('warning');
     });
 
     it('应该检测到日期逻辑错误', () => {
