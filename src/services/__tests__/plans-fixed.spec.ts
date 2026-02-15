@@ -109,16 +109,16 @@ describe('计划创建校验测试（修复版）', () => {
 
   describe('重复任务生成测试', () => {
     it('应该为每日重复生成正确的任务', () => {
-      const plan = {
-        id: 1,
+      const basePayload: CreateTaskPayload = {
+        plan_id: 1,
         user_id: 1,
         title: '每日学习',
-        start_date: getRelativeDate(0),
-        end_date: getRelativeDate(2),
-        frequency: 'daily'
-      } as Plan;
+        task_date: getRelativeDate(0),
+        repeat_type: 'daily',
+        repeat_end_date: getRelativeDate(2)
+      };
 
-      const payloads = generateRepeatTaskPayloads(plan);
+      const payloads = generateRepeatTaskPayloads(basePayload);
 
       expect(payloads).toHaveLength(3); // 包含起始日
       expect(payloads[0].task_date).toBe(getRelativeDate(0));
@@ -127,16 +127,16 @@ describe('计划创建校验测试（修复版）', () => {
     });
 
     it('应该为月度重复生成正确的任务', () => {
-      const plan = {
-        id: 1,
+      const basePayload: CreateTaskPayload = {
+        plan_id: 1,
         user_id: 1,
         title: '月度总结',
-        start_date: getRelativeDate(0),
-        end_date: getRelativeDate(60), // 约2个月
-        frequency: 'monthly'
-      } as Plan;
+        task_date: getRelativeDate(0),
+        repeat_type: 'monthly',
+        repeat_end_date: getRelativeDate(60) // 约2个月
+      };
 
-      const payloads = generateRepeatTaskPayloads(plan);
+      const payloads = generateRepeatTaskPayloads(basePayload);
 
       expect(payloads).toHaveLength(3); // 起始月 + 2个月
       expect(payloads[0].task_date).toBe(getRelativeDate(0));
@@ -144,16 +144,15 @@ describe('计划创建校验测试（修复版）', () => {
     });
 
     it('应该处理没有重复的情况', () => {
-      const plan = {
-        id: 1,
+      const basePayload: CreateTaskPayload = {
+        plan_id: 1,
         user_id: 1,
         title: '单次活动',
-        start_date: getRelativeDate(5),
-        end_date: getRelativeDate(5),
-        frequency: 'none'
-      } as Plan;
+        task_date: getRelativeDate(5),
+        repeat_type: 'none'
+      };
 
-      const payloads = generateRepeatTaskPayloads(plan);
+      const payloads = generateRepeatTaskPayloads(basePayload);
 
       expect(payloads).toHaveLength(1);
       expect(payloads[0].task_date).toBe(getRelativeDate(5));

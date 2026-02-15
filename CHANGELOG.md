@@ -197,6 +197,12 @@
   - 添加类型安全验证测试
   - 完善类型约束和编译时检查
 
+- 修复plans-fixed.spec.ts类型错误 (#FIX-001)
+  - 修正测试数据类型从Plan到CreateTaskPayload
+  - 解决generateRepeatTaskPayloads参数类型不匹配问题
+  - 统一测试数据结构与函数接口
+  - 确保TypeScript类型检查通过
+
 ## 下一步计划
 
 - [ ] 添加计划归档功能
