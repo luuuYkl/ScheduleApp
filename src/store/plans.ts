@@ -17,29 +17,43 @@ export const usePlanStore = defineStore("plans", () => {
   // ========== 状态 ==========
   
   /** 计划列表 */
-  const plans = ref<any[]>([]);
+  const plans = ref<Plan[]>([]);
   
   /** 任务列表（可按计划ID过滤） */
-  const tasks = ref<any[]>([]);
+  const tasks = ref<Task[]>([]);
 
   // ========== 计划管理 ==========
 
   /**
    * 加载所有计划
    * 从后端获取并替换本地缓存
+   * @returns 计划列表
    */
   async function loadPlans() {
     plans.value = await API.fetchPlans();
+    return plans.value;
   }
 
   /**
    * 创建新计划
    * @param planData 计划数据
    * @returns 创建的计划对象
+   * @note 如果返回的计划ID已存在，则更新现有计划而非新增
    */
-  async function createPlan(planData: any) {
+  async function createPlan(planData: Partial<Plan>) {
     const newPlan = await API.addPlan(planData);
-    plans.value.push(newPlan);
+    
+    // 检查是否已存在相同ID的计划
+    const existingIndex = plans.value.findIndex(p => p.id === newPlan.id);
+    
+    if (existingIndex !== -1) {
+      // ID已存在，更新现有计划
+      plans.value[existingIndex] = newPlan;
+    } else {
+      // 新增计划
+      plans.value.push(newPlan);
+    }
+    
     return newPlan;
   }
 

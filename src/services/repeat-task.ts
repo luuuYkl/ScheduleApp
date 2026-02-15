@@ -36,7 +36,17 @@ export function generateRepeatDates(
     if (repeatType === "daily") {
       current.setDate(current.getDate() + 1);
     } else if (repeatType === "monthly") {
+      // 修复月度重复任务日期计算缺陷
+      // 使用"目标月份 + 原始 day 上限裁剪"策略
+      const anchorDay = current.getDate(); // 记住原始日期
       current.setMonth(current.getMonth() + 1);
+      
+      // 获取目标月份的最后一天
+      const lastDayOfMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+      
+      // 取较小值，避免超出月份范围
+      const targetDay = Math.min(anchorDay, lastDayOfMonth);
+      current.setDate(targetDay);
     } else {
       break;
     }

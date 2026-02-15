@@ -11,13 +11,25 @@ describe('计划创建校验测试', () => {
     localStorage.clear();
   });
 
+  // 在文件顶部添加工具函数
+  const getRelativeDate = (daysFromToday: number = 0): string => {
+    const date = new Date();
+    date.setDate(date.getDate() + daysFromToday);
+    return date.toISOString().split('T')[0];
+  };
+
   describe('计划数据格式验证', () => {
     it('应该验证必需字段', () => {
+      const today = new Date().toISOString().split('T')[0];
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 30);
+      const endDateString = endDate.toISOString().split('T')[0];
+      
       const validPlan = {
         user_id: 1,
         title: '学习计划',
-        start_date: '2024-01-01',
-        end_date: '2024-01-31'
+        start_date: today,
+        end_date: endDateString
       };
 
       expect(validPlan.title).toBeTruthy();
@@ -29,8 +41,8 @@ describe('计划创建校验测试', () => {
       const invalidPlan = {
         user_id: 1,
         title: '',
-        start_date: '2024-01-01',
-        end_date: '2024-01-31'
+        start_date: getRelativeDate(0),
+        end_date: getRelativeDate(30)
       };
 
       expect(invalidPlan.title).toBeFalsy();
@@ -104,14 +116,18 @@ describe('计划创建校验测试', () => {
     });
 
     it('应该允许合理的长期计划', () => {
+      // 使用相对时间窗口避免时间漂移
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+      
       const futureDate = new Date();
-      futureDate.setFullYear(futureDate.getFullYear() + 1); // 1年后
+      futureDate.setFullYear(today.getFullYear() + 1); // 从今天起1年后
       const futureDateString = futureDate.toISOString().split('T')[0];
 
       const planWithReasonableFutureDate = {
         user_id: 1,
         title: '年度计划',
-        start_date: '2024-01-01',
+        start_date: todayString,
         end_date: futureDateString
       };
 
@@ -280,7 +296,7 @@ describe('计划创建校验测试', () => {
       expect(payloads).toHaveLength(3); // 1月、2月、3月各一次
       expect(payloads[0].task_date).toBe('2024-01-31');
       expect(payloads[1].task_date).toBe('2024-02-29'); // 2024年2月有29天（闰年）
-      expect(payloads[2].task_date).toBe('2024-03-29'); // 2月29日+1个月=3月29日
+      expect(payloads[2].task_date).toBe('2024-03-31'); // 修复后：31日是3月的有效日期
     });
 
     it('应该处理没有重复的情况', () => {

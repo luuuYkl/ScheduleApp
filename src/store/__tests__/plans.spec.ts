@@ -461,6 +461,8 @@ describe('计划Store测试', () => {
         planStore.loadTasks()
       ]);
 
+      // 修复后：plans应该返回计划数组，不再为undefined
+      expect(plans).toBeDefined();
       expect(plans).toHaveLength(1);
       expect(tasks).toHaveLength(1);
       expect(planStore.plans).toHaveLength(1);
