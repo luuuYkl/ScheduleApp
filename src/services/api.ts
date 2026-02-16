@@ -11,6 +11,7 @@ import type {
   CreateTaskPayload, UpdateTaskPayload,
   ScheduleItem, CreateSchedulePayload, UpdateSchedulePayload
 } from "./api.types";
+import { removeSecureAuthValue, setSecureAuthJson, setSecureAuthValue } from "@/services/secure-storage";
 
 // ================================
 // Mock 数据存储（内存中的假数据）
@@ -380,31 +381,31 @@ export const API: APIInterface = APP_CONFIG.USE_MOCK_API ? mockAPI : backendAPI;
 
 /**
  * 登录助手
- * 自动将 token 和用户信息存储到 localStorage
+ * 自动将 token 和用户信息存储到安全存储
  */
 export async function login(username: string, password: string) {
   const user = await API.login(username, password);
-  if (user?.token) localStorage.setItem("token", user.token);
-  localStorage.setItem("user", JSON.stringify(user));
+  if (user?.token) await setSecureAuthValue("token", user.token);
+  await setSecureAuthJson("user", user);
   return user;
 }
 
 /**
  * 注册助手
- * 自动将 token 和用户信息存储到 localStorage
+ * 自动将 token 和用户信息存储到安全存储
  */
 export async function register(payload: { username: string; email?: string; password: string }) {
   const user = await API.register(payload);
-  if (user?.token) localStorage.setItem("token", user.token);
-  localStorage.setItem("user", JSON.stringify(user));
+  if (user?.token) await setSecureAuthValue("token", user.token);
+  await setSecureAuthJson("user", user);
   return user;
 }
 
 /**
  * 登出助手
- * 清除本地存储的认证信息
+ * 清除安全存储中的认证信息
  */
-export function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+export async function logout() {
+  await removeSecureAuthValue("token");
+  await removeSecureAuthValue("user");
 }
