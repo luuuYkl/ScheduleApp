@@ -1,0 +1,471 @@
+/* ========================================
+   🎨 Components Styles - 组件样式系统
+   ======================================== */
+
+/* ========================================
+   🎴 Card 组件
+   ======================================== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  transition: 
+    background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+  box-shadow: var(--shadow-xs);
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-main);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.card--elevated {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-main);
+  box-shadow: var(--shadow-md);
+}
+
+/* AI 卡片特殊样式 */
+.card--ai {
+  position: relative;
+  border-left: 3px solid var(--ai-main);
+  background: var(--ai-bg);
+  border-color: var(--ai-border);
+}
+
+.card--ai::before {
+  content: '✨';
+  position: absolute;
+  left: var(--space-2);
+  top: var(--space-4);
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+/* ========================================
+   🔘 Button 组件
+   ======================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 
+    background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+  outline: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:focus-visible {
+  box-shadow: 0 0 0 3px var(--ring-color);
+}
+
+/* 主要按钮 */
+.btn--primary {
+  background: var(--ai-main);
+  color: white;
+  border-color: var(--ai-main);
+}
+
+.btn--primary:hover {
+  background: var(--ai-dark);
+  border-color: var(--ai-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--primary:active {
+  transform: translateY(0);
+}
+
+.btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 次要按钮 */
+.btn--secondary {
+  background: transparent;
+  color: var(--text-main);
+  border-color: var(--border-main);
+}
+
+.btn--secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-emphasis);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
+}
+
+/* 幽灵按钮 */
+.btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.btn--ghost:hover {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-color: var(--border-main);
+}
+
+/* 危险按钮 */
+.btn--danger {
+  background: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+
+.btn--danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 小按钮 */
+.btn--sm {
+  height: 32px;
+  padding: 0 var(--space-3);
+  font-size: 13px;
+}
+
+/* 大按钮 */
+.btn--lg {
+  height: 48px;
+  padding: 0 var(--space-6);
+  font-size: 16px;
+}
+
+/* ========================================
+   📝 Input 组件
+   ======================================== */
+.input,
+select,
+textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--bg-input);
+  color: var(--text-main);
+  transition: 
+    border-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard),
+    background-color var(--dur-fast) var(--ease-standard);
+}
+
+.input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--border-main);
+  background: var(--bg-card);
+}
+
+.input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--ai-main);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px var(--ai-bg);
+}
+
+.input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* 只读状态 */
+.input:read-only,
+textarea:read-only {
+  background: var(--bg-main);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.input:read-only:hover {
+  border-color: var(--border-subtle);
+  background: var(--bg-main);
+}
+
+/* ========================================
+   🎯 Navigation 组件
+   ======================================== */
+
+/* 通用导航项样式 */
+.nav-item {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: 
+    color var(--dur-fast) var(--ease-standard),
+    background-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  min-height: 40px;
+  outline: none;
+}
+
+.nav-item:hover {
+  color: var(--text-main);
+  background: var(--bg-card-hover);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--ai-main);
+  outline-offset: 2px;
+}
+
+/* 激活态样式 */
+.nav-item.router-link-active,
+.nav-item.active {
+  color: var(--ai-main);
+  background: var(--ai-bg);
+}
+
+.nav-item.router-link-active:hover,
+.nav-item.active:hover {
+  background: var(--ai-bg);
+}
+
+/* 图标样式 */
+.nav-icon {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+  margin-right: var(--space-2);
+}
+
+/* 顶部导航 */
+.nav-top {
+  position: sticky;
+  top: 0;
+  height: var(--header-height);
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border-main);
+  backdrop-filter: var(--backdrop-blur);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+}
+
+/* 底部导航 */
+.nav-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-nav-height);
+  background: var(--bg-main);
+  border-top: 1px solid var(--border-main);
+  backdrop-filter: var(--backdrop-blur);
+  z-index: var(--z-fixed);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 var(--space-2);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* 底部导航项特殊样式 */
+.nav-bottom .nav-item {
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  font-size: 12px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.nav-bottom .nav-item.router-link-active,
+.nav-bottom .nav-item.active {
+  box-shadow: inset 0 -2px 0 var(--ai-main);
+}
+
+/* 侧边栏导航 */
+.nav-sidebar {
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-main);
+  padding: var(--space-4) 0;
+  width: 220px;
+}
+
+.nav-sidebar .nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.nav-sidebar .nav-item.router-link-active,
+.nav-sidebar .nav-item.active {
+  box-shadow: inset 3px 0 0 var(--ai-main);
+}
+
+.nav-sidebar .nav-icon {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+  margin-right: 0;
+}
+
+/* 导航标签 */
+.nav-label {
+  margin-top: 2px;
+}
+
+/* ========================================
+   🏷️ Badge & Tag 组件
+   ======================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.badge--primary {
+  background: var(--ai-bg);
+  color: var(--ai-soft);
+  border: 1px solid var(--ai-border);
+}
+
+.badge--success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+.badge--warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+}
+
+.badge--error {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid var(--error-border);
+}
+
+/* ========================================
+   📊 Timeline 组件
+   ======================================== */
+.timeline {
+  position: relative;
+  padding-left: var(--space-6);
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-main);
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: var(--space-6);
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -32px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  border: 2px solid var(--bg-main);
+  box-shadow: 0 0 0 1px var(--border-main);
+}
+
+/* AI 时间线节点 */
+.timeline-item--ai::before {
+  background: var(--ai-main);
+  box-shadow: 
+    0 0 0 2px var(--bg-main),
+    0 0 12px var(--ai-main);
+}
+
+/* ========================================
+   🎨 Utility Classes
+   ======================================== */
+
+/* 阴影类 */
+.shadow-none { box-shadow: var(--shadow-none); }
+.shadow-xs { box-shadow: var(--shadow-xs); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+
+/* 圆角类 */
+.rounded-xs { border-radius: var(--radius-xs); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* 文本颜色 */
+.text-main { color: var(--text-main); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-emphasis { color: var(--text-emphasis); }
+.text-ai { color: var(--ai-soft); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-error { color: var(--error); }
+
+/* 背景颜色 */
+.bg-main { background: var(--bg-main); }
+.bg-card { background: var(--bg-card); }
+.bg-card-hover { background: var(--bg-card-hover); }
+.bg-ai { background: var(--ai-bg); }
+.bg-success { background: var(--success-bg); }
+.bg-warning { background: var(--warning-bg); }
+.bg-error { background: var(--error-bg); }

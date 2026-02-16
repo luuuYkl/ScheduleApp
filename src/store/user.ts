@@ -166,34 +166,13 @@ export const useUserStore = defineStore("user", () => {
     } else {
       theme.value = theme.value === "dark" ? "light" : "dark";
     }
-    // 应用到 DOM
-    document.documentElement.setAttribute("data-theme", theme.value);
-    // 持久化
+    // 持久化到 localStorage
     localStorage.setItem("theme", theme.value);
-    // 强制 CSS 重新计算
-    forceCSSUpdate();
     // eslint-disable-next-line no-console
     console.log("[Theme] 切换到:", theme.value);
   }
 
-  /**
-   * 强制浏览器重新计算 CSS 变量
-   * 通过移除并重新添加 data-theme 属性来触发浏览器重排
-   */
-  function forceCSSUpdate() {
-    const html = document.documentElement;
-    const currentTheme = html.getAttribute("data-theme");
-    
-    // 临时移除 data-theme 属性
-    html.removeAttribute("data-theme");
-    // 强制浏览器重排（触发重绘）
-    void html.offsetWidth;
-    // 重新设置 data-theme 属性
-    html.setAttribute("data-theme", currentTheme || "dark");
-    
-    // eslint-disable-next-line no-console
-    console.log("[Theme] CSS强制更新完成，当前主题:", currentTheme);
-  }
+
 
   /**
    * 初始化主题
@@ -202,9 +181,6 @@ export const useUserStore = defineStore("user", () => {
   function initTheme() {
     const savedTheme = (localStorage.getItem("theme") as "dark" | "light") || "dark";
     theme.value = savedTheme;
-    document.documentElement.setAttribute("data-theme", savedTheme);
-    // 强制 CSS 重新计算
-    forceCSSUpdate();
     // eslint-disable-next-line no-console
     console.log("[Theme] 初始化主题:", savedTheme);
   }

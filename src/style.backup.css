@@ -1,0 +1,534 @@
+/* ========================================
+   🎨 AI 日程管理 - 主题样式系统（支持明暗双模式）
+   ======================================== */
+
+/* 通用变量和字体系统 */
+:root {
+  /* 布局尺寸 */
+  --header-height: 64px;
+  --footer-height: 64px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --spacing-section: 32px;  /* 章节间距 - 呼吸感 */
+  
+  /* 字体系统 */
+  font-family: "Inter", "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;         /* 基础行距 */
+  font-weight: 400;
+  
+  /* 渲染优化 */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   🌙 暗色主题（默认）
+   ======================================== */
+html:not([data-theme]),
+html[data-theme="dark"] {
+  /* 🎨 配色方案 - 蓝灰黑层级系统 */
+  --bg-main: #0E1117;        /* 深蓝灰 - 主背景 */
+  --bg-card: #161B22;        /* 卡片背景 - 第一层 */
+  --bg-card-hover: #1C2128; /* 卡片悬停 - 第二层 */
+  --bg-input: #0D1117;      /* 输入框背景 */
+  --bg-elevated: #21262D;   /* 抬升层（模态框等）*/
+  
+  /* 主强调色 - AI 感 */
+  --ai-main: #6366F1;
+  --ai-light: #818CF8;
+  --ai-soft: #C7D2FE;       /* 柔和 AI 文字色 */
+  --ai-bg: rgba(99, 102, 241, 0.12);
+  --ai-border: rgba(99, 102, 241, 0.25);
+  
+  /* 状态色 */
+  --success: #22C55E;
+  --success-bg: rgba(34, 197, 94, 0.12);
+  --warning: #F59E0B;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --error: #EF4444;
+  --error-bg: rgba(239, 68, 68, 0.12);
+  --info: #3B82F6;
+  --info-bg: rgba(59, 130, 246, 0.12);
+  
+  /* 文字色 - 永不用纯白 */
+  --text-main: #E5E7EB !important;      /* 主文本 - 柔和白 */
+  --text-secondary: #9CA3AF !important; /* 次文本 - 中灰 */
+  --text-muted: #6B7280 !important;     /* 说明/注释 - 深灰 */
+  --text-emphasis: #F3F4F6 !important;  /* 强调文本（数字/KPI）*/
+  
+  /* 边框与分隔 - 软边界 */
+  --border-main: rgba(255, 255, 255, 0.06) !important;
+  --border-subtle: rgba(255, 255, 255, 0.03) !important;
+  --border-emphasis: rgba(255, 255, 255, 0.12) !important;
+  
+  /* 层级阴影 - 柔和投影 */
+  --shadow-soft: 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  
+  color-scheme: dark !important;
+  color: var(--text-main) !important;
+  background-color: var(--bg-main) !important;
+}
+
+/* ========================================
+   ☀️ 浅色主题 - Soft Intelligence Light
+   ======================================== */
+html[data-theme="light"] {
+  /* 背景层级系统 - 偏灰白 */
+  --bg-main: #F5F5F5 !important;        /* 页面背景 - 柔和灰白 */
+  --bg-card: #FAFAFA !important;        /* 卡片背景 - 近白灰 */
+  --bg-card-hover: #F0F0F0 !important; /* 卡片悬停 - 稍深灰 */
+  --bg-input: #FFFFFF !important;      /* 输入框背景 - 保持纯白 */
+  --bg-elevated: #F0F0F0 !important;   /* 抬升层 */
+  
+  /* 主强调色 - AI 感（保持一致） */
+  --ai-main: #6366F1 !important;
+  --ai-light: #7C3AED !important;
+  --ai-soft: #312E81 !important;        /* 深紫蓝 - 更深以确保浅色模式可读 */
+  --ai-bg: rgba(99, 102, 241, 0.08) !important;
+  --ai-border: rgba(99, 102, 241, 0.2) !important;
+  
+  /* 状态色 - 浅色模式调整 */
+  --success: #16A34A !important;
+  --success-bg: rgba(22, 163, 74, 0.08) !important;
+  --warning: #EA580C !important;
+  --warning-bg: rgba(234, 88, 12, 0.08) !important;
+  --error: #DC2626 !important;
+  --error-bg: rgba(220, 38, 38, 0.08) !important;
+  --info: #2563EB !important;
+  --info-bg: rgba(37, 99, 235, 0.08) !important;
+  
+  /* 文字色 - 深色系 */
+  --text-main: #0F172A !important;      /* 深蓝灰 */
+  --text-secondary: #475569 !important; /* 阅读友好灰 */
+  --text-muted: #94A3B8 !important;     /* 注释灰 */
+  --text-emphasis: #000000 !important;  /* 强调纯黑 */
+  
+  /* 边框与分隔 - 软边界 */
+  --border-main: rgba(15, 23, 42, 0.08) !important;
+  --border-subtle: rgba(15, 23, 42, 0.04) !important;
+  --border-emphasis: rgba(15, 23, 42, 0.15) !important;
+  
+  /* 层级阴影 - 浅色系柔和投影 */
+  --shadow-soft: 0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  
+  color-scheme: light !important;
+  color: var(--text-main) !important;
+  background-color: var(--bg-main) !important;
+}
+
+/* ========================================
+   ⚡ 主题切换过渡动画 + 基础样式重置
+   ======================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--bg-main);
+  color: var(--text-main);
+}
+
+/* ========================================
+   📝 字体层级系统 - 靠行距而不是亮度
+   ======================================== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: inherit;
+  font-weight: 600;
+  margin: 0 0 0.5em 0;
+  letter-spacing: -0.01em;
+  color: var(--text-main);  /* 柔和白，非纯白 */
+  line-height: 1.3;         /* 标题紧凑行距 */
+}
+
+h1 { 
+  font-size: 24px; 
+  color: var(--text-emphasis); /* 仅标题使用强调色 */
+}
+h2 { font-size: 20px; }
+h3 { font-size: 18px; }
+h4 { font-size: 16px; }
+h5 { font-size: 15px; }
+h6 { font-size: 14px; }
+
+p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary); /* 正文用次级灰 */
+  line-height: 1.7;             /* 正文舒适行距 */
+}
+
+/* AI 生成文本 - 更大行距 */
+.ai-text {
+  font-size: 14px;
+  color: var(--ai-soft);   /* 柔和紫蓝 */
+  line-height: 1.8;        /* 更宽松的行距 */
+}
+
+a {
+  font-weight: 500;
+  color: var(--ai-light);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+a:hover {
+  color: var(--ai-soft);
+}
+
+/* ========================================
+   🎴 卡片系统 - 软边界微玻璃态
+   ======================================== */
+.card {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--bg-card);   /* 层级灰，非纯黑 */
+  border: 1px solid var(--border-subtle); /* 极软边界 */
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-soft);  /* 柔和投影代替硬边框 */
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);  /* 微小位移 */
+}
+
+/* AI 分析卡片 - 半透明色高亮 */
+.ai-card {
+  position: relative;
+  padding: 16px;
+  padding-left: 20px;
+  border-left: 3px solid var(--ai-main);
+  background: var(--ai-bg);     /* 半透明紫蓝 */
+  border-radius: var(--radius);
+  border: 1px solid var(--ai-border);
+  box-shadow: var(--shadow-soft);
+}
+
+.ai-card::before {
+  content: '✨';
+  position: absolute;
+  left: 8px;
+  top: 16px;
+  font-size: 16px;
+  opacity: 0.8;避免反差
+   ======================================== */
+button {
+  border-radius: var(--radius-sm);
+  padding: 0.6em 1.2em;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s, transform 0.15s;
+  border: none;
+  outline: none;
+}
+
+/* 主按钮 - 避免过亮 */
+.btn-primary, button.primary {
+  background: var(--ai-main);
+  color: var(--text-emphasis);  /* 非纯白 */
+  border: 1px solid var(--ai-border);
+}
+.btn-primary:hover, button.primary:hover {
+  background: var(--ai-light);
+  border-color: var(--ai-light);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled, button.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 次按钮 - 幽灵风格柔和边界 */
+.btn-ghost, button.secondary {
+  background: transparent;
+  border: 1px solid var(--border-main);
+  color: var(--text-secondary); /* 次级灰，避免纯白 */
+}
+.btn-ghost:hover, button.secondary:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-emphasis);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+/* 危险按钮 - 半透明背景 */
+.btn-danger, button.danger {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.btn-danger:hover, button.danger:hover {
+  background: var(--error);
+  color: var(--text-emphasis);
+  border-color: var(--error);
+  transform: translateY(-1px)ar(--border-main);
+  color: var(--text-main);
+}
+.btn-ghost:hover, button.secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 危险按钮 */
+.btn-danger, button.danger {
+  background: var(--error);
+  color: #fff;
+  border:  - 软边界深色输入
+   ======================================== */
+input, select, textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-subtle);  /* 极软边界 */
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.6;
+  background: var(--bg-input);   /* 比卡片更深 */
+  color: var(--text-main);       /* 非纯白 */
+  outline: none;
+  box-shadow: var(--shadow-soft);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+input:hover, select:hover, textarea:hover {
+  border-color: var(--border-main);
+  background: var(--bg-card);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--ai-main);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px var(--ai-bg);  /* 半透明聚焦环 */
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* 只读输入 */
+input:read-only, textarea:read-only {
+  background: var(--bg-main);
+  color: var(--text-muted);
+  cursor: not-allowed
+input:focus, select:focus, textarea:focus {
+  border-color: var(--ai-main);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ========================================
+   🎯 布局工具类
+   ======================================== */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid {
+  display: grid;
+}
+
+/* ========================================
+   📱 响应式断点
+   ======================================== */
+:root {
+  --break-sm: - 半透明色高亮
+   ======================================== */
+.ai-text {
+  font-size: 14px;
+  color: var(--ai-soft);   /* 柔和紫白，非纯色 */
+  line-height: 1.8;
+}
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--ai-bg);      /* 半透明背景 */
+  border: 1px solid var(--ai-border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ai-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+.ai-badge::before {
+  content: '✨';
+  opacity: 0.9;
+}
+
+/* AI 高亮区块 */
+.ai-highlight {
+  color: var(--ai-soft);
+  background: var(--ai-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* 状态标签 - 半透明 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-ra - 柔和细线
+   ======================================== */
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 1px;   /* 细线 */
+  background: var(--border-main);  /* 柔和边界色 */
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  box-shadow: 0 0 0 2px var(--bg-main);  /* 柔和光晕 */
+}
+
+/* AI 节点 - 发光效果 */
+.timeline-item.ai::before {
+  background: var(--ai-main);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.6),
+              0 0 0 2px var(--bg-main);
+}
+
+.timeline-item.ai {
+  color: var(--ai-soft
+  border: 1px solid var(--ai-border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--ai-light);
+}
+
+.ai-badge::before {
+  content: '✨';
+}
+
+/* ========================================
+   📊 时间线样式
+   ======================================== */
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-main);
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.timeline-item.ai::before {
+  background: var(--ai-main);
+  box-shadow: 0 0 12px var(--ai-main);
+}
+
+/* ========================================
+   🔧 实用工具类
+   ======================================== */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.p-4 { padding: 1rem; }
+
+.hide-sm { display: block; }
+.show-sm { display: none; }
+
+@media (max-width: 480px) {
+  .hide-sm { display: none !important; }
+  .show-sm { display: block !important; }
+}
+
+/* ========================================
+   🎪 应用根容器
+   ======================================== */
+#app {
+  min-height: 100vh;
+  background: var(--bg-main);
+}
