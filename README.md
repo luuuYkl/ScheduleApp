@@ -26,6 +26,12 @@
   - 组件设计规范
   - 交互与动效标准
 
+- [`docs/MOBILE_MIGRATION_IMPLEMENTATION_HANDBOOK.md`](docs/MOBILE_MIGRATION_IMPLEMENTATION_HANDBOOK.md) - **移动端迁移实施手册**
+  - Android/Web容器化迁移方案
+  - 鸿蒙NEXT技术路线规划
+  - 双端统一实施阶段
+  - 执行清单与验收标准
+
 - [`docs/ISSUE_REPAIR_MAINTENANCE.md`](docs/ISSUE_REPAIR_MAINTENANCE.md) - **问题修复与维护记录**
   - 核心问题修复记录
   - 维护最佳实践
@@ -110,10 +116,11 @@ src/
 	config.ts          # 全局配置（含 AI 配置）
 
 docs/               # 核心文档
-	USER_FUNCTIONALITY_MANUAL.md     # 用户功能手册
-	PROJECT_OPTIMIZATION_OVERVIEW.md # 项目优化总览
-	UI_DESIGN_SYSTEM.md             # UI设计系统规范
-	ISSUE_REPAIR_MAINTENANCE.md     # 问题修复与维护记录
+	USER_FUNCTIONALITY_MANUAL.md          # 用户功能手册
+	PROJECT_OPTIMIZATION_OVERVIEW.md      # 项目优化总览
+	UI_DESIGN_SYSTEM.md                  # UI设计系统规范
+	MOBILE_MIGRATION_IMPLEMENTATION_HANDBOOK.md # 移动端迁移手册
+	ISSUE_REPAIR_MAINTENANCE.md          # 问题修复与维护记录
 ```
 
 ## 后续可改进方向
