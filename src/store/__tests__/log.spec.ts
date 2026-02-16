@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useLogStore } from '../log'
+import type { Task } from '@/services/api.types'
 
 describe('LogStore', () => {
   beforeEach(() => {
@@ -16,7 +17,7 @@ describe('LogStore', () => {
     expect(store.logs).toHaveLength(0)
     
     // 生成一条日志
-    const mockTasks = [
+    const mockTasks: Task[] = [
       {
         id: 1,
         plan_id: 1,

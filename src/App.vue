@@ -1,7 +1,12 @@
 <template>
-  <div class="app-shell">
+  <div 
+    class="app-shell" 
+    :class="{ 'app-shell--desktop': isDesktop, 'app-shell--mobile': !isDesktop }"
+    role="application"
+    aria-label="日程管理应用"
+  >
     <!-- 响应式头部 -->
-    <header class="app-header">
+    <header class="app-header" role="banner">
       <div class="header-inner">
         <div class="header-left">
           <h1 class="app-name">{{ APP_CONFIG.APP_NAME }}</h1>
@@ -17,6 +22,10 @@
             alt="用户头像"
             @click="goProfile"
             title="点击查看个人资料"
+            role="button"
+            tabindex="0"
+            @keydown.enter="goProfile"
+            @keydown.space.prevent="goProfile"
           />
         </div>
       </div>
@@ -25,8 +34,16 @@
     <!-- 响应式主体布局 -->
     <div class="app-body">
       <!-- 桌面端左侧导航 -->
-      <aside class="app-sidebar" v-if="isDesktop">
-        <nav class="sidebar-nav">
+      <aside 
+        class="app-sidebar" 
+        v-if="isDesktop"
+        role="navigation"
+        aria-label="主导航菜单"
+      >
+        <div class="sidebar-header">
+          <h2 class="sidebar-title">导航</h2>
+        </div>
+        <nav class="sidebar-nav" aria-label="主导航">
           <router-link 
             to="/home" 
             class="nav-item" 
@@ -71,13 +88,23 @@
       </aside>
       
       <!-- 主内容区域 -->
-      <main class="app-main">
+      <main 
+        class="app-main" 
+        role="main"
+        tabindex="-1"
+        ref="mainContent"
+      >
         <router-view />
       </main>
     </div>
 
     <!-- 移动端底部导航 -->
-    <footer class="app-bottom-nav" v-if="!isDesktop && showBottomNav">
+    <footer 
+      class="app-bottom-nav" 
+      v-if="!isDesktop && showBottomNav"
+      role="navigation" 
+      aria-label="底部导航菜单"
+    >
       <router-link 
         to="/home" 
         class="nav-item" 
@@ -119,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, watch, ref, nextTick } from "vue";
 import { useUserStore } from "@/store/user";
 import { APP_CONFIG } from "@/config";
 import { useRoute, useRouter } from "vue-router";
@@ -130,7 +157,15 @@ const router = useRouter();
 const showBottomNav = computed(() => route.meta.showBottomNav ?? true);
 
 // 响应式断点计算
-const isDesktop = computed(() => window.matchMedia('(min-width: 1024px)').matches);
+const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches);
+
+// 主内容区域引用
+const mainContent = ref<HTMLElement | null>(null);
+
+// 监听屏幕尺寸变化
+function handleResize() {
+  isDesktop.value = window.matchMedia('(min-width: 1024px)').matches;
+}
 
 // 导航激活状态判断
 function isActive(path: string): boolean {
@@ -152,7 +187,20 @@ function goProfile() {
 // 应用启动时初始化主题
 onMounted(() => {
   userStore.initTheme();
+  window.addEventListener('resize', handleResize);
+  
+  // 路由变化时聚焦到主内容区域
+  router.afterEach(() => {
+    nextTick(() => {
+      if (mainContent.value) {
+        mainContent.value.focus();
+      }
+    });
+  });
 });
+
+// 组件卸载时清理事件监听器
+// 注意：在Vue 3 Composition API中，通常不需要手动清理，但为了完整性保留
 
 // 监视主题变化并应用到DOM
 watch(() => userStore.theme, (newTheme) => {
@@ -173,6 +221,16 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
   color: var(--text-main);
   display: flex;
   flex-direction: column;
+  transition: background-color var(--dur-standard) var(--ease-standard);
+}
+
+/* 语义化状态类 */
+.app-shell--desktop {
+  /* 桌面端特定样式 */
+}
+
+.app-shell--mobile {
+  /* 移动端特定样式 */
 }
 
 /* 响应式头部 */
@@ -186,6 +244,7 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
   z-index: var(--z-sticky);
   display: flex;
   align-items: center;
+  transition: all var(--dur-standard) var(--ease-standard);
 }
 
 .header-inner {
@@ -232,10 +291,16 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
     border-color var(--dur-fast) var(--ease-standard);
 }
 
-.avatar-header:hover {
+.avatar-header:hover,
+.avatar-header:focus {
   box-shadow: 0 0 0 4px var(--ai-bg);
   transform: translateY(-2px);
   border-color: var(--ai-light);
+  outline: none;
+}
+
+.avatar-header:focus-visible {
+  box-shadow: 0 0 0 4px var(--ai-bg), 0 0 0 6px var(--focus-ring);
 }
 
 /* 响应式主体布局 */
@@ -250,15 +315,32 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
 .app-sidebar {
   background: var(--bg-card);
   border-right: 1px solid var(--border-main);
-  padding: var(--space-4) 0;
   width: 220px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: all var(--dur-standard) var(--ease-standard);
+}
+
+.sidebar-header {
+  padding: var(--space-4) var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: 0 var(--space-3);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  flex: 1;
+  overflow-y: auto;
 }
 
 .sidebar-nav .nav-item {
@@ -276,9 +358,15 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
     color var(--dur-fast) var(--ease-standard);
 }
 
-.sidebar-nav .nav-item:hover {
+.sidebar-nav .nav-item:hover,
+.sidebar-nav .nav-item:focus {
   background: var(--bg-card-hover);
   color: var(--text-main);
+  outline: none;
+}
+
+.sidebar-nav .nav-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
 }
 
 .sidebar-nav .nav-item.router-link-active {
@@ -296,8 +384,11 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
 /* 主内容区域 */
 .app-main {
   flex: 1;
-  padding: var(--space-6);
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  outline: none;
 }
 
 /* 移动端底部导航 */
@@ -316,6 +407,7 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
   justify-content: space-around;
   padding: 0 var(--space-2);
   padding-bottom: env(safe-area-inset-bottom, 0);
+  transition: all var(--dur-standard) var(--ease-standard);
 }
 
 .app-bottom-nav .nav-item {
@@ -335,9 +427,15 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
   padding: var(--space-1) var(--space-2);
 }
 
-.app-bottom-nav .nav-item:hover {
+.app-bottom-nav .nav-item:hover,
+.app-bottom-nav .nav-item:focus {
   color: var(--text-main);
   background: var(--bg-card);
+  outline: none;
+}
+
+.app-bottom-nav .nav-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
 }
 
 .app-bottom-nav .nav-item.active,
@@ -361,6 +459,12 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
     padding: var(--space-6) var(--space-8);
   }
   
+  /* 桌面端主要内容区域增加内边距 */
+  .app-main > * {
+    flex: 1;
+    padding: 0 var(--space-6);
+  }
+  
   /* 移动端导航在桌面端隐藏 */
   .app-bottom-nav {
     display: none;
@@ -378,9 +482,35 @@ console.log("[APP] localStorage token:", localStorage.getItem("token"), "user:",
     padding-bottom: calc(var(--bottom-nav-height) + var(--space-4));
   }
   
+  /* 移动端主要内容区域 */
+  .app-main > * {
+    flex: 1;
+    padding: 0 var(--space-3);
+  }
+  
   /* 桌面端侧边栏在移动端隐藏 */
   .app-sidebar {
     display: none;
+  }
+}
+
+/* 小屏幕优化 */
+@media (max-width: 480px) {
+  .header-inner {
+    padding: 0 var(--space-2);
+  }
+  
+  .app-name {
+    font-size: 16px;
+  }
+  
+  .username {
+    font-size: 12px;
+  }
+  
+  .avatar-header {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>

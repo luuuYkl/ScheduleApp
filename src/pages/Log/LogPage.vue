@@ -1,11 +1,29 @@
 <template>
-  <div class="page log-page">
-    <div class="page-container">
-      <!-- 页面头部 -->
-      <header class="page-header">
-        <div class="header-content"></div>
-      </header>
-
+  <PageScaffold 
+    title="日志记录" 
+    subtitle="查看历史日志和AI智能分析"
+  >
+    <template #actions>
+      <button 
+        class="btn btn-primary" 
+        @click="refreshLogs"
+        :disabled="loading"
+        aria-label="刷新日志"
+      >
+        <span class="btn-icon">🔄</span>
+        <span class="btn-text">{{ loading ? '加载中...' : '刷新' }}</span>
+      </button>
+      <button 
+        class="btn btn-secondary" 
+        @click="generateReport"
+        aria-label="生成报告"
+      >
+        <span class="btn-icon">📊</span>
+        <span class="btn-text">生成报告</span>
+      </button>
+    </template>
+    
+    <div class="log-content">
       <!-- AI 复盘面板 -->
       <section class="ai-review-section">
         <div class="section-title">
@@ -18,7 +36,7 @@
       </section>
 
       <!-- 日志列表 -->
-      <main class="log-content">
+      <main class="log-list-container">
         <div v-if="loading && logs.length === 0" class="loading-state">
           <div class="loading-spinner">
             <svg class="animate-spin" width="48" height="48" viewBox="0 0 24 24">
@@ -64,7 +82,7 @@
         </div>
       </main>
     </div>
-  </div>
+  </PageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -73,6 +91,7 @@ import { useLogStore } from "@/store/log";
 import { useUserStore } from "@/store/user";
 import type { LogEntry } from "@/services/generate-log";
 import AIReviewPanel from "@/components/log/AIReviewPanel.vue";
+import PageScaffold from '@/components/common/PageScaffold.vue';
 
 const logStore = useLogStore();
 const userStore = useUserStore();
@@ -113,6 +132,25 @@ function getCompletionClass(log: LogEntry): string {
 }
 
 // 移除手动生成与刷新操作，保留自动加载
+
+function refreshLogs() {
+  onMounted(async () => {
+    loading.value = true;
+    try {
+      const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+      await logStore.loadLogs(userId);
+    } catch (e) {
+      console.error("加载日志失败:", e);
+    } finally {
+      loading.value = false;
+    }
+  });
+}
+
+function generateReport() {
+  // TODO: 实现报告生成功能
+  alert('报告生成功能开发中...');
+}
 
 onMounted(async () => {
   loading.value = true;

@@ -1,23 +1,41 @@
 <template>
-  <div class="page home">
-    <div class="grid">
-      <PlanOverview @create="goCreate" />
-
-      <TaskList />
+  <PageScaffold 
+    title="我的一天" 
+    subtitle="查看今日计划和待办事项"
+  >
+    <template #actions>
+      <button 
+        class="btn btn-primary" 
+        @click="goCreate"
+        aria-label="创建新计划"
+      >
+        <span class="btn-icon">➕</span>
+        <span class="btn-text">新建计划</span>
+      </button>
+      <button 
+        class="btn btn-secondary" 
+        @click="goSchedule"
+        aria-label="创建日程"
+      >
+        <span class="btn-icon">⏰</span>
+        <span class="btn-text">新建日程</span>
+      </button>
+    </template>
+    
+    <div class="home-content">
+      <div class="grid">
+        <PlanOverview @create="goCreate" />
+        <TaskList />
+      </div>
     </div>
-
-    <!-- 悬浮按钮：创建日程 -->
-    <button class="fab" @click="goSchedule" title="创建日程">
-      <span class="icon">➕</span>
-      <span class="text">日程</span>
-    </button>
-  </div>
+  </PageScaffold>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from "vue-router";
 import PlanOverview from "@/components/home/PlanOverview.vue";
 import TaskList from "@/components/home/TaskList.vue";
+import PageScaffold from "@/components/common/PageScaffold.vue";
 
 const router = useRouter();
 
@@ -30,59 +48,87 @@ function goSchedule() {
 </script>
 
 <style scoped>
-.home {
-  padding-top: calc(var(--header-height, 64px) + 1rem);
-  padding-bottom: calc(var(--footer-height, 64px) + 1rem);
-  padding-left: 1rem;
-  padding-right: 1rem;
-  min-height: 100vh;
+.home-content {
+  width: 100%;
 }
 
-.home .grid {
+.grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
   max-width: 900px;
   margin: 0 auto;
 }
 
-/* 悬浮按钮 (FAB - Floating Action Button) */
-.fab {
-  position: fixed;
-  bottom: 80px; /* 避开底部导航 */
-  right: 1.5rem;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--color-primary, #3b82f6);
-  color: #fff;
-  border: none;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
+/* 按钮样式 */
+.btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  z-index: 50;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-standard);
+  text-decoration: none;
 }
-.fab:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.6);
+
+.btn-primary {
+  background: var(--ai-main);
+  color: white;
 }
-.fab .icon {
-  font-size: 1.5rem;
-  line-height: 1;
+
+.btn-primary:hover {
+  background: var(--ai-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
-.fab .text {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-main);
 }
-@media (max-width: 640px) {
-  .fab { bottom: 70px; right: 1rem; width: 56px; height: 56px; }
-  .fab .icon { font-size: 1.25rem; }
-  .fab .text { font-size: 0.6rem; }
+
+.btn-secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.btn-text {
+  font-size: 14px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .grid {
+    gap: var(--space-3);
+  }
+  
+  .btn {
+    padding: var(--space-2) var(--space-3);
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid {
+    gap: var(--space-2);
+  }
+  
+  .btn {
+    padding: var(--space-1) var(--space-2);
+    font-size: 12px;
+  }
+  
+  .btn-text {
+    display: none;
+  }
 }
 </style>
