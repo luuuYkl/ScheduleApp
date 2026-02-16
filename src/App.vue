@@ -53,9 +53,17 @@
             <span>首页</span>
           </router-link>
           <router-link 
-            to="/plan/calendar/1" 
+            to="/plan" 
+            class="nav-item" 
+            :aria-current="route.path === '/plan' ? 'page' : undefined"
+          >
+            <span class="nav-icon" aria-hidden="true">📝</span>
+            <span>计划</span>
+          </router-link>
+          <router-link 
+            to="/calendar" 
             class="nav-item"
-            :aria-current="route.path.startsWith('/plan/calendar') ? 'page' : undefined"
+            :aria-current="route.path === '/calendar' ? 'page' : undefined"
           >
             <span class="nav-icon" aria-hidden="true">📅</span>
             <span>日历</span>
@@ -66,7 +74,7 @@
             :aria-current="route.path === '/log' ? 'page' : undefined"
           >
             <span class="nav-icon" aria-hidden="true">📊</span>
-            <span>日志</span>
+            <span>复盘</span>
           </router-link>
           <router-link 
             to="/schedule" 
@@ -75,14 +83,6 @@
           >
             <span class="nav-icon" aria-hidden="true">⏰</span>
             <span>日程</span>
-          </router-link>
-          <router-link 
-            to="/user/profile" 
-            class="nav-item"
-            :aria-current="route.path === '/user/profile' ? 'page' : undefined"
-          >
-            <span class="nav-icon" aria-hidden="true">👤</span>
-            <span>我的</span>
           </router-link>
         </nav>
       </aside>
@@ -115,10 +115,19 @@
         <span class="nav-label">首页</span>
       </router-link>
       <router-link 
-        to="/plan/calendar/1" 
+        to="/plan" 
         class="nav-item" 
-        :class="{ active: isActive('/plan/calendar') }"
-        :aria-current="route.path.startsWith('/plan/calendar') ? 'page' : undefined"
+        :class="{ active: isActive('/plan') }"
+        :aria-current="route.path === '/plan' ? 'page' : undefined"
+      >
+        <span class="nav-icon" aria-hidden="true">📝</span>
+        <span class="nav-label">计划</span>
+      </router-link>
+      <router-link 
+        to="/calendar" 
+        class="nav-item" 
+        :class="{ active: isActive('/calendar') }"
+        :aria-current="route.path === '/calendar' ? 'page' : undefined"
       >
         <span class="nav-icon" aria-hidden="true">📅</span>
         <span class="nav-label">日历</span>
@@ -130,16 +139,7 @@
         :aria-current="route.path === '/log' ? 'page' : undefined"
       >
         <span class="nav-icon" aria-hidden="true">📊</span>
-        <span class="nav-label">日志</span>
-      </router-link>
-      <router-link 
-        to="/user/profile" 
-        class="nav-item" 
-        :class="{ active: isActive('/user/profile') }"
-        :aria-current="route.path === '/user/profile' ? 'page' : undefined"
-      >
-        <span class="nav-icon" aria-hidden="true">👤</span>
-        <span class="nav-label">我的</span>
+        <span class="nav-label">复盘</span>
       </router-link>
     </footer>
   </div>

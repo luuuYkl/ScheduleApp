@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from "vue-router";
 import HomePage from "@/pages/Home/HomePage.vue";
 import HomePageNew from "@/pages/Home/HomePageNew.vue";
 import PlanCreatePage from "@/pages/Plan/PlanCreatePage.vue";
+import PlanOverviewPage from "@/pages/Plan/PlanOverviewPage.vue";
+import DynamicCalendarPage from "@/pages/Calendar/DynamicCalendarPage.vue";
 import PlanTasksPage from "@/pages/Plan/PlanTasksPage.vue";
 import PlanCalendarPage from "@/pages/Plan/PlanCalendarPage.vue";
 import LogPage from "@/pages/Log/LogPage.vue";
@@ -18,8 +20,10 @@ const routes = [
   { path: "/", redirect: "/home" },
   { path: "/home", component: HomePage, meta: { requiresAuth: true } },
   { path: "/home-new", component: HomePageNew, meta: { requiresAuth: true } },
+  { path: "/plan", component: PlanOverviewPage, meta: { requiresAuth: true } },
   { path: "/plan/create", component: PlanCreatePage, meta: { requiresAuth: true } },
   { path: "/plan/:id/tasks", component: PlanTasksPage, props: true, meta: { requiresAuth: true } },
+  { path: "/calendar", component: DynamicCalendarPage, meta: { requiresAuth: true } },
   { path: "/plan/calendar/:id", component: PlanCalendarPage, props: true, meta: { requiresAuth: true } },
   { path: "/log", component: LogPage, meta: { requiresAuth: true } },
   { path: "/task/:id", component: TaskDetailPage, props: true, meta: { requiresAuth: true } },
