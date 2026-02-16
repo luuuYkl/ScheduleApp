@@ -225,13 +225,8 @@ console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
 }
 
 /* 语义化状态类 */
-.app-shell--desktop {
-  /* 桌面端特定样式 */
-}
-
-.app-shell--mobile {
-  /* 移动端特定样式 */
-}
+/* .app-shell--desktop - 桌面端特定样式占位符 */
+/* .app-shell--mobile - 移动端特定样式占位符 */
 
 /* 响应式头部 */
 .app-header {
