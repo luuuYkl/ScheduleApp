@@ -210,3 +210,13 @@
 - [ ] 添加数据导出功能
 - [ ] 支持自定义主题配色
 - [ ] 添加团队协作功能
+
+
+## 文档合规补充（migration-doc-lint）
+
+- 新增迁移文档：`docs/migrations/2026-02-16-ui-docs-migration.md`
+  - 说明 UI 美学蓝图与顺序优化指南属于文档迁移（knowledge migration）
+  - 补充影响评估、回滚方案、验证清单
+- 新增迁移文档：`docs/migrations/2026-02-17-mobile-layout-guidance-migration.md`
+  - 记录移动端布局与导航指导文档（不改代码）的合规迁移信息
+- 目的：满足 `migration-doc-lint` 对文档变更的迁移记录要求
