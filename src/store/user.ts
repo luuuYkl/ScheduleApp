@@ -4,6 +4,14 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import * as API from "@/services/api";
+import {
+  getSecureAuthJson,
+  getSecureAuthValue,
+  migrateLegacyAuthStorageIfNeeded,
+  removeSecureAuthValue,
+  setSecureAuthJson,
+  setSecureAuthValue,
+} from "@/services/secure-storage";
 
 const APIAny = API as any;
 
@@ -15,21 +23,48 @@ export const useUserStore = defineStore("user", () => {
   // ========== 状态 ==========
   
   /** 当前登录用户信息 */
-  const user = ref<any>(JSON.parse(localStorage.getItem("user") || "null"));
+  const user = ref<any>(null);
   
   /** 认证令牌 */
-  const token = ref<string | null>(localStorage.getItem("token"));
+  const token = ref<string | null>(null);
 
   /** 主题模式：dark 或 light */
   const theme = ref<"dark" | "light">(
     (localStorage.getItem("theme") as "dark" | "light") || "dark"
   );
 
+  async function hydrateAuthFromStorage() {
+    await migrateLegacyAuthStorageIfNeeded();
+
+    if (!token.value) {
+      const tokenResult = await getSecureAuthValue("token");
+      if (tokenResult.ok) token.value = tokenResult.data.value;
+    }
+
+    if (!user.value) {
+      user.value = await getSecureAuthJson("user");
+    }
+  }
+
+  async function persistAuth() {
+    if (token.value) {
+      await setSecureAuthValue("token", token.value);
+    } else {
+      await removeSecureAuthValue("token");
+    }
+
+    if (user.value) {
+      await setSecureAuthJson("user", user.value);
+    } else {
+      await removeSecureAuthValue("user");
+    }
+  }
+
   // ========== 方法 ==========
   
   /**
    * 恢复用户会话
-   * 优先从内存读取，其次从 localStorage，最后尝试调用后端
+   * 优先从内存读取，其次从 Bridge 安全存储回填，最后尝试调用后端
    * @returns 用户信息或 null
    */
   async function restore() {
@@ -37,24 +72,12 @@ export const useUserStore = defineStore("user", () => {
       // 已有用户和 token，直接返回（避免重复请求）
       if (user.value && token.value) return user.value;
 
-      // 获取 token
-      const tk = token.value ?? localStorage.getItem("token");
+      await hydrateAuthFromStorage();
+      const tk = token.value;
       if (!tk) return null;
 
-      // 优先从 localStorage 恢复用户信息
-      const storedUser = localStorage.getItem("user");
-      if (storedUser && !user.value) {
-        try {
-          user.value = JSON.parse(storedUser);
-          token.value = tk;
-          if (user.value) return user.value;
-        } catch (e) {
-          // JSON 解析失败，继续尝试后端
-        }
-      }
-
-      // 如果已经有用户信息，直接返回
       if (user.value) return user.value;
+
 
       // 尝试调用后端获取用户信息（兼容多种 API 命名）
       const fn = APIAny.me || APIAny.getProfile || APIAny.fetchProfile;
@@ -62,14 +85,12 @@ export const useUserStore = defineStore("user", () => {
         const resp = await fn(tk);
         user.value = resp?.user ?? resp ?? null;
         if (user.value) {
-          // 同步到 localStorage
-          localStorage.setItem("user", JSON.stringify(user.value));
-          localStorage.setItem("token", tk);
+          // 同步到安全存储
+          await persistAuth();
         } else {
           // 后端返回空，清理本地数据
           token.value = null;
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
+          await persistAuth();
         }
         return user.value;
       }
@@ -80,8 +101,7 @@ export const useUserStore = defineStore("user", () => {
       // 发生错误时清理所有数据
       token.value = null;
       user.value = null;
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      await persistAuth();
       // eslint-disable-next-line no-console
       console.error("[user.store] restore error:", e);
       return null;
@@ -112,9 +132,7 @@ export const useUserStore = defineStore("user", () => {
       token.value = "mock-token-123456";
       user.value = { id: Date.now(), username };
     }
-    // 持久化到 localStorage
-    if (token.value) localStorage.setItem("token", token.value);
-    if (user.value) localStorage.setItem("user", JSON.stringify(user.value));
+    await persistAuth();
     return user.value;
   }
 
@@ -138,22 +156,18 @@ export const useUserStore = defineStore("user", () => {
       token.value = "mock-token-123456";
       user.value = { id: Date.now(), username: payload.username };
     }
-    // 持久化到 localStorage
-    if (token.value) localStorage.setItem("token", token.value);
-    if (user.value) localStorage.setItem("user", JSON.stringify(user.value));
+    await persistAuth();
     return user.value;
   }
-  const fn = APIAny.me || APIAny.getProfile || APIAny.fetchProfile || APIAny.fetchUser;
 
   /**
    * 用户登出
    * 清除内存和本地存储的所有用户数据
    */
-  function logout() {
+  async function logout() {
     token.value = null;
     user.value = null;
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    await persistAuth();
   }
 
   /**
@@ -166,34 +180,13 @@ export const useUserStore = defineStore("user", () => {
     } else {
       theme.value = theme.value === "dark" ? "light" : "dark";
     }
-    // 应用到 DOM
-    document.documentElement.setAttribute("data-theme", theme.value);
-    // 持久化
+    // 持久化到 localStorage
     localStorage.setItem("theme", theme.value);
-    // 强制 CSS 重新计算
-    forceCSSUpdate();
     // eslint-disable-next-line no-console
     console.log("[Theme] 切换到:", theme.value);
   }
 
-  /**
-   * 强制浏览器重新计算 CSS 变量
-   * 通过移除并重新添加 data-theme 属性来触发浏览器重排
-   */
-  function forceCSSUpdate() {
-    const html = document.documentElement;
-    const currentTheme = html.getAttribute("data-theme");
-    
-    // 临时移除 data-theme 属性
-    html.removeAttribute("data-theme");
-    // 强制浏览器重排（触发重绘）
-    void html.offsetWidth;
-    // 重新设置 data-theme 属性
-    html.setAttribute("data-theme", currentTheme || "dark");
-    
-    // eslint-disable-next-line no-console
-    console.log("[Theme] CSS强制更新完成，当前主题:", currentTheme);
-  }
+
 
   /**
    * 初始化主题
@@ -202,9 +195,6 @@ export const useUserStore = defineStore("user", () => {
   function initTheme() {
     const savedTheme = (localStorage.getItem("theme") as "dark" | "light") || "dark";
     theme.value = savedTheme;
-    document.documentElement.setAttribute("data-theme", savedTheme);
-    // 强制 CSS 重新计算
-    forceCSSUpdate();
     // eslint-disable-next-line no-console
     console.log("[Theme] 初始化主题:", savedTheme);
   }

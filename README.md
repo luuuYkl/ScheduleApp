@@ -2,6 +2,42 @@
 
 一个使用 **Vue 3 + TypeScript + Vite + Pinia + Vue Router** 构建的移动优先习惯/任务/日程跟踪应用，支持计划创建、任务重复、每日日志与进度概览等功能。采用 Mock-First 模式，前端可在无真实后端的情况下完整运行。
 
+## 📚 文档结构
+
+为了更好地组织项目文档，我们建立了以下核心文档体系：
+
+### 🎯 用户文档
+- [`docs/USER_FUNCTIONALITY_MANUAL.md`](docs/USER_FUNCTIONALITY_MANUAL.md) - **用户功能手册**
+  - 产品概述与快速开始
+  - 核心功能使用指南
+  - 界面与交互说明
+  - 故障排除与最佳实践
+
+### 🛠️ 技术文档
+- [`docs/PROJECT_OPTIMIZATION_OVERVIEW.md`](docs/PROJECT_OPTIMIZATION_OVERVIEW.md) - **项目优化总览报告**
+  - 技术实施报告整合
+  - 样式系统重建
+  - 主题逻辑优化
+  - 响应式布局升级
+
+- [`docs/UI_DESIGN_SYSTEM.md`](docs/UI_DESIGN_SYSTEM.md) - **UI设计系统规范**
+  - 设计哲学与原则
+  - 设计系统架构
+  - 组件设计规范
+  - 交互与动效标准
+
+- [`docs/MOBILE_MIGRATION_IMPLEMENTATION_HANDBOOK.md`](docs/MOBILE_MIGRATION_IMPLEMENTATION_HANDBOOK.md) - **移动端迁移实施手册**
+  - Android/Web容器化迁移方案
+  - 鸿蒙NEXT技术路线规划
+  - 双端统一实施阶段
+  - 执行清单与验收标准
+
+- [`docs/ISSUE_REPAIR_MAINTENANCE.md`](docs/ISSUE_REPAIR_MAINTENANCE.md) - **问题修复与维护记录**
+  - 核心问题修复记录
+  - 维护最佳实践
+  - 问题统计与分析
+  - 持续改进计划
+
 ## 技术栈
 - Vue 3 `<script setup>` + TypeScript
 - Vite 构建，Vitest 单元测试
@@ -18,42 +54,30 @@
 - 每日日志自动生成（列出已完成任务与日程并鼓励）
 - 进度统计与连续签到（Streak）
 - 深色模式 / 主题持久化
-- 移动端固定顶部栏 + 底部导航
+- 响应式设计：桌面端左侧导航 + 移动端底部导航
 
-## 最近更新内容（2025-10）
-### AI 智能优化功能（新增）
-- 集成 OpenAI API，提供计划优化建议
-- AI 分析计划时长、标题、描述的合理性
-- 自动生成推荐任务清单并支持一键添加
-- 支持 Mock 模式（无 API Key 时仍可使用基础建议）
-- 详细使用说明见 [AI_FEATURE_GUIDE.md](AI_FEATURE_GUIDE.md)
+## 最近更新内容（2026-02）
 
-### UI/布局优化
-- 顶部栏固定（避免滚动时隐藏），底部导航始终固定
-- 页面内容添加顶部/底部内边距避免被遮挡
+### 🎨 全面UI优化升级
+- **响应式布局重构**：实现桌面端左侧导航 + 移动端底部导航的双模式设计
+- **设计系统标准化**：建立统一的Design Tokens、组件库和交互规范
+- **主题系统优化**：收敛JS强写变量逻辑，统一通过CSS Tokens管理
+- **可访问性增强**：完善ARIA标签、键盘导航和焦点管理
 
-### 任务与计划增强
-- 删除旧的“计划频率”输入，简化计划创建
-- 新增任务重复功能：支持 `repeat_type = daily | monthly`，并设置 `repeat_end_date`
-- 任务创建限制日期范围：只能选择所属计划的时间段内的日期
-- 优化计划进度计算：仅统计该计划日期范围内的任务
-- 首页任务列表新增回退逻辑：当天无任务时显示最近即将开始的未来任务（最多 5 条）
-- 计划任务页面对重复任务进行分组展示：多日重复仅占一行，显示完成数量/总数与日期范围
+### 🛠️ 技术架构改进
+- **样式系统重建**：清理损坏的CSS文件，建立三层模块化架构
+- **组件标准化**：统一Button、Card、Input等基础组件规范
+- **布局组件抽象**：创建PageScaffold页面模板组件
+- **代码质量提升**：修复类型问题，优化构建配置
 
-### 日志与反馈
-- 优化日志生成：只展示已完成任务与日程的清单，移除百分比/统计冗余信息，增加随机鼓励语
-- 勾选任务/日程后自动刷新当天日志
-
-### 数据与持久化
-- 清理默认示例计划与任务，改为启动时为空
-- 用户数据持久化到 `localStorage`（mock 模式下）
-
-### 代码结构改进
-- 新增 `repeat-task.ts` 工具：根据重复规则批量生成任务 payload
-- 任务分组逻辑在 `PlanTasksPage.vue` 中以 Map 构建（保持后端结构不变，仅前端展示合并）
+### 🐛 问题修复
+- 修复任务勾选后日志自动生成功能
+- 解决CSS样式文件污染问题
+- 优化Store返回值一致性
+- 改进ID冲突处理机制
 
 ## 运行与开发
-```
+```bash
 npm install
 
 # 可选：配置 AI 功能（复制并编辑环境变量）
@@ -90,6 +114,13 @@ src/
 	router/            # 路由配置与守卫
 	assets/            # 样式与静态资源
 	config.ts          # 全局配置（含 AI 配置）
+
+docs/               # 核心文档
+	USER_FUNCTIONALITY_MANUAL.md          # 用户功能手册
+	PROJECT_OPTIMIZATION_OVERVIEW.md      # 项目优化总览
+	UI_DESIGN_SYSTEM.md                  # UI设计系统规范
+	MOBILE_MIGRATION_IMPLEMENTATION_HANDBOOK.md # 移动端迁移手册
+	ISSUE_REPAIR_MAINTENANCE.md          # 问题修复与维护记录
 ```
 
 ## 后续可改进方向

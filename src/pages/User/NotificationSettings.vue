@@ -675,6 +675,7 @@ setInterval(updatePendingRemindersCount, 5000);
   background: var(--border-color);
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .progress-slider::-webkit-slider-thumb {

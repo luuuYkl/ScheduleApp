@@ -1,26 +1,63 @@
 <template>
-  <div class="page card" style="max-width:420px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;">
-    <h1 class="mb-4 text-center">登录</h1>
+  <form 
+    class="page card" 
+    style="max-width:420px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;"
+    @submit.prevent="login"
+    aria-labelledby="login-heading"
+  >
+    <h1 id="login-heading" class="mb-4 text-center">登录</h1>
 
     <div class="mb-2">
-      <label>用户名</label>
-      <input v-model.trim="username" placeholder="请输入用户名（如 demoUser）" />
+      <label for="username-input">用户名</label>
+      <input 
+        id="username-input"
+        v-model.trim="username" 
+        placeholder="请输入用户名（如 demoUser）" 
+        aria-required="true"
+        autocomplete="username"
+      />
     </div>
 
     <div class="mb-2">
-      <label>密码</label>
-      <input type="password" v-model="password" placeholder="任意输入即可（Mock 模式）" />
+      <label for="password-input">密码</label>
+      <input 
+        id="password-input"
+        type="password" 
+        v-model="password" 
+        placeholder="任意输入即可（Mock 模式）" 
+        aria-required="true"
+        autocomplete="current-password"
+      />
     </div>
 
-    <p v-if="error" style="color:var(--color-danger)">{{ error }}</p>
+    <p 
+      v-if="error" 
+      style="color:var(--color-danger)"
+      role="alert"
+      aria-live="polite"
+    >
+      {{ error }}
+    </p>
 
     <div class="mt-3 flex" style="gap:.5rem;justify-content:center">
-      <button class="primary" @click="login" :disabled="loading">
+      <button 
+        class="primary" 
+        type="submit"
+        @click="login" 
+        :disabled="loading"
+        :aria-busy="loading"
+      >
         {{ loading ? "登录中..." : "登录" }}
       </button>
-      <button @click="goRegister">去注册</button>
+      <button 
+        type="button"
+        @click="goRegister"
+        aria-label="跳转到注册页面"
+      >
+        去注册
+      </button>
     </div>
-  </div>
+  </form>
 </template>
 
 <script setup lang="ts">

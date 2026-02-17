@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomePage from "@/pages/Home/HomePage.vue";
+import HomePageNew from "@/pages/Home/HomePageNew.vue";
 import PlanCreatePage from "@/pages/Plan/PlanCreatePage.vue";
+import PlanOverviewPage from "@/pages/Plan/PlanOverviewPage.vue";
+import DynamicCalendarPage from "@/pages/Calendar/DynamicCalendarPage.vue";
 import PlanTasksPage from "@/pages/Plan/PlanTasksPage.vue";
 import PlanCalendarPage from "@/pages/Plan/PlanCalendarPage.vue";
 import LogPage from "@/pages/Log/LogPage.vue";
@@ -10,18 +13,23 @@ import RegisterPage from "@/components/auth/RegisterPage.vue";
 import SchedulePage from "@/pages/Schedule/SchedulePage.vue";
 
 import ProfilePage from "@/pages/User/ProfilePage.vue";
+import UIDemoPage from "@/pages/UIDemoPage.vue";
 import { useUserStore } from "@/store/user";
 
 const routes = [
   { path: "/", redirect: "/home" },
   { path: "/home", component: HomePage, meta: { requiresAuth: true } },
+  { path: "/home-new", component: HomePageNew, meta: { requiresAuth: true } },
+  { path: "/plan", component: PlanOverviewPage, meta: { requiresAuth: true } },
   { path: "/plan/create", component: PlanCreatePage, meta: { requiresAuth: true } },
   { path: "/plan/:id/tasks", component: PlanTasksPage, props: true, meta: { requiresAuth: true } },
+  { path: "/calendar", component: DynamicCalendarPage, meta: { requiresAuth: true } },
   { path: "/plan/calendar/:id", component: PlanCalendarPage, props: true, meta: { requiresAuth: true } },
   { path: "/log", component: LogPage, meta: { requiresAuth: true } },
   { path: "/task/:id", component: TaskDetailPage, props: true, meta: { requiresAuth: true } },
   { path: "/user/profile", component: ProfilePage, meta: { requiresAuth: true } },
   { path: "/schedule", component: SchedulePage, meta: { requiresAuth: true } },
+  { path: "/ui-demo", component: UIDemoPage, meta: { requiresAuth: true } },
   { path: "/login", component: LoginPage, meta: { showBottomNav: false } },
   { path: "/register", component: RegisterPage, meta: { showBottomNav: false } },
 ];
@@ -35,7 +43,7 @@ router.beforeEach(async (to, from) => {
   try {
     const store = useUserStore();
 
-    // 尝试恢复用户信息（从 localStorage 或后端）
+    // 尝试恢复用户信息（从安全存储或后端）
     try {
       await store.restore();
     } catch (e) {
@@ -43,7 +51,7 @@ router.beforeEach(async (to, from) => {
       console.warn("[ROUTER] user restore failed:", e);
     }
 
-    const token = store.token ?? localStorage.getItem("token");
+    const token = store.token;
     const user = store.user;
 
     // 调试输出：路由目标 / token / user 状态
