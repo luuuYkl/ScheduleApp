@@ -20,11 +20,7 @@
     <div v-else class="plans-container">
       <div class="plans-scroll-wrapper">
         <div :class="['plans-grid', { 'show-all': showAll }]">
-          <div
-            v-for="plan in displayedPlans"
-            :key="plan.id"
-            class="plan-card"
-          >
+          <div v-for="plan in displayedPlans" :key="plan.id" class="plan-card">
             <!-- 1. 计划名称 -->
             <h3 class="plan-title">🎯 {{ plan.title }}</h3>
 
@@ -35,12 +31,17 @@
                   <span
                     v-for="i in 5"
                     :key="i"
-                    :class="['segment', { filled: i <= Math.ceil(progressFor(plan.id) / 20) }]"
+                    :class="[
+                      'segment',
+                      { filled: i <= Math.ceil(progressFor(plan.id) / 20) },
+                    ]"
                   >
-                    {{ i <= Math.ceil(progressFor(plan.id) / 20) ? '█' : '▒' }}
+                    {{ i <= Math.ceil(progressFor(plan.id) / 20) ? "█" : "▒" }}
                   </span>
                 </div>
-                <span class="progress-percent">{{ progressFor(plan.id) }}%</span>
+                <span class="progress-percent"
+                  >{{ progressFor(plan.id) }}%</span
+                >
               </div>
             </div>
 
@@ -58,13 +59,20 @@
 
             <!-- 操作按钮 -->
             <div class="plan-actions">
-              <button class="btn-action btn-manage" @click="goPlanTasks(plan.id)">
+              <button
+                class="btn-action btn-manage"
+                @click="goPlanTasks(plan.id)"
+              >
                 管理任务
               </button>
               <button class="btn-action btn-edit" @click="editPlan(plan.id)">
                 修改
               </button>
-              <button class="btn-action btn-delete" @click="removePlan(plan.id)" :disabled="loading">
+              <button
+                class="btn-action btn-delete"
+                @click="removePlan(plan.id)"
+                :disabled="loading"
+              >
                 删除
               </button>
             </div>
@@ -78,7 +86,7 @@
         class="btn-show-all"
         @click="showAll = !showAll"
       >
-        {{ showAll ? '收起' : `查看全部 (${sortedPlans.length})` }}
+        {{ showAll ? "收起" : `查看全部 (${sortedPlans.length})` }}
       </button>
     </div>
   </div>
@@ -150,39 +158,39 @@ function progressFor(planId: number) {
 function getStageText(plan: any): string {
   const progress = progressFor(plan.id);
   const today = new Date().toISOString().slice(0, 10);
-  
+
   // 检查最近7天是否有推进
   const recentTasks = taskStore.tasks.filter((t: any) => {
     if (t.plan_id !== plan.id) return false;
     const taskDate = new Date(t.task_date);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return taskDate >= sevenDaysAgo && t.status === 'done';
+    return taskDate >= sevenDaysAgo && t.status === "done";
   });
 
-  if (plan.start_date > today) return '未开始';
-  if (plan.end_date < today) return '已结束';
-  if (recentTasks.length === 0) return '最近 7 天无推进';
-  if (progress < 30) return '初期积累';
-  if (progress < 70) return '稳步推进';
-  return '即将完成';
+  if (plan.start_date > today) return "未开始";
+  if (plan.end_date < today) return "已结束";
+  if (recentTasks.length === 0) return "最近 7 天无推进";
+  if (progress < 30) return "初期积累";
+  if (progress < 70) return "稳步推进";
+  return "即将完成";
 }
 
 function getAIInsight(plan: any): string {
   const progress = progressFor(plan.id);
   const today = new Date().toISOString().slice(0, 10);
-  
+
   const recentTasks = taskStore.tasks.filter((t: any) => {
     if (t.plan_id !== plan.id) return false;
     const taskDate = new Date(t.task_date);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return taskDate >= sevenDaysAgo && t.status === 'done';
+    return taskDate >= sevenDaysAgo && t.status === "done";
   });
 
-  if (plan.end_date < today) return '';
-  if (recentTasks.length === 0) return '建议重新审视目标，或降低任务频率';
-  if (recentTasks.length >= 3) return '最近推进稳定，建议下周保持节奏';
-  if (progress > 80) return '即将完成，注意冲刺阶段不要松懈';
-  return '推进平稳，可适当增加任务密度';
+  if (plan.end_date < today) return "";
+  if (recentTasks.length === 0) return "建议重新审视目标，或降低任务频率";
+  if (recentTasks.length >= 3) return "最近推进稳定，建议下周保持节奏";
+  if (progress > 80) return "即将完成，注意冲刺阶段不要松懈";
+  return "推进平稳，可适当增加任务密度";
 }
 
 function goCreate() {
@@ -314,7 +322,7 @@ function goPlanTasks(id: number | string) {
   .plans-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .plans-grid:not(.show-all) {
     max-height: none;
     grid-template-rows: auto auto auto;
@@ -334,8 +342,8 @@ function goPlanTasks(id: number | string) {
     gap: 1rem;
     padding-bottom: 0.5rem;
   }
-  
-  .plans-grid:not(.show-all) .plan-card:nth-child(n+4) {
+
+  .plans-grid:not(.show-all) .plan-card:nth-child(n + 4) {
     display: none;
   }
 }
@@ -358,7 +366,7 @@ function goPlanTasks(id: number | string) {
     min-width: 280px;
     flex-shrink: 0;
   }
-  
+
   .plan-card:last-child {
     margin-right: 0.5rem;
   }
@@ -534,25 +542,25 @@ function goPlanTasks(id: number | string) {
   .plan-overview-section {
     padding: 1rem;
   }
-  
+
   .section-header {
     margin-bottom: 1rem;
   }
-  
+
   .section-title {
     font-size: 16px;
   }
-  
+
   .btn-new-plan {
     padding: 0.4rem 0.75rem;
     font-size: 12px;
   }
-  
+
   .plan-card {
     padding: 1rem;
     min-height: 220px;
   }
-  
+
   .plan-title {
     font-size: 14px;
   }

@@ -1,45 +1,35 @@
 <template>
-  <PageScaffold 
+  <PageScaffold
     title="日历"
     :subtitle="selectedPlanTitle || '选择计划查看日历'"
     show-back-button
     @back="goBack"
   >
     <template #actions>
-      <Button 
-        variant="outline" 
-        size="sm"
-        @click="showPlanSelector = true"
-      >
-        {{ selectedPlanTitle || '选择计划' }}
+      <Button variant="outline" size="sm" @click="showPlanSelector = true">
+        {{ selectedPlanTitle || "选择计划" }}
       </Button>
     </template>
 
     <div class="calendar-container">
       <!-- 日期导航 -->
       <div class="calendar-header">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           @click="prevPeriod"
           :disabled="!canNavigatePrev"
         >
           ←
         </Button>
-        
+
         <div class="period-display">
           <h3>{{ periodDisplay }}</h3>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            @click="goToToday"
-          >
-            今天
-          </Button>
+          <Button variant="ghost" size="sm" @click="goToToday"> 今天 </Button>
         </div>
-        
-        <Button 
-          variant="outline" 
+
+        <Button
+          variant="outline"
           size="sm"
           @click="nextPeriod"
           :disabled="!canNavigateNext"
@@ -50,8 +40,8 @@
 
       <!-- 视图切换 -->
       <div class="view-toggle">
-        <button 
-          v-for="view in calendarViews" 
+        <button
+          v-for="view in calendarViews"
           :key="view.key"
           :class="['view-btn', { active: currentView === view.key }]"
           @click="currentView = view.key"
@@ -65,40 +55,33 @@
         <!-- 月视图 -->
         <div v-if="currentView === 'month'" class="month-view">
           <div class="weekdays">
-            <div 
-              v-for="day in weekdays" 
-              :key="day"
-              class="weekday-header"
-            >
+            <div v-for="day in weekdays" :key="day" class="weekday-header">
               {{ day }}
             </div>
           </div>
-          
+
           <div class="calendar-grid">
-            <div 
-              v-for="date in calendarDays" 
+            <div
+              v-for="date in calendarDays"
               :key="date.date"
               class="calendar-day"
               :class="{
                 'is-current-month': date.isCurrentMonth,
                 'is-today': date.isToday,
-                'has-events': date.events.length > 0
+                'has-events': date.events.length > 0,
               }"
               @click="selectDate(date)"
             >
               <div class="day-number">{{ date.day }}</div>
               <div class="day-events">
-                <div 
-                  v-for="event in date.events.slice(0, 2)" 
+                <div
+                  v-for="event in date.events.slice(0, 2)"
                   :key="event.id"
                   class="event-indicator"
                   :style="{ backgroundColor: event.color }"
                   :title="event.title"
                 ></div>
-                <div 
-                  v-if="date.events.length > 2" 
-                  class="more-events"
-                >
+                <div v-if="date.events.length > 2" class="more-events">
                   +{{ date.events.length - 2 }}
                 </div>
               </div>
@@ -109,8 +92,8 @@
         <!-- 周视图 -->
         <div v-else-if="currentView === 'week'" class="week-view">
           <div class="week-header">
-            <div 
-              v-for="day in weekDays" 
+            <div
+              v-for="day in weekDays"
               :key="day.date"
               class="week-day-header"
               :class="{ 'is-today': day.isToday }"
@@ -119,33 +102,28 @@
               <div class="day-date">{{ day.dateObj.getDate() }}</div>
             </div>
           </div>
-          
+
           <div class="week-content">
-            <div 
-              v-for="day in weekDays" 
+            <div
+              v-for="day in weekDays"
               :key="day.date"
               class="week-day-column"
             >
-              <div 
-                v-for="event in day.events" 
+              <div
+                v-for="event in day.events"
                 :key="event.id"
                 class="week-event"
-                :style="{ 
+                :style="{
                   borderColor: event.color,
                   top: `${event.top}px`,
-                  height: `${event.height}px`
+                  height: `${event.height}px`,
                 }"
               >
                 <div class="event-time">{{ event.time }}</div>
                 <div class="event-title">{{ event.title }}</div>
               </div>
-              
-              <div 
-                v-if="day.events.length === 0" 
-                class="no-events"
-              >
-                无安排
-              </div>
+
+              <div v-if="day.events.length === 0" class="no-events">无安排</div>
             </div>
           </div>
         </div>
@@ -153,44 +131,41 @@
         <!-- 日视图 -->
         <div v-else-if="currentView === 'day'" class="day-view">
           <div class="day-header">
-            <h3>{{ selectedDate.toLocaleDateString('zh-CN', { 
-              weekday: 'long', 
-              month: 'long', 
-              day: 'numeric' 
-            }) }}</h3>
+            <h3>
+              {{
+                selectedDate.toLocaleDateString("zh-CN", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })
+              }}
+            </h3>
           </div>
-          
+
           <div class="day-content">
             <div class="time-column">
-              <div 
-                v-for="hour in 24" 
-                :key="hour"
-                class="time-slot"
-              >
+              <div v-for="hour in 24" :key="hour" class="time-slot">
                 {{ hour - 1 }}:00
               </div>
             </div>
-            
+
             <div class="events-column">
-              <div 
-                v-for="event in dayEvents" 
+              <div
+                v-for="event in dayEvents"
                 :key="event.id"
                 class="day-event"
-                :style="{ 
+                :style="{
                   borderColor: event.color,
                   top: `${event.top}px`,
-                  height: `${event.height}px`
+                  height: `${event.height}px`,
                 }"
               >
                 <div class="event-time">{{ event.time }}</div>
                 <div class="event-title">{{ event.title }}</div>
                 <div class="event-description">{{ event.description }}</div>
               </div>
-              
-              <div 
-                v-if="dayEvents.length === 0" 
-                class="no-events"
-              >
+
+              <div v-if="dayEvents.length === 0" class="no-events">
                 今日无安排
               </div>
             </div>
@@ -200,7 +175,7 @@
     </div>
 
     <!-- 计划选择器 -->
-    <PlanSelector 
+    <PlanSelector
       :visible="showPlanSelector"
       @select="handlePlanSelect"
       @close="showPlanSelector = false"
@@ -209,250 +184,252 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { usePlanStore } from '@/store/plans'
-import PageScaffold from '@/components/common/PageScaffold.vue'
-import Button from '@/components/common/Button.vue'
-import PlanSelector from '@/components/common/PlanSelector.vue'
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { usePlanStore } from "@/store/plans";
+import PageScaffold from "@/components/common/PageScaffold.vue";
+import Button from "@/components/common/Button.vue";
+import PlanSelector from "@/components/common/PlanSelector.vue";
 
 interface CalendarEvent {
-  id: string
-  title: string
-  description: string
-  date: Date
-  startTime?: string
-  endTime?: string
-  color: string
-  type: 'task' | 'schedule'
-  top?: number
-  height?: number
-  time?: string
+  id: string;
+  title: string;
+  description: string;
+  date: Date;
+  startTime?: string;
+  endTime?: string;
+  color: string;
+  type: "task" | "schedule";
+  top?: number;
+  height?: number;
+  time?: string;
 }
 
-const router = useRouter()
-const planStore = usePlanStore()
+const router = useRouter();
+const planStore = usePlanStore();
 
 // 状态管理
-const currentView = ref<'month' | 'week' | 'day'>('month')
-const currentDate = ref(new Date())
-const selectedDate = ref(new Date())
-const selectedPlanId = ref<string | null>(null)
-const showPlanSelector = ref(false)
+const currentView = ref<"month" | "week" | "day">("month");
+const currentDate = ref(new Date());
+const selectedDate = ref(new Date());
+const selectedPlanId = ref<string | null>(null);
+const showPlanSelector = ref(false);
 
 const calendarViews = [
-  { key: 'month' as const, label: '月' },
-  { key: 'week' as const, label: '周' },
-  { key: 'day' as const, label: '日' }
-]
+  { key: "month" as const, label: "月" },
+  { key: "week" as const, label: "周" },
+  { key: "day" as const, label: "日" },
+];
 
-const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
 
 // 计算属性
 const selectedPlanTitle = computed(() => {
-  if (!selectedPlanId.value) return null
-  const plan = planStore.plans.find((p: any) => p.id === selectedPlanId.value)
-  return plan?.title || null
-})
+  if (!selectedPlanId.value) return null;
+  const plan = planStore.plans.find((p: any) => p.id === selectedPlanId.value);
+  return plan?.title || null;
+});
 
 const periodDisplay = computed(() => {
-  const date = currentDate.value
+  const date = currentDate.value;
   switch (currentView.value) {
-    case 'month':
-      return `${date.getFullYear()}年${date.getMonth() + 1}月`
-    case 'week':
-      const weekStart = getWeekStart(date)
-      const weekEnd = new Date(weekStart)
-      weekEnd.setDate(weekEnd.getDate() + 6)
-      return `${weekStart.getMonth() + 1}月${weekStart.getDate()}日 - ${weekEnd.getMonth() + 1}月${weekEnd.getDate()}日`
-    case 'day':
-      return date.toLocaleDateString('zh-CN', { 
-        month: 'long', 
-        day: 'numeric',
-        weekday: 'long'
-      })
+    case "month":
+      return `${date.getFullYear()}年${date.getMonth() + 1}月`;
+    case "week":
+      const weekStart = getWeekStart(date);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      return `${weekStart.getMonth() + 1}月${weekStart.getDate()}日 - ${weekEnd.getMonth() + 1}月${weekEnd.getDate()}日`;
+    case "day":
+      return date.toLocaleDateString("zh-CN", {
+        month: "long",
+        day: "numeric",
+        weekday: "long",
+      });
     default:
-      return ''
+      return "";
   }
-})
+});
 
 const calendarDays = computed(() => {
-  const year = currentDate.value.getFullYear()
-  const month = currentDate.value.getMonth()
-  
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth();
+
   // 获取当月第一天和最后一天
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
   // 获取需要显示的第一天（上个月的最后一周）
-  const startDay = new Date(firstDay)
-  startDay.setDate(firstDay.getDate() - firstDay.getDay())
-  
+  const startDay = new Date(firstDay);
+  startDay.setDate(firstDay.getDate() - firstDay.getDay());
+
   // 获取需要显示的最后一天（下个月的第一周）
-  const endDay = new Date(lastDay)
-  endDay.setDate(lastDay.getDate() + (6 - lastDay.getDay()))
-  
-  const days = []
-  const current = new Date(startDay)
-  
+  const endDay = new Date(lastDay);
+  endDay.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
+
+  const days = [];
+  const current = new Date(startDay);
+
   while (current <= endDay) {
-    const dateStr = current.toISOString().split('T')[0]
-    const events = getEventsForDate(current)
-    
+    const dateStr = current.toISOString().split("T")[0];
+    const events = getEventsForDate(current);
+
     days.push({
       date: dateStr,
       day: current.getDate(),
       isCurrentMonth: current.getMonth() === month,
       isToday: isSameDate(current, new Date()),
-      events
-    })
-    
-    current.setDate(current.getDate() + 1)
+      events,
+    });
+
+    current.setDate(current.getDate() + 1);
   }
-  
-  return days
-})
+
+  return days;
+});
 
 const weekDays = computed(() => {
-  const weekStart = getWeekStart(currentDate.value)
-  const days = []
-  
+  const weekStart = getWeekStart(currentDate.value);
+  const days = [];
+
   for (let i = 0; i < 7; i++) {
-    const date = new Date(weekStart)
-    date.setDate(weekStart.getDate() + i)
-    const events = getEventsForDate(date)
-    
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    const events = getEventsForDate(date);
+
     days.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().split("T")[0],
       dateObj: date,
       name: weekdays[date.getDay()],
       isToday: isSameDate(date, new Date()),
-      events
-    })
+      events,
+    });
   }
-  
-  return days
-})
+
+  return days;
+});
 
 const dayEvents = computed(() => {
-  return getEventsForDate(selectedDate.value)
-})
+  return getEventsForDate(selectedDate.value);
+});
 
 // 导航控制
-const canNavigatePrev = computed(() => true)
-const canNavigateNext = computed(() => true)
+const canNavigatePrev = computed(() => true);
+const canNavigateNext = computed(() => true);
 
 // 方法
 function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  d.setDate(d.getDate() - day)
-  return d
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  return d;
 }
 
 function isSameDate(date1: Date, date2: Date): boolean {
-  return date1.toDateString() === date2.toDateString()
+  return date1.toDateString() === date2.toDateString();
 }
 
 function prevPeriod() {
-  const date = new Date(currentDate.value)
+  const date = new Date(currentDate.value);
   switch (currentView.value) {
-    case 'month':
-      date.setMonth(date.getMonth() - 1)
-      break
-    case 'week':
-      date.setDate(date.getDate() - 7)
-      break
-    case 'day':
-      date.setDate(date.getDate() - 1)
-      break
+    case "month":
+      date.setMonth(date.getMonth() - 1);
+      break;
+    case "week":
+      date.setDate(date.getDate() - 7);
+      break;
+    case "day":
+      date.setDate(date.getDate() - 1);
+      break;
   }
-  currentDate.value = date
+  currentDate.value = date;
 }
 
 function nextPeriod() {
-  const date = new Date(currentDate.value)
+  const date = new Date(currentDate.value);
   switch (currentView.value) {
-    case 'month':
-      date.setMonth(date.getMonth() + 1)
-      break
-    case 'week':
-      date.setDate(date.getDate() + 7)
-      break
-    case 'day':
-      date.setDate(date.getDate() + 1)
-      break
+    case "month":
+      date.setMonth(date.getMonth() + 1);
+      break;
+    case "week":
+      date.setDate(date.getDate() + 7);
+      break;
+    case "day":
+      date.setDate(date.getDate() + 1);
+      break;
   }
-  currentDate.value = date
+  currentDate.value = date;
 }
 
 function goToToday() {
-  currentDate.value = new Date()
-  selectedDate.value = new Date()
+  currentDate.value = new Date();
+  selectedDate.value = new Date();
 }
 
 function selectDate(dateInfo: any) {
-  selectedDate.value = new Date(dateInfo.date)
-  if (currentView.value !== 'day') {
-    currentView.value = 'day'
+  selectedDate.value = new Date(dateInfo.date);
+  if (currentView.value !== "day") {
+    currentView.value = "day";
   }
 }
 
 function getEventsForDate(date: Date): CalendarEvent[] {
-  if (!selectedPlanId.value) return []
-  
-  const dateStr = date.toISOString().split('T')[0]
-  const events: CalendarEvent[] = []
-  
+  if (!selectedPlanId.value) return [];
+
+  const dateStr = date.toISOString().split("T")[0];
+  const events: CalendarEvent[] = [];
+
   // 从计划中获取任务事件
-  const plan: any = planStore.plans.find((p: any) => p.id === selectedPlanId.value)
+  const plan: any = planStore.plans.find(
+    (p: any) => p.id === selectedPlanId.value,
+  );
   if (plan?.tasks) {
     plan.tasks.forEach((task: any) => {
       if (task.dueDate === dateStr) {
         events.push({
           id: `task-${task.id}`,
           title: task.title,
-          description: task.description || '',
+          description: task.description || "",
           date: new Date(dateStr),
-          color: '#4F46E5',
-          type: 'task',
-          time: task.startTime || '全天'
-        })
+          color: "#4F46E5",
+          type: "task",
+          time: task.startTime || "全天",
+        });
       }
-    })
+    });
   }
-  
-  return events
+
+  return events;
 }
 
 function handlePlanSelect(planId: string) {
-  selectedPlanId.value = planId
+  selectedPlanId.value = planId;
 }
 
 function goBack() {
-  router.back()
+  router.back();
 }
 
 // 初始化
 onMounted(() => {
-  planStore.loadPlans()
-  
+  planStore.loadPlans();
+
   // 如果URL中有计划ID，使用它
-  const planIdFromRoute = router.currentRoute.value.query.planId as string
+  const planIdFromRoute = router.currentRoute.value.query.planId as string;
   if (planIdFromRoute) {
-    selectedPlanId.value = planIdFromRoute
+    selectedPlanId.value = planIdFromRoute;
   }
-})
+});
 
 // 监听计划选择变化
 watch(selectedPlanId, (newPlanId) => {
   if (newPlanId) {
     // 更新URL参数
-    router.replace({ 
-      query: { ...router.currentRoute.value.query, planId: newPlanId } 
-    })
+    router.replace({
+      query: { ...router.currentRoute.value.query, planId: newPlanId },
+    });
   }
-})
+});
 </script>
 
 <style scoped>
@@ -745,20 +722,20 @@ watch(selectedPlanId, (newPlanId) => {
     flex-direction: column;
     gap: var(--space-3);
   }
-  
+
   .period-display h3 {
     font-size: 16px;
   }
-  
+
   .calendar-day {
     min-height: 60px;
     padding: var(--space-1);
   }
-  
+
   .day-content {
     grid-template-columns: 60px 1fr;
   }
-  
+
   .time-slot {
     font-size: 10px;
     height: 40px;

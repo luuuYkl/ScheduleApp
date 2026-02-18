@@ -21,16 +21,16 @@ const APIAny = API as any;
  */
 export const useUserStore = defineStore("user", () => {
   // ========== 状态 ==========
-  
+
   /** 当前登录用户信息 */
   const user = ref<any>(null);
-  
+
   /** 认证令牌 */
   const token = ref<string | null>(null);
 
   /** 主题模式：dark 或 light */
   const theme = ref<"dark" | "light">(
-    (localStorage.getItem("theme") as "dark" | "light") || "dark"
+    (localStorage.getItem("theme") as "dark" | "light") || "dark",
   );
 
   async function hydrateAuthFromStorage() {
@@ -61,7 +61,7 @@ export const useUserStore = defineStore("user", () => {
   }
 
   // ========== 方法 ==========
-  
+
   /**
    * 恢复用户会话
    * 优先从内存读取，其次从 Bridge 安全存储回填，最后尝试调用后端
@@ -77,7 +77,6 @@ export const useUserStore = defineStore("user", () => {
       if (!tk) return null;
 
       if (user.value) return user.value;
-
 
       // 尝试调用后端获取用户信息（兼容多种 API 命名）
       const fn = APIAny.me || APIAny.getProfile || APIAny.fetchProfile;
@@ -119,7 +118,7 @@ export const useUserStore = defineStore("user", () => {
       // 正确调用签名 login(username, password)
       const res = await APIAny.login(username, password);
       // mockAPI 直接返回 User 对象
-      if (res && typeof res === 'object' && 'id' in res) {
+      if (res && typeof res === "object" && "id" in res) {
         token.value = res.token ?? null;
         user.value = res;
       } else {
@@ -144,7 +143,7 @@ export const useUserStore = defineStore("user", () => {
   async function register(payload: any) {
     if (APIAny.register) {
       const res = await APIAny.register(payload);
-      if (res && typeof res === 'object' && 'id' in res) {
+      if (res && typeof res === "object" && "id" in res) {
         token.value = res.token ?? null;
         user.value = res;
       } else {
@@ -186,21 +185,20 @@ export const useUserStore = defineStore("user", () => {
     console.log("[Theme] 切换到:", theme.value);
   }
 
-
-
   /**
    * 初始化主题
    * 在应用启动时调用，应用保存的主题设置
    */
   function initTheme() {
-    const savedTheme = (localStorage.getItem("theme") as "dark" | "light") || "dark";
+    const savedTheme =
+      (localStorage.getItem("theme") as "dark" | "light") || "dark";
     theme.value = savedTheme;
     // eslint-disable-next-line no-console
     console.log("[Theme] 初始化主题:", savedTheme);
   }
 
   // ========== 导出 ==========
-  
+
   return {
     user,
     token,

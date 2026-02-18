@@ -3,7 +3,7 @@
     <div class="container">
       <h1>🎨 UI组件演示页面</h1>
       <p class="text-secondary">展示新设计系统的效果</p>
-      
+
       <!-- 卡片组件演示 -->
       <section class="demo-section">
         <h2>🎴 Card 组件</h2>
@@ -46,7 +46,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block mb-2 text-secondary">文本输入框</label>
-            <input type="text" class="input" placeholder="请输入内容...">
+            <input type="text" class="input" placeholder="请输入内容..." />
           </div>
           <div>
             <label class="block mb-2 text-secondary">选择器</label>
@@ -58,11 +58,15 @@
           </div>
           <div>
             <label class="block mb-2 text-secondary">文本域</label>
-            <textarea class="input" rows="3" placeholder="多行文本输入..."></textarea>
+            <textarea
+              class="input"
+              rows="3"
+              placeholder="多行文本输入..."
+            ></textarea>
           </div>
           <div>
             <label class="block mb-2 text-secondary">只读输入框</label>
-            <input type="text" class="input" value="只读内容" readonly>
+            <input type="text" class="input" value="只读内容" readonly />
           </div>
         </div>
       </section>
@@ -110,7 +114,7 @@
               <button class="btn btn--ghost btn--sm">设置</button>
             </div>
           </div>
-          
+
           <!-- 底部导航演示 -->
           <div class="nav-bottom-demo">
             <div class="nav-bottom">
@@ -211,11 +215,11 @@
   .demo-section {
     padding: var(--space-4);
   }
-  
+
   .grid-cols-3 {
     grid-template-columns: 1fr;
   }
-  
+
   .grid-cols-2 {
     grid-template-columns: 1fr;
   }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearBridgeCapabilityCache,
   getBridgeCapabilities,
@@ -11,9 +11,9 @@ import {
   secureSet,
   setBridgeEventObserver,
   setBridgeTimeoutMs,
-} from '@/services/bridge';
+} from "@/services/bridge";
 
-describe('bridge service', () => {
+describe("bridge service", () => {
   beforeEach(() => {
     localStorage.clear();
     delete window.ScheduleAppBridge;
@@ -23,68 +23,68 @@ describe('bridge service', () => {
     setBridgeEventObserver(null);
   });
 
-  it('falls back to localStorage for secureSet/secureGet when native bridge is unavailable', async () => {
-    const setResult = await secureSet('token', 'abc');
+  it("falls back to localStorage for secureSet/secureGet when native bridge is unavailable", async () => {
+    const setResult = await secureSet("token", "abc");
     expect(setResult.ok).toBe(true);
 
-    const getResult = await secureGet('token');
+    const getResult = await secureGet("token");
     expect(getResult.ok).toBe(true);
     if (getResult.ok) {
-      expect(getResult.data.value).toBe('abc');
+      expect(getResult.data.value).toBe("abc");
     }
   });
 
-  it('removes storage value through fallback when native bridge is unavailable', async () => {
-    await secureSet('token', 'abc');
-    const removeResult = await secureRemove('token');
+  it("removes storage value through fallback when native bridge is unavailable", async () => {
+    await secureSet("token", "abc");
+    const removeResult = await secureRemove("token");
     expect(removeResult.ok).toBe(true);
 
-    const getResult = await secureGet('token');
+    const getResult = await secureGet("token");
     expect(getResult.ok).toBe(true);
     if (getResult.ok) {
       expect(getResult.data.value).toBeNull();
     }
   });
 
-  it('uses native bridge when available', async () => {
+  it("uses native bridge when available", async () => {
     const invoke = vi.fn().mockResolvedValue({
       ok: true,
-      requestId: 'native-1',
-      data: { value: 'from-native' },
+      requestId: "native-1",
+      data: { value: "from-native" },
     });
 
     window.ScheduleAppBridge = { invoke };
 
-    const result = await secureGet('token');
+    const result = await secureGet("token");
     expect(invoke).toHaveBeenCalledTimes(1);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.value).toBe('from-native');
+      expect(result.data.value).toBe("from-native");
     }
   });
 
-  it('does not fallback when native method returns permission denied', async () => {
+  it("does not fallback when native method returns permission denied", async () => {
     const invoke = vi.fn().mockResolvedValue({
       ok: false,
-      requestId: 'native-2',
+      requestId: "native-2",
       error: {
-        code: 'BRIDGE_PERMISSION_DENIED',
-        message: 'denied',
+        code: "BRIDGE_PERMISSION_DENIED",
+        message: "denied",
       },
     });
 
     window.ScheduleAppBridge = { invoke };
 
-    const result = await secureSet('token', 'abc');
+    const result = await secureSet("token", "abc");
     expect(result.ok).toBe(false);
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(localStorage.getItem("token")).toBeNull();
   });
 
-  it('refreshes and reads bridge capabilities cache', async () => {
+  it("refreshes and reads bridge capabilities cache", async () => {
     const invoke = vi.fn().mockResolvedValue({
       ok: true,
-      requestId: 'native-3',
-      data: ['storage.secureSet', 'storage.secureGet'],
+      requestId: "native-3",
+      data: ["storage.secureSet", "storage.secureGet"],
     });
 
     window.ScheduleAppBridge = { invoke };
@@ -92,67 +92,63 @@ describe('bridge service', () => {
     const refresh = await refreshBridgeCapabilities();
     expect(refresh.ok).toBe(true);
 
-    const supported = await isBridgeMethodSupported('storage.secureGet');
-    const unsupported = await isBridgeMethodSupported('notification.scheduleLocal');
+    const supported = await isBridgeMethodSupported("storage.secureGet");
+    const unsupported = await isBridgeMethodSupported(
+      "notification.scheduleLocal",
+    );
 
     expect(supported).toBe(true);
     expect(unsupported).toBe(false);
   });
 
-
-
-  it('returns timeout error when native bridge does not respond in time', async () => {
+  it("returns timeout error when native bridge does not respond in time", async () => {
     setBridgeTimeoutMs(1);
     window.ScheduleAppBridge = {
       invoke: () => new Promise(() => {}),
     };
 
-    const result = await secureGet('token');
+    const result = await secureGet("token");
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error.code).toBe('BRIDGE_TIMEOUT');
+      expect(result.error.code).toBe("BRIDGE_TIMEOUT");
     }
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(localStorage.getItem("token")).toBeNull();
   });
 
-
-
-  it('returns internal error when native invoke throws', async () => {
+  it("returns internal error when native invoke throws", async () => {
     window.ScheduleAppBridge = {
-      invoke: () => Promise.reject(new Error('native crash')),
+      invoke: () => Promise.reject(new Error("native crash")),
     };
 
-    const result = await secureGet('token');
+    const result = await secureGet("token");
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error.code).toBe('BRIDGE_INTERNAL_ERROR');
-      expect(result.error.message).toContain('native crash');
+      expect(result.error.code).toBe("BRIDGE_INTERNAL_ERROR");
+      expect(result.error.message).toContain("native crash");
     }
   });
 
-  it('normalizes timeout value to at least 1ms', async () => {
+  it("normalizes timeout value to at least 1ms", async () => {
     setBridgeTimeoutMs(0);
     window.ScheduleAppBridge = {
       invoke: () => new Promise(() => {}),
     };
 
-    const result = await secureGet('token');
+    const result = await secureGet("token");
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error.code).toBe('BRIDGE_TIMEOUT');
+      expect(result.error.code).toBe("BRIDGE_TIMEOUT");
     }
   });
 
-
-
-  it('tracks runtime metrics for fallback and timeout paths', async () => {
-    await secureSet('token', 'abc');
+  it("tracks runtime metrics for fallback and timeout paths", async () => {
+    await secureSet("token", "abc");
 
     setBridgeTimeoutMs(1);
     window.ScheduleAppBridge = {
       invoke: () => new Promise(() => {}),
     };
-    await secureGet('token');
+    await secureGet("token");
 
     const metrics = getBridgeRuntimeMetrics();
     expect(metrics.totalCalls).toBeGreaterThanOrEqual(3);
@@ -160,23 +156,29 @@ describe('bridge service', () => {
     expect(metrics.timeoutCalls).toBeGreaterThanOrEqual(1);
   });
 
-  it('emits bridge call events to observer', async () => {
+  it("emits bridge call events to observer", async () => {
     const events: string[] = [];
     setBridgeEventObserver((event) => {
-      events.push(`${event.method}:${event.ok ? 'ok' : 'fail'}:${event.usedFallback ? 'fb' : 'native'}`);
+      events.push(
+        `${event.method}:${event.ok ? "ok" : "fail"}:${event.usedFallback ? "fb" : "native"}`,
+      );
     });
 
-    await secureSet('token', 'abc');
+    await secureSet("token", "abc");
 
-    expect(events.some((e) => e.startsWith('storage.secureSet:fail:native'))).toBe(true);
-    expect(events.some((e) => e.startsWith('storage.secureSet:ok:fb'))).toBe(true);
+    expect(
+      events.some((e) => e.startsWith("storage.secureSet:fail:native")),
+    ).toBe(true);
+    expect(events.some((e) => e.startsWith("storage.secureSet:ok:fb"))).toBe(
+      true,
+    );
   });
 
-  it('returns not supported for capabilities when native bridge is unavailable', async () => {
+  it("returns not supported for capabilities when native bridge is unavailable", async () => {
     const result = await getBridgeCapabilities();
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error.code).toBe('BRIDGE_NOT_SUPPORTED');
+      expect(result.error.code).toBe("BRIDGE_NOT_SUPPORTED");
     }
   });
 });

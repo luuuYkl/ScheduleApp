@@ -2,12 +2,12 @@
   <form class="schedule-form" @submit.prevent="handleSubmit">
     <!-- 日程标题 -->
     <div class="form-section title-section">
-      <input 
-        v-model="form.title" 
+      <input
+        v-model="form.title"
         type="text"
-        class="input-title" 
-        placeholder="项目评审会议、团队聚餐、健身打卡..." 
-        required 
+        class="input-title"
+        placeholder="项目评审会议、团队聚餐、健身打卡..."
+        required
       />
     </div>
 
@@ -16,33 +16,28 @@
     <!-- 时间设置 -->
     <div class="form-section time-section">
       <h3 class="section-label">📅 时间</h3>
-      
+
       <!-- 快捷日期选择 -->
       <div class="quick-dates">
-        <button 
+        <button
           type="button"
-          v-for="quick in quickDates" 
+          v-for="quick in quickDates"
           :key="quick.value"
           :class="['quick-btn', { active: form.date === quick.value }]"
           @click="form.date = quick.value"
         >
           {{ quick.label }}
         </button>
-        <input 
-          type="date" 
-          v-model="form.date" 
-          class="date-picker"
-          required 
-        />
+        <input type="date" v-model="form.date" class="date-picker" required />
       </div>
 
       <!-- 时间段 -->
       <div class="time-range">
         <div class="time-input-group">
           <label class="time-label">🕒 开始</label>
-          <input 
-            type="time" 
-            v-model="form.start_time" 
+          <input
+            type="time"
+            v-model="form.start_time"
             class="time-input"
             placeholder="14:00"
           />
@@ -50,9 +45,9 @@
         <span class="time-separator">–</span>
         <div class="time-input-group">
           <label class="time-label">结束</label>
-          <input 
-            type="time" 
-            v-model="form.end_time" 
+          <input
+            type="time"
+            v-model="form.end_time"
             class="time-input"
             placeholder="15:00"
           />
@@ -61,7 +56,11 @@
 
       <!-- 全天事件 -->
       <label class="checkbox-label">
-        <input type="checkbox" v-model="isAllDay" @change="handleAllDayToggle" />
+        <input
+          type="checkbox"
+          v-model="isAllDay"
+          @change="handleAllDayToggle"
+        />
         <span>全天事件</span>
       </label>
     </div>
@@ -72,14 +71,14 @@
     <div class="form-section reminder-section">
       <h3 class="section-label">🔔 提醒</h3>
       <div class="reminder-options">
-        <label 
-          v-for="option in reminderOptions" 
+        <label
+          v-for="option in reminderOptions"
           :key="option.value"
           class="radio-label"
         >
-          <input 
-            type="radio" 
-            v-model="form.reminder" 
+          <input
+            type="radio"
+            v-model="form.reminder"
             :value="option.value"
             name="reminder"
           />
@@ -94,7 +93,7 @@
     <!-- 可选信息 -->
     <details class="form-section optional-section" open>
       <summary class="section-toggle">更多选项</summary>
-      
+
       <!-- 重复规则 -->
       <div class="field-group">
         <label class="field-label">🔁 重复</label>
@@ -109,19 +108,19 @@
       <!-- 地点 -->
       <div class="field-group">
         <label class="field-label">📍 地点</label>
-        <input 
-          v-model="form.location" 
+        <input
+          v-model="form.location"
           type="text"
-          class="text-input" 
-          placeholder="会议室 301、腾讯会议、咖啡厅..." 
+          class="text-input"
+          placeholder="会议室 301、腾讯会议、咖啡厅..."
         />
       </div>
 
       <!-- 备注 -->
       <div class="field-group">
         <label class="field-label">📝 备注</label>
-        <textarea 
-          v-model="form.description" 
+        <textarea
+          v-model="form.description"
           class="textarea-input"
           rows="2"
           maxlength="100"
@@ -133,23 +132,19 @@
 
     <!-- 主按钮 -->
     <div class="form-actions">
-      <button 
-        type="submit" 
-        class="btn-primary" 
-        :disabled="submitting"
-      >
-        {{ submitting ? '创建中...' : '创建日程' }}
+      <button type="submit" class="btn-primary" :disabled="submitting">
+        {{ submitting ? "创建中..." : "创建日程" }}
       </button>
     </div>
   </form>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed } from 'vue';
-import { useScheduleStore } from '@/store/schedules';
-import { useUserStore } from '@/store/user';
+import { reactive, ref, computed } from "vue";
+import { useScheduleStore } from "@/store/schedules";
+import { useUserStore } from "@/store/user";
 
-const emit = defineEmits<{ (e: 'created'): void }>();
+const emit = defineEmits<{ (e: "created"): void }>();
 const scheduleStore = useScheduleStore();
 const userStore = useUserStore();
 const submitting = ref(false);
@@ -161,40 +156,40 @@ const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
 const quickDates = [
-  { label: '今天', value: today },
-  { label: '明天', value: tomorrow },
-  { label: '下周', value: nextWeek }
+  { label: "今天", value: today },
+  { label: "明天", value: tomorrow },
+  { label: "下周", value: nextWeek },
 ];
 
 // 提醒选项
 const reminderOptions = [
-  { label: '事件开始时', value: 'at_time' },
-  { label: '提前 10 分钟', value: 'before_10min' },
-  { label: '提前 1 小时', value: 'before_1hour' },
-  { label: '不提醒', value: 'none' }
+  { label: "事件开始时", value: "at_time" },
+  { label: "提前 10 分钟", value: "before_10min" },
+  { label: "提前 1 小时", value: "before_1hour" },
+  { label: "不提醒", value: "none" },
 ];
 
 const form = reactive({
-  title: '',
+  title: "",
   date: today,
-  start_time: '',
-  end_time: '',
-  reminder: 'before_10min',
-  repeat: 'none',
-  location: '',
-  description: ''
+  start_time: "",
+  end_time: "",
+  reminder: "before_10min",
+  repeat: "none",
+  location: "",
+  description: "",
 });
 
 function handleAllDayToggle() {
   if (isAllDay.value) {
-    form.start_time = '';
-    form.end_time = '';
+    form.start_time = "";
+    form.end_time = "";
   }
 }
 
 async function handleSubmit() {
   if (!userStore.user?.id) {
-    alert('请先登录');
+    alert("请先登录");
     return;
   }
 
@@ -206,23 +201,23 @@ async function handleSubmit() {
       date: form.date,
       start_time: form.start_time || undefined,
       end_time: form.end_time || undefined,
-      description: form.description || undefined
+      description: form.description || undefined,
     });
-    
-    emit('created');
-    
+
+    emit("created");
+
     // 重置表单
-    form.title = '';
+    form.title = "";
     form.date = today;
-    form.start_time = '';
-    form.end_time = '';
-    form.reminder = 'before_10min';
-    form.repeat = 'none';
-    form.location = '';
-    form.description = '';
+    form.start_time = "";
+    form.end_time = "";
+    form.reminder = "before_10min";
+    form.repeat = "none";
+    form.location = "";
+    form.description = "";
     isAllDay.value = false;
   } catch (e: any) {
-    alert(e?.message || '创建失败，请重试');
+    alert(e?.message || "创建失败，请重试");
   } finally {
     submitting.value = false;
   }
@@ -437,7 +432,7 @@ async function handleSubmit() {
 }
 
 .section-toggle::before {
-  content: '›';
+  content: "›";
   display: inline-block;
   margin-right: 0.5rem;
   transition: transform 0.2s;

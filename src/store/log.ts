@@ -16,12 +16,12 @@ const APIAny = API as any;
  */
 export const useLogStore = defineStore("log", () => {
   // ========== 状态 ==========
-  
+
   /** 日志列表 */
   const logs = ref<LogEntry[]>([]);
-  
+
   // ========== 方法 ==========
-  
+
   /**
    * 加载用户的历史日志
    * @param userId 用户ID
@@ -38,7 +38,7 @@ export const useLogStore = defineStore("log", () => {
     }
     return logs.value;
   }
-  
+
   /**
    * 生成或更新今日日志
    * 每天只保留一条日志，多次调用会覆盖更新当天内容
@@ -47,14 +47,20 @@ export const useLogStore = defineStore("log", () => {
    * @param schedules 今日日程列表
    * @returns 生成的日志对象
    */
-  async function generateTodayLog(userId: number, tasks: Task[], schedules: ScheduleItem[] = []) {
+  async function generateTodayLog(
+    userId: number,
+    tasks: Task[],
+    schedules: ScheduleItem[] = [],
+  ) {
     const today = new Date().toISOString().slice(0, 10);
     const key = `logs_${userId}`;
-    
+
     // 从 localStorage 读取现有日志（确保唯一性）
-    let existingLogs: LogEntry[] = JSON.parse(localStorage.getItem(key) || '[]');
-    const todayLogIndex = existingLogs.findIndex(log => log.date === today);
-    
+    let existingLogs: LogEntry[] = JSON.parse(
+      localStorage.getItem(key) || "[]",
+    );
+    const todayLogIndex = existingLogs.findIndex((log) => log.date === today);
+
     // 生成新的日志内容（包含任务和日程）
     const newLog = await generateDailyLog(userId, tasks, schedules);
 
@@ -64,7 +70,7 @@ export const useLogStore = defineStore("log", () => {
       existingLogs[todayLogIndex] = newLog;
     } else {
       // 新增当天日志（移除可能的同日旧记录）
-      existingLogs = existingLogs.filter(log => log.date !== today);
+      existingLogs = existingLogs.filter((log) => log.date !== today);
       existingLogs.unshift(newLog); // 插入到最前面
     }
 
@@ -76,17 +82,17 @@ export const useLogStore = defineStore("log", () => {
       // Mock 模式：保存到 localStorage
       localStorage.setItem(key, JSON.stringify(existingLogs));
     }
-    
+
     // 更新内存中的日志列表
     logs.value = [...existingLogs];
     return newLog;
   }
-  
+
   // ========== 导出 ==========
-  
+
   return {
     logs,
     loadLogs,
-    generateTodayLog
+    generateTodayLog,
   };
 });

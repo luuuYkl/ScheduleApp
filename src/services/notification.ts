@@ -50,15 +50,15 @@ export class NotificationService {
    */
   private async initialize(): Promise<void> {
     if (!this.isSupported()) {
-      console.warn('浏览器不支持通知功能');
+      console.warn("浏览器不支持通知功能");
       return;
     }
 
     // 检查当前权限状态
-    if (Notification.permission === 'granted') {
+    if (Notification.permission === "granted") {
       this.permissionGranted = true;
-    } else if (Notification.permission === 'denied') {
-      console.warn('用户已拒绝通知权限');
+    } else if (Notification.permission === "denied") {
+      console.warn("用户已拒绝通知权限");
     }
   }
 
@@ -66,7 +66,7 @@ export class NotificationService {
    * 检查浏览器是否支持通知
    */
   public isSupported(): boolean {
-    return 'Notification' in window;
+    return "Notification" in window;
   }
 
   /**
@@ -83,10 +83,10 @@ export class NotificationService {
 
     try {
       const permission = await Notification.requestPermission();
-      this.permissionGranted = permission === 'granted';
+      this.permissionGranted = permission === "granted";
       return this.permissionGranted;
     } catch (error) {
-      console.error('请求通知权限失败:', error);
+      console.error("请求通知权限失败:", error);
       return false;
     }
   }
@@ -96,7 +96,7 @@ export class NotificationService {
    */
   public showNotification(options: NotificationOptions): void {
     if (!this.permissionGranted || !this.isSupported()) {
-      console.warn('无法显示通知：权限未授予或不支持');
+      console.warn("无法显示通知：权限未授予或不支持");
       return;
     }
 
@@ -104,9 +104,9 @@ export class NotificationService {
       // 创建通知选项对象
       const notificationOptions: any = {
         body: options.body,
-        icon: options.icon || '/favicon.ico'
+        icon: options.icon || "/favicon.ico",
       };
-      
+
       // 可选参数
       if (options.tag) {
         notificationOptions.tag = options.tag;
@@ -118,7 +118,7 @@ export class NotificationService {
       const notification = new Notification(options.title, notificationOptions);
 
       // 添加点击事件处理
-      notification.addEventListener('click', () => {
+      notification.addEventListener("click", () => {
         // 聚焦到应用窗口
         window.focus();
         notification.close();
@@ -130,9 +130,8 @@ export class NotificationService {
           notification.close();
         }, 5000); // 5秒后自动关闭
       }
-
     } catch (error) {
-      console.error('显示通知失败:', error);
+      console.error("显示通知失败:", error);
     }
   }
 
@@ -143,7 +142,11 @@ export class NotificationService {
     id: string,
     time: Date,
     options: NotificationOptions,
-    config: ReminderConfig = { enabled: true, soundEnabled: true, vibrationEnabled: true }
+    config: ReminderConfig = {
+      enabled: true,
+      soundEnabled: true,
+      vibrationEnabled: true,
+    },
   ): void {
     if (!config.enabled) {
       return;
@@ -153,7 +156,7 @@ export class NotificationService {
     const delay = time.getTime() - now.getTime();
 
     if (delay <= 0) {
-      console.warn('提醒时间已过期');
+      console.warn("提醒时间已过期");
       return;
     }
 
@@ -164,7 +167,7 @@ export class NotificationService {
     const timerId = window.setTimeout(() => {
       this.showNotification(options);
       this.reminders.delete(id);
-      
+
       // 触发回调（如果需要）
       this.triggerReminderCallback(id);
     }, delay);
@@ -193,7 +196,7 @@ export class NotificationService {
       clearTimeout(timerId);
     });
     this.reminders.clear();
-    console.log('所有提醒已清除');
+    console.log("所有提醒已清除");
   }
 
   /**
@@ -233,5 +236,5 @@ export const DEFAULT_REMINDER_CONFIG: ReminderConfig = {
   enabled: true,
   timeBefore: 3600000, // 1小时前
   soundEnabled: true,
-  vibrationEnabled: true
+  vibrationEnabled: true,
 };

@@ -1,12 +1,12 @@
 export type BridgeMethod =
-  | 'device.getInfo'
-  | 'app.getVersion'
-  | 'storage.secureSet'
-  | 'storage.secureGet'
-  | 'notification.scheduleLocal'
-  | 'notification.cancelLocal'
-  | 'storage.secureRemove'
-  | 'bridge.getCapabilities';
+  | "device.getInfo"
+  | "app.getVersion"
+  | "storage.secureSet"
+  | "storage.secureGet"
+  | "notification.scheduleLocal"
+  | "notification.cancelLocal"
+  | "storage.secureRemove"
+  | "bridge.getCapabilities";
 
 export interface BridgeRequest<TParams = Record<string, unknown>> {
   method: BridgeMethod;
@@ -30,7 +30,9 @@ export interface BridgeFailure {
   };
 }
 
-export type BridgeResponse<TData = unknown> = BridgeSuccess<TData> | BridgeFailure;
+export type BridgeResponse<TData = unknown> =
+  | BridgeSuccess<TData>
+  | BridgeFailure;
 
 interface NativeBridge {
   invoke: (request: BridgeRequest) => Promise<BridgeResponse>;
@@ -77,7 +79,11 @@ function createRequestId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function failure(requestId: string, code: string, message: string): BridgeFailure {
+function failure(
+  requestId: string,
+  code: string,
+  message: string,
+): BridgeFailure {
   return {
     ok: false,
     requestId,
@@ -98,25 +104,35 @@ function trackMetrics(event: BridgeCallEvent) {
   }
 
   if (event.usedFallback) runtimeMetrics.fallbackCalls += 1;
-  if (event.errorCode === 'BRIDGE_TIMEOUT') runtimeMetrics.timeoutCalls += 1;
-  if (event.errorCode === 'BRIDGE_INTERNAL_ERROR') runtimeMetrics.internalErrorCalls += 1;
-  if (event.errorCode === 'BRIDGE_NOT_SUPPORTED' || event.errorCode === 'BRIDGE_METHOD_NOT_FOUND') {
+  if (event.errorCode === "BRIDGE_TIMEOUT") runtimeMetrics.timeoutCalls += 1;
+  if (event.errorCode === "BRIDGE_INTERNAL_ERROR")
+    runtimeMetrics.internalErrorCalls += 1;
+  if (
+    event.errorCode === "BRIDGE_NOT_SUPPORTED" ||
+    event.errorCode === "BRIDGE_METHOD_NOT_FOUND"
+  ) {
     runtimeMetrics.unsupportedCalls += 1;
   }
 }
 
-async function invokeNative<TData>(request: BridgeRequest): Promise<BridgeResponse<TData>> {
+async function invokeNative<TData>(
+  request: BridgeRequest,
+): Promise<BridgeResponse<TData>> {
   const startedAt = Date.now();
   const bridge = window.ScheduleAppBridge;
 
   if (!bridge?.invoke) {
-    const result = failure(request.requestId, 'BRIDGE_NOT_SUPPORTED', 'native bridge not available') as BridgeResponse<TData>;
+    const result = failure(
+      request.requestId,
+      "BRIDGE_NOT_SUPPORTED",
+      "native bridge not available",
+    ) as BridgeResponse<TData>;
     const event: BridgeCallEvent = {
       method: request.method,
       requestId: request.requestId,
       durationMs: Date.now() - startedAt,
       ok: false,
-      errorCode: 'BRIDGE_NOT_SUPPORTED',
+      errorCode: "BRIDGE_NOT_SUPPORTED",
       usedFallback: false,
     };
     trackMetrics(event);
@@ -128,7 +144,11 @@ async function invokeNative<TData>(request: BridgeRequest): Promise<BridgeRespon
   const timeoutPromise = new Promise<BridgeResponse<TData>>((resolve) => {
     timeoutId = window.setTimeout(() => {
       resolve(
-        failure(request.requestId, 'BRIDGE_TIMEOUT', `bridge call timed out after ${bridgeTimeoutMs}ms`) as BridgeResponse<TData>,
+        failure(
+          request.requestId,
+          "BRIDGE_TIMEOUT",
+          `bridge call timed out after ${bridgeTimeoutMs}ms`,
+        ) as BridgeResponse<TData>,
       );
     }, bridgeTimeoutMs);
   });
@@ -153,8 +173,8 @@ async function invokeNative<TData>(request: BridgeRequest): Promise<BridgeRespon
   } catch (error) {
     const result = failure(
       request.requestId,
-      'BRIDGE_INTERNAL_ERROR',
-      error instanceof Error ? error.message : 'bridge invoke failed',
+      "BRIDGE_INTERNAL_ERROR",
+      error instanceof Error ? error.message : "bridge invoke failed",
     ) as BridgeResponse<TData>;
 
     const event: BridgeCallEvent = {
@@ -162,7 +182,7 @@ async function invokeNative<TData>(request: BridgeRequest): Promise<BridgeRespon
       requestId: request.requestId,
       durationMs: Date.now() - startedAt,
       ok: false,
-      errorCode: 'BRIDGE_INTERNAL_ERROR',
+      errorCode: "BRIDGE_INTERNAL_ERROR",
       usedFallback: false,
     };
     trackMetrics(event);
@@ -178,7 +198,7 @@ async function invokeNative<TData>(request: BridgeRequest): Promise<BridgeRespon
 let cachedCapabilities: Set<string> | null = null;
 
 function shouldFallbackToWebStorage(code: string) {
-  return code === 'BRIDGE_NOT_SUPPORTED' || code === 'BRIDGE_METHOD_NOT_FOUND';
+  return code === "BRIDGE_NOT_SUPPORTED" || code === "BRIDGE_METHOD_NOT_FOUND";
 }
 
 export async function refreshBridgeCapabilities() {
@@ -200,14 +220,18 @@ export async function isBridgeMethodSupported(method: BridgeMethod) {
 
 export async function getBridgeCapabilities() {
   const request: BridgeRequest = {
-    method: 'bridge.getCapabilities',
+    method: "bridge.getCapabilities",
     params: {},
     requestId: createRequestId(),
   };
   return invokeNative<string[]>(request);
 }
 
-function reportFallback(method: BridgeMethod, requestId: string, errorCode: string) {
+function reportFallback(
+  method: BridgeMethod,
+  requestId: string,
+  errorCode: string,
+) {
   const event: BridgeCallEvent = {
     method,
     requestId,
@@ -222,7 +246,7 @@ function reportFallback(method: BridgeMethod, requestId: string, errorCode: stri
 
 export async function secureSet(key: string, value: string) {
   const request: BridgeRequest<{ key: string; value: string }> = {
-    method: 'storage.secureSet',
+    method: "storage.secureSet",
     params: { key, value },
     requestId: createRequestId(),
   };
@@ -243,7 +267,7 @@ export async function secureSet(key: string, value: string) {
 
 export async function secureGet(key: string) {
   const request: BridgeRequest<{ key: string }> = {
-    method: 'storage.secureGet',
+    method: "storage.secureGet",
     params: { key },
     requestId: createRequestId(),
   };
@@ -263,7 +287,7 @@ export async function secureGet(key: string) {
 
 export async function secureRemove(key: string) {
   const request: BridgeRequest<{ key: string }> = {
-    method: 'storage.secureRemove',
+    method: "storage.secureRemove",
     params: { key },
     requestId: createRequestId(),
   };
@@ -284,11 +308,15 @@ export async function secureRemove(key: string) {
 
 export async function getDeviceInfo() {
   const request: BridgeRequest = {
-    method: 'device.getInfo',
+    method: "device.getInfo",
     params: {},
     requestId: createRequestId(),
   };
-  return invokeNative<{ platform: string; osVersion?: string; appVersion?: string }>(request);
+  return invokeNative<{
+    platform: string;
+    osVersion?: string;
+    appVersion?: string;
+  }>(request);
 }
 
 export function clearBridgeCapabilityCache() {
@@ -299,7 +327,9 @@ export function setBridgeTimeoutMs(timeoutMs: number) {
   bridgeTimeoutMs = Math.max(1, Math.floor(timeoutMs));
 }
 
-export function setBridgeEventObserver(observer: ((event: BridgeCallEvent) => void) | null) {
+export function setBridgeEventObserver(
+  observer: ((event: BridgeCallEvent) => void) | null,
+) {
   bridgeEventObserver = observer;
 }
 

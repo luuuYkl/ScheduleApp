@@ -2,12 +2,12 @@
   <div class="page">
     <h1 class="mb-4">计划 #{{ planId }} 的日历</h1>
 
-  <CalendarView :planId="planId" />
-  <!-- 悬浮按钮：创建日程 -->
-  <button class="fab" @click="goSchedule" title="创建日程">
-    <span class="icon">➕</span>
-    <span class="text">日程</span>
-  </button>
+    <CalendarView :planId="planId" />
+    <!-- 悬浮按钮：创建日程 -->
+    <button class="fab" @click="goSchedule" title="创建日程">
+      <span class="icon">➕</span>
+      <span class="text">日程</span>
+    </button>
   </div>
 </template>
 
@@ -19,8 +19,8 @@ const route = useRoute();
 const planId = Number(route.params.id);
 const router = useRouter();
 
-function goSchedule(){
-  router.push('/schedule');
+function goSchedule() {
+  router.push("/schedule");
 }
 </script>
 
@@ -56,7 +56,10 @@ function goSchedule(){
   align-items: center;
   justify-content: center;
   gap: 2px;
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
   z-index: 50;
 }
 
@@ -78,17 +81,17 @@ function goSchedule(){
 }
 
 @media (max-width: 640px) {
-  .fab { 
-    bottom: 70px; 
-    right: 1rem; 
-    width: 56px; 
-    height: 56px; 
+  .fab {
+    bottom: 70px;
+    right: 1rem;
+    width: 56px;
+    height: 56px;
   }
-  .fab .icon { 
-    font-size: 1.25rem; 
+  .fab .icon {
+    font-size: 1.25rem;
   }
-  .fab .text { 
-    font-size: 0.6rem; 
+  .fab .text {
+    font-size: 0.6rem;
   }
 }
 </style>

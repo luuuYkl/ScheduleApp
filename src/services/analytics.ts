@@ -6,46 +6,46 @@
  */
 export enum EventType {
   // 激活类事件
-  FIRST_TASK_COMPLETED = 'first_task_completed',
-  PLAN_CREATED = 'plan_created',
-  USER_REGISTERED = 'user_registered',
-  FIRST_LOGIN = 'first_login',
-  
+  FIRST_TASK_COMPLETED = "first_task_completed",
+  PLAN_CREATED = "plan_created",
+  USER_REGISTERED = "user_registered",
+  FIRST_LOGIN = "first_login",
+
   // 留存类事件
-  DAILY_VISIT = 'daily_visit',
-  WEEKLY_VISIT = 'weekly_visit',
-  MONTHLY_VISIT = 'monthly_visit',
-  SESSION_START = 'session_start',
-  SESSION_END = 'session_end',
-  
+  DAILY_VISIT = "daily_visit",
+  WEEKLY_VISIT = "weekly_visit",
+  MONTHLY_VISIT = "monthly_visit",
+  SESSION_START = "session_start",
+  SESSION_END = "session_end",
+
   // 效率类事件
-  TASK_COMPLETED = 'task_completed',
-  TASK_CREATED = 'task_created',
-  TASK_DELETED = 'task_deleted',
-  PLAN_PROGRESS_UPDATED = 'plan_progress_updated',
-  SCHEDULE_COMPLETED = 'schedule_completed',
-  
+  TASK_COMPLETED = "task_completed",
+  TASK_CREATED = "task_created",
+  TASK_DELETED = "task_deleted",
+  PLAN_PROGRESS_UPDATED = "plan_progress_updated",
+  SCHEDULE_COMPLETED = "schedule_completed",
+
   // AI类事件
-  AI_SUGGESTION_SHOWN = 'ai_suggestion_shown',
-  AI_SUGGESTION_ACCEPTED = 'ai_suggestion_accepted',
-  AI_SUGGESTION_REJECTED = 'ai_suggestion_rejected',
-  AI_OPTIMIZE_PLAN = 'ai_optimize_plan',
-  
+  AI_SUGGESTION_SHOWN = "ai_suggestion_shown",
+  AI_SUGGESTION_ACCEPTED = "ai_suggestion_accepted",
+  AI_SUGGESTION_REJECTED = "ai_suggestion_rejected",
+  AI_OPTIMIZE_PLAN = "ai_optimize_plan",
+
   // 通知类事件
-  NOTIFICATION_PERMISSION_GRANTED = 'notification_permission_granted',
-  NOTIFICATION_PERMISSION_DENIED = 'notification_permission_denied',
-  NOTIFICATION_CLICKED = 'notification_clicked',
-  REMINDER_TRIGGERED = 'reminder_triggered',
-  
+  NOTIFICATION_PERMISSION_GRANTED = "notification_permission_granted",
+  NOTIFICATION_PERMISSION_DENIED = "notification_permission_denied",
+  NOTIFICATION_CLICKED = "notification_clicked",
+  REMINDER_TRIGGERED = "reminder_triggered",
+
   // UI交互事件
-  PAGE_VIEW = 'page_view',
-  BUTTON_CLICK = 'button_click',
-  FORM_SUBMIT = 'form_submit',
-  NAVIGATION = 'navigation',
-  
+  PAGE_VIEW = "page_view",
+  BUTTON_CLICK = "button_click",
+  FORM_SUBMIT = "form_submit",
+  NAVIGATION = "navigation",
+
   // 错误类事件
-  ERROR_OCCURRED = 'error_occurred',
-  API_ERROR = 'api_error'
+  ERROR_OCCURRED = "error_occurred",
+  API_ERROR = "api_error",
 }
 
 /**
@@ -64,7 +64,7 @@ export interface AnalyticsConfig {
   userId?: string;
   sessionId?: string;
   appVersion?: string;
-  environment?: 'development' | 'production' | 'test';
+  environment?: "development" | "production" | "test";
 }
 
 /**
@@ -92,11 +92,13 @@ export class AnalyticsService {
   private constructor() {
     this.config = {
       enabled: true,
-      debug: process.env.NODE_ENV === 'development',
-      appVersion: '1.0.0',
-      environment: process.env.NODE_ENV as 'development' | 'production' | 'test' || 'development'
+      debug: process.env.NODE_ENV === "development",
+      appVersion: "1.0.0",
+      environment:
+        (process.env.NODE_ENV as "development" | "production" | "test") ||
+        "development",
     };
-    
+
     this.initializeSession();
     this.setupAutoTracking();
   }
@@ -118,21 +120,21 @@ export class AnalyticsService {
     // 生成会话ID
     const sessionId = this.generateSessionId();
     this.config.sessionId = sessionId;
-    
+
     // 从localStorage获取用户ID
-    const storedUserId = localStorage.getItem('analytics_user_id');
+    const storedUserId = localStorage.getItem("analytics_user_id");
     if (storedUserId) {
       this.config.userId = storedUserId;
     } else {
       const newUserId = this.generateUserId();
       this.config.userId = newUserId;
-      localStorage.setItem('analytics_user_id', newUserId);
+      localStorage.setItem("analytics_user_id", newUserId);
     }
-    
+
     // 设置会话开始时间
     this.track(EventType.SESSION_START, {
       session_id: sessionId,
-      user_id: this.config.userId
+      user_id: this.config.userId,
     });
   }
 
@@ -148,7 +150,7 @@ export class AnalyticsService {
    */
   public setUserId(userId: string): void {
     this.config.userId = userId;
-    localStorage.setItem('analytics_user_id', userId);
+    localStorage.setItem("analytics_user_id", userId);
   }
 
   /**
@@ -169,21 +171,21 @@ export class AnalyticsService {
         referrer: document.referrer,
         user_agent: navigator.userAgent,
         screen_width: window.screen.width,
-        screen_height: window.screen.height
+        screen_height: window.screen.height,
       },
       timestamp: Date.now(),
       userId: this.config.userId,
-      sessionId: this.config.sessionId
+      sessionId: this.config.sessionId,
     };
 
     // 添加到队列
     this.eventQueue.push(eventData);
-    
+
     // 调试模式下立即输出
     if (this.config.debug) {
-      console.log('[Analytics]', event, properties);
+      console.log("[Analytics]", event, properties);
     }
-    
+
     // 检查队列大小，必要时立即发送
     if (this.eventQueue.length >= this.MAX_QUEUE_SIZE) {
       this.flushEvents();
@@ -199,39 +201,50 @@ export class AnalyticsService {
   public pageView(pageName: string, properties: EventProperties = {}): void {
     this.track(EventType.PAGE_VIEW, {
       page_name: pageName,
-      ...properties
+      ...properties,
     });
   }
 
   /**
    * 按钮点击跟踪
    */
-  public buttonClick(buttonName: string, properties: EventProperties = {}): void {
+  public buttonClick(
+    buttonName: string,
+    properties: EventProperties = {},
+  ): void {
     this.track(EventType.BUTTON_CLICK, {
       button_name: buttonName,
-      ...properties
+      ...properties,
     });
   }
 
   /**
    * 表单提交跟踪
    */
-  public formSubmit(formName: string, success: boolean, properties: EventProperties = {}): void {
+  public formSubmit(
+    formName: string,
+    success: boolean,
+    properties: EventProperties = {},
+  ): void {
     this.track(EventType.FORM_SUBMIT, {
       form_name: formName,
       success,
-      ...properties
+      ...properties,
     });
   }
 
   /**
    * 导航跟踪
    */
-  public navigation(from: string, to: string, properties: EventProperties = {}): void {
+  public navigation(
+    from: string,
+    to: string,
+    properties: EventProperties = {},
+  ): void {
     this.track(EventType.NAVIGATION, {
       from_page: from,
       to_page: to,
-      ...properties
+      ...properties,
     });
   }
 
@@ -243,19 +256,24 @@ export class AnalyticsService {
       error_name: error.name,
       error_message: error.message,
       error_stack: error.stack,
-      ...properties
+      ...properties,
     });
   }
 
   /**
    * API错误跟踪
    */
-  public trackApiError(url: string, status: number, error: string, properties: EventProperties = {}): void {
+  public trackApiError(
+    url: string,
+    status: number,
+    error: string,
+    properties: EventProperties = {},
+  ): void {
     this.track(EventType.API_ERROR, {
       api_url: url,
       status_code: status,
       error_message: error,
-      ...properties
+      ...properties,
     });
   }
 
@@ -269,7 +287,7 @@ export class AnalyticsService {
 
     const eventsToSend = [...this.eventQueue];
     this.eventQueue = [];
-    
+
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
@@ -286,29 +304,28 @@ export class AnalyticsService {
     try {
       // 在实际应用中，这里应该发送到分析平台
       // 例如：Google Analytics, Mixpanel, 自建分析服务等
-      
+
       if (this.config.debug) {
-        console.log('[Analytics] Sending events:', events);
+        console.log("[Analytics] Sending events:", events);
       }
-      
+
       // 模拟发送到后端
-      fetch('/api/analytics/events', {
-        method: 'POST',
+      fetch("/api/analytics/events", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           events,
-          batch_timestamp: Date.now()
-        })
-      }).catch(error => {
-        console.warn('[Analytics] Failed to send events:', error);
+          batch_timestamp: Date.now(),
+        }),
+      }).catch((error) => {
+        console.warn("[Analytics] Failed to send events:", error);
         // 发送失败时重新加入队列
         this.eventQueue.unshift(...events);
       });
-      
     } catch (error) {
-      console.error('[Analytics] Error sending events:', error);
+      console.error("[Analytics] Error sending events:", error);
     }
   }
 
@@ -317,7 +334,7 @@ export class AnalyticsService {
    */
   private setupAutoTracking(): void {
     // 页面可见性变化跟踪
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         this.track(EventType.SESSION_END);
       } else {
@@ -326,7 +343,7 @@ export class AnalyticsService {
     });
 
     // 页面卸载时刷新事件
-    window.addEventListener('beforeunload', () => {
+    window.addEventListener("beforeunload", () => {
       this.flushEvents();
     });
 
@@ -339,22 +356,22 @@ export class AnalyticsService {
    */
   private setupDailyVisitTracking(): void {
     const today = new Date().toDateString();
-    const lastVisit = localStorage.getItem('last_visit_date');
-    
+    const lastVisit = localStorage.getItem("last_visit_date");
+
     if (lastVisit !== today) {
       this.track(EventType.DAILY_VISIT, {
-        is_returning_user: !!lastVisit
+        is_returning_user: !!lastVisit,
       });
-      
-      localStorage.setItem('last_visit_date', today);
-      
+
+      localStorage.setItem("last_visit_date", today);
+
       // 每周访问检查
-      const lastWeeklyVisit = localStorage.getItem('last_weekly_visit');
+      const lastWeeklyVisit = localStorage.getItem("last_weekly_visit");
       const currentWeek = this.getWeekNumber(new Date());
-      
+
       if (!lastWeeklyVisit || parseInt(lastWeeklyVisit) !== currentWeek) {
         this.track(EventType.WEEKLY_VISIT);
-        localStorage.setItem('last_weekly_visit', currentWeek.toString());
+        localStorage.setItem("last_weekly_visit", currentWeek.toString());
       }
     }
   }
@@ -370,13 +387,13 @@ export class AnalyticsService {
    * 生成用户ID
    */
   private generateUserId(): string {
-    const existingId = localStorage.getItem('user_id');
+    const existingId = localStorage.getItem("user_id");
     if (existingId) {
       return existingId;
     }
-    
+
     const newId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('user_id', newId);
+    localStorage.setItem("user_id", newId);
     return newId;
   }
 
@@ -385,7 +402,8 @@ export class AnalyticsService {
    */
   private getWeekNumber(date: Date): number {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    const pastDaysOfYear =
+      (date.getTime() - firstDayOfYear.getTime()) / 86400000;
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   }
 
@@ -396,7 +414,7 @@ export class AnalyticsService {
     if (this.flushTimer) {
       return;
     }
-    
+
     this.flushTimer = window.setTimeout(() => {
       this.flushEvents();
       this.flushTimer = null;
@@ -441,7 +459,9 @@ export const useAnalytics = (): AnalyticsService => {
  */
 export const DEFAULT_ANALYTICS_CONFIG: AnalyticsConfig = {
   enabled: true,
-  debug: process.env.NODE_ENV === 'development',
-  appVersion: '1.0.0',
-  environment: process.env.NODE_ENV as 'development' | 'production' | 'test' || 'development'
+  debug: process.env.NODE_ENV === "development",
+  appVersion: "1.0.0",
+  environment:
+    (process.env.NODE_ENV as "development" | "production" | "test") ||
+    "development",
 };

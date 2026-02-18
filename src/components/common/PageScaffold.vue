@@ -1,27 +1,19 @@
 <template>
-  <section 
-    class="page" 
-    role="main"
-    aria-labelledby="page-title"
-  >
+  <section class="page" role="main" aria-labelledby="page-title">
     <header class="page__header">
       <div class="page__title-wrapper">
-        <h1 
-          id="page-title" 
+        <h1
+          id="page-title"
           class="page__title"
           :aria-describedby="subtitle ? 'page-subtitle' : undefined"
         >
           {{ title }}
         </h1>
-        <p 
-          v-if="subtitle" 
-          id="page-subtitle"
-          class="page__subtitle"
-        >
+        <p v-if="subtitle" id="page-subtitle" class="page__subtitle">
           {{ subtitle }}
         </p>
       </div>
-      <div 
+      <div
         v-if="$slots.actions"
         class="page__actions"
         role="toolbar"
@@ -30,11 +22,7 @@
         <slot name="actions" />
       </div>
     </header>
-    <div 
-      class="page__content"
-      role="region"
-      aria-label="页面内容"
-    >
+    <div class="page__content" role="region" aria-label="页面内容">
       <slot />
     </div>
   </section>
@@ -102,22 +90,22 @@ defineProps<Props>();
   .page {
     padding: var(--space-3);
   }
-  
+
   .page__header {
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-3);
     margin-bottom: var(--space-4);
   }
-  
+
   .page__actions {
     align-self: flex-start;
   }
-  
+
   .page__title {
     font-size: 20px;
   }
-  
+
   .page__subtitle {
     font-size: 14px;
   }
@@ -127,7 +115,7 @@ defineProps<Props>();
   .page {
     padding: var(--space-2);
   }
-  
+
   .page__title {
     font-size: 18px;
   }

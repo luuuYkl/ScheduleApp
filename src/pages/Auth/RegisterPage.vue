@@ -1,5 +1,11 @@
 <template>
-  <div class="page card" style="max-width:420px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;">
+  <div
+    class="page card"
+    style="
+      max-width: 420px;
+      margin: calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;
+    "
+  >
     <h1 class="mb-4 text-center">注册</h1>
 
     <div class="mb-2">
@@ -17,9 +23,9 @@
       <input type="password" v-model="password" placeholder="请输入密码" />
     </div>
 
-    <p v-if="error" style="color:var(--color-danger)">{{ error }}</p>
+    <p v-if="error" style="color: var(--color-danger)">{{ error }}</p>
 
-    <div class="mt-3 flex" style="gap:.5rem;justify-content:center">
+    <div class="mt-3 flex" style="gap: 0.5rem; justify-content: center">
       <button class="primary" @click="register" :disabled="loading">
         {{ loading ? "注册中..." : "注册" }}
       </button>
@@ -49,7 +55,7 @@ async function register() {
     await userStore.register({
       username: username.value,
       email: email.value,
-      password: password.value
+      password: password.value,
     });
 
     router.push("/home");

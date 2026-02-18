@@ -5,7 +5,11 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { API } from "@/services/api";
 import type { Plan, UpdatePlanPayload } from "@/services/api.types";
-import type { Task, CreateTaskPayload, UpdateTaskPayload } from "@/services/api.types";
+import type {
+  Task,
+  CreateTaskPayload,
+  UpdateTaskPayload,
+} from "@/services/api.types";
 
 /**
  * 计划 Store
@@ -15,10 +19,10 @@ import type { Task, CreateTaskPayload, UpdateTaskPayload } from "@/services/api.
  */
 export const usePlanStore = defineStore("plans", () => {
   // ========== 状态 ==========
-  
+
   /** 计划列表 */
   const plans = ref<Plan[]>([]);
-  
+
   /** 任务列表（可按计划ID过滤） */
   const tasks = ref<Task[]>([]);
 
@@ -42,10 +46,10 @@ export const usePlanStore = defineStore("plans", () => {
    */
   async function createPlan(planData: Partial<Plan>) {
     const newPlan = await API.addPlan(planData);
-    
+
     // 检查是否已存在相同ID的计划
-    const existingIndex = plans.value.findIndex(p => p.id === newPlan.id);
-    
+    const existingIndex = plans.value.findIndex((p) => p.id === newPlan.id);
+
     if (existingIndex !== -1) {
       // ID已存在，更新现有计划
       plans.value[existingIndex] = newPlan;
@@ -53,7 +57,7 @@ export const usePlanStore = defineStore("plans", () => {
       // 新增计划
       plans.value.push(newPlan);
     }
-    
+
     return newPlan;
   }
 
@@ -144,26 +148,27 @@ export const usePlanStore = defineStore("plans", () => {
   async function toggleTaskStatus(id: number) {
     const t = tasks.value.find((x) => x.id === id);
     if (!t) return null;
-    
+
     // 切换状态
     const newStatus = t.status === "done" ? "pending" : "done";
     const updated = await API.updateTask(id, { status: newStatus });
     const i = tasks.value.findIndex((x) => x.id === id);
     if (i !== -1) tasks.value[i] = updated;
-    
+
     // 自动生成当日日志
     try {
       const { useLogStore } = await import("@/store/log");
       const { useUserStore } = await import("@/store/user");
-      
+
       const logStore = useLogStore();
       const userStore = useUserStore();
-      const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
-      
+      const userId =
+        userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+
       // 筛选今天的任务
       const today = new Date().toISOString().slice(0, 10);
-      const todayTasks = tasks.value.filter(t => t.task_date === today);
-      
+      const todayTasks = tasks.value.filter((t) => t.task_date === today);
+
       if (todayTasks.length > 0) {
         await logStore.generateTodayLog(userId, todayTasks);
         console.log("✅ 日志已自动生成/更新");
@@ -172,12 +177,12 @@ export const usePlanStore = defineStore("plans", () => {
       console.warn("生成日志失败:", e);
       // 不阻断任务状态切换
     }
-    
+
     return updated;
   }
 
   // ========== 导出 ==========
-  
+
   return {
     // 计划相关
     plans,
@@ -186,7 +191,7 @@ export const usePlanStore = defineStore("plans", () => {
     updatePlan,
     removePlan,
     getPlan,
-    
+
     // 任务相关
     tasks,
     loadTasks,

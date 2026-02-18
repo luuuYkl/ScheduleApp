@@ -17,18 +17,18 @@ import type {
  */
 export const useTaskStore = defineStore("tasks", () => {
   // ========== 状态 ==========
-  
+
   /** 任务列表 */
   const tasks = ref<Task[]>([]);
-  
+
   /** 加载状态 */
   const loading = ref(false);
-  
+
   /** 错误信息 */
   const error = ref<string | null>(null);
 
   // ========== 加载方法 ==========
-  
+
   /**
    * 加载任务列表
    * @param planId 可选：按计划ID过滤任务
@@ -47,7 +47,7 @@ export const useTaskStore = defineStore("tasks", () => {
   }
 
   // ========== 辅助方法 ==========
-  
+
   /**
    * 根据ID查找任务索引
    * @param id 任务ID
@@ -58,7 +58,7 @@ export const useTaskStore = defineStore("tasks", () => {
   }
 
   // ========== CRUD 操作 ==========
-  
+
   /**
    * 切换任务状态（内部方法）
    * @param taskId 任务ID
@@ -141,20 +141,21 @@ export const useTaskStore = defineStore("tasks", () => {
   async function toggleTaskStatus(taskId: number) {
     // 先切换状态
     await toggleStatus(taskId);
-    
+
     // 切换成功后，自动生成当日日志
     try {
       const { useLogStore } = await import("@/store/log");
       const { useUserStore } = await import("@/store/user");
-      
+
       const logStore = useLogStore();
       const userStore = useUserStore();
-      const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
-      
+      const userId =
+        userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+
       // 筛选今天的任务
       const today = new Date().toISOString().slice(0, 10);
-      const todayTasks = tasks.value.filter(t => t.task_date === today);
-      
+      const todayTasks = tasks.value.filter((t) => t.task_date === today);
+
       if (todayTasks.length > 0) {
         await logStore.generateTodayLog(userId, todayTasks);
         console.log("✅ 日志已自动生成/更新");
@@ -166,7 +167,7 @@ export const useTaskStore = defineStore("tasks", () => {
   }
 
   // ========== 兼容性别名 ==========
-  
+
   /**
    * 删除任务（旧命名兼容）
    * @deprecated 请使用 deleteTask
@@ -176,7 +177,7 @@ export const useTaskStore = defineStore("tasks", () => {
   }
 
   // ========== 导出 ==========
-  
+
   return {
     // 状态
     tasks,

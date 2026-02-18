@@ -1,43 +1,74 @@
 <template>
-  <div class="page plan-create" style="max-width:720px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;">
+  <div
+    class="page plan-create"
+    style="
+      max-width: 720px;
+      margin: calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;
+    "
+  >
     <h1>{{ editId ? "编辑计划" : "创建新计划" }}</h1>
 
     <!-- 表单内容 -->
     <form class="form" @submit.prevent="createPlan" novalidate>
       <label>
         标题 *
-        <input v-model.trim="form.title" type="text" placeholder="计划标题" required @input="clearAISuggestions" />
+        <input
+          v-model.trim="form.title"
+          type="text"
+          placeholder="计划标题"
+          required
+          @input="clearAISuggestions"
+        />
         <small class="error" v-if="errors.title">{{ errors.title }}</small>
       </label>
 
       <label>
         描述
-        <textarea v-model="form.description" placeholder="计划描述（可选）" rows="3" @input="clearAISuggestions"></textarea>
+        <textarea
+          v-model="form.description"
+          placeholder="计划描述（可选）"
+          rows="3"
+          @input="clearAISuggestions"
+        ></textarea>
       </label>
 
       <div class="row">
         <label>
           开始日期 *
-          <input v-model="form.start_date" type="date" required @change="clearAISuggestions" />
-          <small class="error" v-if="errors.start_date">{{ errors.start_date }}</small>
+          <input
+            v-model="form.start_date"
+            type="date"
+            required
+            @change="clearAISuggestions"
+          />
+          <small class="error" v-if="errors.start_date">{{
+            errors.start_date
+          }}</small>
         </label>
         <label>
           结束日期 *
-          <input v-model="form.end_date" type="date" required @change="clearAISuggestions" />
-          <small class="error" v-if="errors.end_date">{{ errors.end_date }}</small>
+          <input
+            v-model="form.end_date"
+            type="date"
+            required
+            @change="clearAISuggestions"
+          />
+          <small class="error" v-if="errors.end_date">{{
+            errors.end_date
+          }}</small>
         </label>
       </div>
 
       <!-- AI 优化按钮 -->
       <div class="ai-optimize-section">
-        <button 
-          type="button" 
-          class="btn-ai-optimize" 
+        <button
+          type="button"
+          class="btn-ai-optimize"
           @click="getAISuggestions"
           :disabled="aiLoading || !canOptimize"
         >
           <span class="ai-icon">🤖</span>
-          {{ aiLoading ? 'AI 分析中...' : 'AI 智能优化' }}
+          {{ aiLoading ? "AI 分析中..." : "AI 智能优化" }}
         </button>
         <small class="ai-hint" v-if="!canOptimize">
           请先填写标题和日期后再使用 AI 优化
@@ -63,19 +94,31 @@
               <div class="task-title">{{ task.title }}</div>
               <div class="task-meta">
                 <span v-if="task.task_date">📅 {{ task.task_date }}</span>
-                <span v-if="task.start_time">⏰ {{ task.start_time }}<span v-if="task.end_time"> - {{ task.end_time }}</span></span>
-                <span v-if="task.repeat_type && task.repeat_type !== 'none'">🔁 {{ task.repeat_type }}<span v-if="task.repeat_end_date"> · 至 {{ task.repeat_end_date }}</span></span>
+                <span v-if="task.start_time"
+                  >⏰ {{ task.start_time
+                  }}<span v-if="task.end_time">
+                    - {{ task.end_time }}</span
+                  ></span
+                >
+                <span v-if="task.repeat_type && task.repeat_type !== 'none'"
+                  >🔁 {{ task.repeat_type
+                  }}<span v-if="task.repeat_end_date">
+                    · 至 {{ task.repeat_end_date }}</span
+                  ></span
+                >
                 <span v-if="task.note">📝 {{ task.note }}</span>
               </div>
             </div>
-            <button type="button" class="btn-remove" @click="removeTask(index)">✕</button>
+            <button type="button" class="btn-remove" @click="removeTask(index)">
+              ✕
+            </button>
           </li>
         </ul>
       </div>
 
       <div class="ops">
         <button class="primary" type="submit" :disabled="submitting">
-          {{ submitting ? "提交中..." : (editId ? "保存修改" : "保存计划") }}
+          {{ submitting ? "提交中..." : editId ? "保存修改" : "保存计划" }}
         </button>
         <button type="button" class="secondary" @click="goBack">返回</button>
       </div>
@@ -89,7 +132,11 @@ import { useRoute, useRouter } from "vue-router";
 import { usePlanStore } from "@/store/plans";
 import { useUserStore } from "@/store/user";
 import { optimizePlanWithAI, quickValidatePlan } from "@/services/ai";
-import type { AIOptimizePlanResponse, AIRecommendedTask, CreateTaskPayload } from "@/services/api.types";
+import type {
+  AIOptimizePlanResponse,
+  AIRecommendedTask,
+  CreateTaskPayload,
+} from "@/services/api.types";
 import AISuggestions from "@/components/plan/AISuggestions.vue";
 import { APP_CONFIG } from "@/config";
 
@@ -109,7 +156,9 @@ const userStore = useUserStore();
 // 编辑态判断（支持 ?edit=ID）
 const editId = ref<number | null>(null);
 if (route.query.edit) {
-  const q = Array.isArray(route.query.edit) ? route.query.edit[0] : route.query.edit;
+  const q = Array.isArray(route.query.edit)
+    ? route.query.edit[0]
+    : route.query.edit;
   const n = Number(q);
   if (!Number.isNaN(n)) editId.value = n;
 }
@@ -200,7 +249,7 @@ async function getAISuggestions() {
     // 显示快速验证的错误
     aiResponse.value = {
       suggestions: quickErrors,
-      reasoning: "基于基本规则的快速验证"
+      reasoning: "基于基本规则的快速验证",
     };
     return;
   }
@@ -230,19 +279,22 @@ function clearAISuggestions() {
 function isSameTask(a: AIRecommendedTask, b: AIRecommendedTask) {
   return (
     a.title === b.title &&
-    (a.task_date ?? '') === (b.task_date ?? '') &&
-    (a.start_time ?? '') === (b.start_time ?? '') &&
-    (a.repeat_type ?? 'none') === (b.repeat_type ?? 'none')
+    (a.task_date ?? "") === (b.task_date ?? "") &&
+    (a.start_time ?? "") === (b.start_time ?? "") &&
+    (a.repeat_type ?? "none") === (b.repeat_type ?? "none")
   );
 }
 
 function addRecommendedTask(task: AIRecommendedTask) {
-  const exists = pendingTasks.value.some(t => isSameTask(t, task));
+  const exists = pendingTasks.value.some((t) => isSameTask(t, task));
   if (exists) {
     alert("该任务已添加到待创建列表中");
     return;
   }
-  pendingTasks.value.push({ ...task, task_date: task.task_date || form.start_date });
+  pendingTasks.value.push({
+    ...task,
+    task_date: task.task_date || form.start_date,
+  });
   // 注意：只是添加到待创建列表，不会立即创建计划，需要点击"保存计划"按钮才会创建
 }
 
@@ -250,7 +302,9 @@ function removeTask(index: number) {
   pendingTasks.value.splice(index, 1);
 }
 
-function applyOptimization(optimizedPlan: AIOptimizePlanResponse['optimized_plan']) {
+function applyOptimization(
+  optimizedPlan: AIOptimizePlanResponse["optimized_plan"],
+) {
   if (!optimizedPlan) return;
 
   // 应用优化后的字段
@@ -269,7 +323,7 @@ function applyOptimization(optimizedPlan: AIOptimizePlanResponse['optimized_plan
 
   // 添加推荐任务到待创建列表
   if (optimizedPlan.recommended_tasks) {
-    optimizedPlan.recommended_tasks.forEach(task => {
+    optimizedPlan.recommended_tasks.forEach((task) => {
       addRecommendedTask(task as AIRecommendedTask);
     });
   }
@@ -296,7 +350,7 @@ async function createPlan() {
     } else {
       if (!planStore.createPlan) throw new Error("创建接口未实现");
       const newPlan = await planStore.createPlan(payload);
-      
+
       // 如果有待创建的推荐任务，自动创建它们
       if (pendingTasks.value.length > 0 && newPlan.id && userStore.user?.id) {
         await createRecommendedTasks(newPlan.id);
@@ -319,10 +373,10 @@ async function createPlan() {
 // 创建推荐任务
 async function createRecommendedTasks(planId: number) {
   if (!userStore.user?.id) return;
-  
-  const taskStore = await import("@/store/tasks").then(m => m.useTaskStore());
+
+  const taskStore = await import("@/store/tasks").then((m) => m.useTaskStore());
   const startDate = new Date(form.start_date);
-  
+
   for (const task of pendingTasks.value) {
     try {
       const taskPayload: CreateTaskPayload = {
@@ -364,17 +418,28 @@ onMounted(async () => {
 }
 .form {
   display: grid;
-  gap: .6rem;
+  gap: 0.6rem;
 }
-.form label { display:flex; flex-direction:column; font-weight:600; }
-.row { display:flex; gap:.6rem; }
-.ops { display:flex; gap:.5rem; margin-top:.6rem; }
-.primary { 
-  background: var(--color-primary, #3b82f6); 
-  color: #fff; 
-  border: none; 
-  padding: .5rem 1rem; 
-  border-radius: 6px; 
+.form label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+}
+.row {
+  display: flex;
+  gap: 0.6rem;
+}
+.ops {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.primary {
+  background: var(--color-primary, #3b82f6);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -385,19 +450,22 @@ onMounted(async () => {
   background: #9ca3af;
   cursor: not-allowed;
 }
-.secondary { 
-  background: #6b7280; 
-  color: #fff; 
-  border: none; 
-  padding: .5rem 1rem; 
-  border-radius: 6px; 
+.secondary {
+  background: #6b7280;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
 }
 .secondary:hover {
   background: #4b5563;
 }
-.error { color:#ef4444; font-size:0.85rem; }
+.error {
+  color: #ef4444;
+  font-size: 0.85rem;
+}
 
 /* AI 优化相关样式 */
 .ai-optimize-section {

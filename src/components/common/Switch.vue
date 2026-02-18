@@ -10,7 +10,7 @@
       'switch',
       { 'switch--checked': modelValue },
       { 'switch--disabled': disabled },
-      `switch--${size}`
+      `switch--${size}`,
     ]"
     @click="handleClick"
     :disabled="disabled"
@@ -25,23 +25,23 @@
 interface Props {
   modelValue?: boolean;
   disabled?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  size?: "small" | "medium" | "large";
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: boolean): void;
+  (e: "update:modelValue", value: boolean): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
   disabled: false,
-  size: 'medium'
+  size: "medium",
 });
 
 const emit = defineEmits<Emits>();
 
 const handleClick = () => {
-  emit('update:modelValue', !props.modelValue);
+  emit("update:modelValue", !props.modelValue);
 };
 </script>
 

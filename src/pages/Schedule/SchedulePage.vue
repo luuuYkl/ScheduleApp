@@ -8,12 +8,12 @@
 </template>
 
 <script setup lang="ts">
-import ScheduleForm from '@/components/schedule/ScheduleForm.vue';
-import { useRouter } from 'vue-router';
+import ScheduleForm from "@/components/schedule/ScheduleForm.vue";
+import { useRouter } from "vue-router";
 const router = useRouter();
 
-function handleCreated(){ 
-  router.push('/home'); // 创建成功后返回首页查看
+function handleCreated() {
+  router.push("/home"); // 创建成功后返回首页查看
 }
 </script>
 
@@ -26,8 +26,8 @@ function handleCreated(){
   min-height: 100vh;
 }
 
-.form-container { 
-  max-width: 560px; 
-  margin: 0 auto; 
+.form-container {
+  max-width: 560px;
+  margin: 0 auto;
 }
 </style>

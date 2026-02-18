@@ -14,14 +14,14 @@
       <div class="section-header">
         <h2>全局设置</h2>
       </div>
-      
+
       <div class="setting-item">
         <div class="setting-content">
           <h3>启用通知提醒</h3>
           <p>开启后将接收任务提醒、进度通知等系统消息</p>
         </div>
-        <Switch 
-          v-model="notificationsEnabled" 
+        <Switch
+          v-model="notificationsEnabled"
           @update:modelValue="handleNotificationsToggle"
           class="toggle-switch"
         />
@@ -33,7 +33,7 @@
       <div class="section-header">
         <h2>权限状态</h2>
       </div>
-      
+
       <div class="permission-status">
         <div class="status-item">
           <span class="status-label">浏览器通知权限:</span>
@@ -41,9 +41,9 @@
             {{ permissionStatusText }}
           </span>
         </div>
-        
-        <Button 
-          v-if="!notificationService.hasPermission()" 
+
+        <Button
+          v-if="!notificationService.hasPermission()"
           @click="requestPermission"
           variant="primary"
           size="small"
@@ -62,8 +62,8 @@
       </div>
 
       <div class="setting-group">
-        <div 
-          v-for="reminder in reminderTypes" 
+        <div
+          v-for="reminder in reminderTypes"
           :key="reminder.key"
           class="setting-item"
         >
@@ -71,9 +71,11 @@
             <h3>{{ reminder.title }}</h3>
             <p>{{ reminder.description }}</p>
           </div>
-          <Switch 
-            v-model="reminder.enabled" 
-            @update:modelValue="(val: boolean) => handleReminderToggle(reminder.key, val)"
+          <Switch
+            v-model="reminder.enabled"
+            @update:modelValue="
+              (val: boolean) => handleReminderToggle(reminder.key, val)
+            "
             :disabled="!notificationsEnabled"
             class="toggle-switch"
           />
@@ -92,14 +94,14 @@
         <div class="time-setting-item">
           <label>上午</label>
           <div class="time-input-group">
-            <input 
+            <input
               v-model="activeTimes.morningStart"
               type="time"
               @change="saveActiveTimes"
               class="time-input"
             />
             <span>-</span>
-            <input 
+            <input
               v-model="activeTimes.morningEnd"
               type="time"
               @change="saveActiveTimes"
@@ -111,14 +113,14 @@
         <div class="time-setting-item">
           <label>下午</label>
           <div class="time-input-group">
-            <input 
+            <input
               v-model="activeTimes.afternoonStart"
               type="time"
               @change="saveActiveTimes"
               class="time-input"
             />
             <span>-</span>
-            <input 
+            <input
               v-model="activeTimes.afternoonEnd"
               type="time"
               @change="saveActiveTimes"
@@ -130,14 +132,14 @@
         <div class="time-setting-item">
           <label>晚上</label>
           <div class="time-input-group">
-            <input 
+            <input
               v-model="activeTimes.eveningStart"
               type="time"
               @change="saveActiveTimes"
               class="time-input"
             />
             <span>-</span>
-            <input 
+            <input
               v-model="activeTimes.eveningEnd"
               type="time"
               @change="saveActiveTimes"
@@ -161,27 +163,27 @@
             <h3>任务到期提醒</h3>
             <div class="checkbox-group">
               <label class="checkbox-item">
-                <input 
-                  type="checkbox" 
-                  v-model="advanceNotice.taskDueHours" 
+                <input
+                  type="checkbox"
+                  v-model="advanceNotice.taskDueHours"
                   value="1"
                   @change="saveAdvanceNotice"
                 />
                 1小时前
               </label>
               <label class="checkbox-item">
-                <input 
-                  type="checkbox" 
-                  v-model="advanceNotice.taskDueHours" 
+                <input
+                  type="checkbox"
+                  v-model="advanceNotice.taskDueHours"
                   value="24"
                   @change="saveAdvanceNotice"
                 />
                 1天前
               </label>
               <label class="checkbox-item">
-                <input 
-                  type="checkbox" 
-                  v-model="advanceNotice.taskDueHours" 
+                <input
+                  type="checkbox"
+                  v-model="advanceNotice.taskDueHours"
                   value="168"
                   @change="saveAdvanceNotice"
                 />
@@ -194,7 +196,7 @@
         <div class="setting-item">
           <div class="setting-content">
             <h3>每日签到提醒</h3>
-            <input 
+            <input
               v-model="advanceNotice.dailyCheckin"
               type="time"
               @change="saveAdvanceNotice"
@@ -206,7 +208,7 @@
         <div class="setting-item">
           <div class="setting-content">
             <h3>每周回顾提醒</h3>
-            <select 
+            <select
               v-model="advanceNotice.weeklyReviewDay"
               @change="saveAdvanceNotice"
               class="day-select"
@@ -219,7 +221,7 @@
               <option value="Friday">周五</option>
               <option value="Saturday">周六</option>
             </select>
-            <input 
+            <input
               v-model="advanceNotice.weeklyReviewTime"
               type="time"
               @change="saveAdvanceNotice"
@@ -232,16 +234,18 @@
           <div class="setting-content">
             <h3>计划进度提醒</h3>
             <div class="slider-container">
-              <input 
+              <input
                 v-model.number="advanceNotice.planProgress"
-                type="range" 
-                min="50" 
-                max="100" 
+                type="range"
+                min="50"
+                max="100"
                 step="5"
                 @change="saveAdvanceNotice"
                 class="progress-slider"
               />
-              <span class="slider-value">{{ advanceNotice.planProgress }}%</span>
+              <span class="slider-value"
+                >{{ advanceNotice.planProgress }}%</span
+              >
             </div>
           </div>
         </div>
@@ -254,13 +258,13 @@
         <h2>当前提醒</h2>
         <p>系统当前计划发送的提醒数量</p>
       </div>
-      
+
       <div class="reminder-summary">
         <div class="summary-item">
           <span class="summary-label">待发送提醒:</span>
           <span class="summary-value">{{ pendingRemindersCount }}</span>
         </div>
-        <Button 
+        <Button
           @click="clearAllReminders"
           variant="outline"
           size="small"
@@ -273,29 +277,24 @@
 
     <!-- 操作按钮 -->
     <div class="actions-footer">
-      <Button 
-        @click="saveAllSettings" 
-        variant="primary"
-        :loading="saving"
-      >
+      <Button @click="saveAllSettings" variant="primary" :loading="saving">
         保存设置
       </Button>
-      <Button 
-        @click="resetToDefaults" 
-        variant="outline"
-      >
-        恢复默认
-      </Button>
+      <Button @click="resetToDefaults" variant="outline"> 恢复默认 </Button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useNotification } from '@/services/notification';
-import { useReminders, DEFAULT_ACTIVE_TIMES, DEFAULT_ADVANCE_NOTICE } from '@/services/reminders';
-import Switch from '@/components/common/Switch.vue';
-import Button from '@/components/common/Button.vue';
+import { ref, computed, onMounted } from "vue";
+import { useNotification } from "@/services/notification";
+import {
+  useReminders,
+  DEFAULT_ACTIVE_TIMES,
+  DEFAULT_ADVANCE_NOTICE,
+} from "@/services/reminders";
+import Switch from "@/components/common/Switch.vue";
+import Button from "@/components/common/Button.vue";
 
 // 服务实例
 const notificationService = useNotification();
@@ -308,10 +307,30 @@ const pendingRemindersCount = ref(0);
 
 // 提醒类型配置
 const reminderTypes = ref([
-  { key: 'task_due', title: '任务到期提醒', description: '任务即将到期时的提醒', enabled: true },
-  { key: 'daily_checkin', title: '每日签到提醒', description: '每天固定时间提醒签到', enabled: true },
-  { key: 'weekly_review', title: '每周回顾提醒', description: '每周固定时间提醒回顾', enabled: true },
-  { key: 'plan_progress', title: '计划进度提醒', description: '计划达到设定进度时提醒', enabled: true }
+  {
+    key: "task_due",
+    title: "任务到期提醒",
+    description: "任务即将到期时的提醒",
+    enabled: true,
+  },
+  {
+    key: "daily_checkin",
+    title: "每日签到提醒",
+    description: "每天固定时间提醒签到",
+    enabled: true,
+  },
+  {
+    key: "weekly_review",
+    title: "每周回顾提醒",
+    description: "每周固定时间提醒回顾",
+    enabled: true,
+  },
+  {
+    key: "plan_progress",
+    title: "计划进度提醒",
+    description: "计划达到设定进度时提醒",
+    enabled: true,
+  },
 ]);
 
 // 活跃时间段配置
@@ -319,24 +338,24 @@ const activeTimes = ref({ ...DEFAULT_ACTIVE_TIMES });
 
 // 提前提醒配置
 const advanceNotice = ref({
-  taskDueHours: ['1', '24'], // 1小时和1天前
-  dailyCheckin: '20:00',
-  weeklyReviewDay: 'Sunday',
-  weeklyReviewTime: '20:00',
-  planProgress: 80
+  taskDueHours: ["1", "24"], // 1小时和1天前
+  dailyCheckin: "20:00",
+  weeklyReviewDay: "Sunday",
+  weeklyReviewTime: "20:00",
+  planProgress: 80,
 });
 
 // 计算属性
 const permissionStatusText = computed(() => {
-  if (!notificationsEnabled.value) return '未启用';
-  if (notificationService.hasPermission()) return '已授权';
-  return '未授权';
+  if (!notificationsEnabled.value) return "未启用";
+  if (notificationService.hasPermission()) return "已授权";
+  return "未授权";
 });
 
 const permissionStatusClass = computed(() => {
-  if (!notificationsEnabled.value) return 'status-disabled';
-  if (notificationService.hasPermission()) return 'status-granted';
-  return 'status-denied';
+  if (!notificationsEnabled.value) return "status-disabled";
+  if (notificationService.hasPermission()) return "status-granted";
+  return "status-denied";
 });
 
 // 生命周期钩子
@@ -348,7 +367,7 @@ onMounted(() => {
 // 方法实现
 const loadSettings = () => {
   // 从 localStorage 加载设置
-  const savedSettings = localStorage.getItem('notification_settings');
+  const savedSettings = localStorage.getItem("notification_settings");
   if (savedSettings) {
     const settings = JSON.parse(savedSettings);
     notificationsEnabled.value = settings.enabled || false;
@@ -363,18 +382,18 @@ const saveSettings = () => {
     enabled: notificationsEnabled.value,
     reminderTypes: reminderTypes.value,
     activeTimes: activeTimes.value,
-    advanceNotice: advanceNotice.value
+    advanceNotice: advanceNotice.value,
   };
-  localStorage.setItem('notification_settings', JSON.stringify(settings));
+  localStorage.setItem("notification_settings", JSON.stringify(settings));
 };
 
 const handleNotificationsToggle = async (enabled: boolean) => {
   notificationsEnabled.value = enabled;
-  
+
   if (enabled && !notificationService.hasPermission()) {
     await requestPermission();
   }
-  
+
   saveSettings();
 };
 
@@ -385,13 +404,13 @@ const requestPermission = async () => {
       notificationsEnabled.value = false;
     }
   } catch (error) {
-    console.error('请求权限失败:', error);
+    console.error("请求权限失败:", error);
     notificationsEnabled.value = false;
   }
 };
 
 const handleReminderToggle = (key: string, enabled: boolean) => {
-  const reminder = reminderTypes.value.find(r => r.key === key);
+  const reminder = reminderTypes.value.find((r) => r.key === key);
   if (reminder) {
     reminder.enabled = enabled;
     saveSettings();
@@ -405,15 +424,17 @@ const saveActiveTimes = () => {
 
 const saveAdvanceNotice = () => {
   // 转换任务提前提醒时间为毫秒
-  const taskDueMs = advanceNotice.value.taskDueHours.map(hour => parseInt(hour) * 3600000);
-  
+  const taskDueMs = advanceNotice.value.taskDueHours.map(
+    (hour) => parseInt(hour) * 3600000,
+  );
+
   reminderService.setAdvanceNotice({
     taskDue: taskDueMs,
     dailyCheckin: advanceNotice.value.dailyCheckin,
     weeklyReview: `${advanceNotice.value.weeklyReviewDay} ${advanceNotice.value.weeklyReviewTime}`,
-    planProgress: advanceNotice.value.planProgress
+    planProgress: advanceNotice.value.planProgress,
   });
-  
+
   saveSettings();
 };
 
@@ -423,44 +444,64 @@ const saveAllSettings = async () => {
     saveSettings();
     saveActiveTimes();
     saveAdvanceNotice();
-    
+
     // 显示成功提示
     if (notificationsEnabled.value) {
       notificationService.showNotification({
-        title: '设置已保存',
-        body: '通知设置已成功更新'
+        title: "设置已保存",
+        body: "通知设置已成功更新",
       });
     }
   } catch (error) {
-    console.error('保存设置失败:', error);
+    console.error("保存设置失败:", error);
   } finally {
     saving.value = false;
   }
 };
 
 const resetToDefaults = () => {
-  if (confirm('确定要恢复所有通知设置为默认值吗？')) {
+  if (confirm("确定要恢复所有通知设置为默认值吗？")) {
     notificationsEnabled.value = false;
     reminderTypes.value = [
-      { key: 'task_due', title: '任务到期提醒', description: '任务即将到期时的提醒', enabled: true },
-      { key: 'daily_checkin', title: '每日签到提醒', description: '每天固定时间提醒签到', enabled: true },
-      { key: 'weekly_review', title: '每周回顾提醒', description: '每周固定时间提醒回顾', enabled: true },
-      { key: 'plan_progress', title: '计划进度提醒', description: '计划达到设定进度时提醒', enabled: true }
+      {
+        key: "task_due",
+        title: "任务到期提醒",
+        description: "任务即将到期时的提醒",
+        enabled: true,
+      },
+      {
+        key: "daily_checkin",
+        title: "每日签到提醒",
+        description: "每天固定时间提醒签到",
+        enabled: true,
+      },
+      {
+        key: "weekly_review",
+        title: "每周回顾提醒",
+        description: "每周固定时间提醒回顾",
+        enabled: true,
+      },
+      {
+        key: "plan_progress",
+        title: "计划进度提醒",
+        description: "计划达到设定进度时提醒",
+        enabled: true,
+      },
     ];
     activeTimes.value = { ...DEFAULT_ACTIVE_TIMES };
     advanceNotice.value = {
-      taskDueHours: ['1', '24'],
-      dailyCheckin: '20:00',
-      weeklyReviewDay: 'Sunday',
-      weeklyReviewTime: '20:00',
-      planProgress: 80
+      taskDueHours: ["1", "24"],
+      dailyCheckin: "20:00",
+      weeklyReviewDay: "Sunday",
+      weeklyReviewTime: "20:00",
+      planProgress: 80,
     };
     saveSettings();
   }
 };
 
 const clearAllReminders = () => {
-  if (confirm('确定要清除所有待发送的提醒吗？')) {
+  if (confirm("确定要清除所有待发送的提醒吗？")) {
     reminderService.clearAllReminders();
     updatePendingRemindersCount();
   }
@@ -734,19 +775,19 @@ setInterval(updatePendingRemindersCount, 5000);
   .notification-settings {
     padding: 16px;
   }
-  
+
   .settings-section {
     padding: 16px;
   }
-  
+
   .time-settings-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .actions-footer {
     flex-direction: column;
   }
-  
+
   .checkbox-group {
     flex-direction: column;
     gap: 8px;

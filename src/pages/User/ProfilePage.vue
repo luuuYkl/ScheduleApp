@@ -1,13 +1,12 @@
 <template>
   <div class="profile-page">
     <div class="profile-container">
-      
       <!-- 第一部分：用户概览 -->
       <section class="user-overview">
         <div class="user-identity">
           <img :src="avatarUrl" class="user-avatar" alt="用户头像" />
           <div class="user-info">
-            <h1 class="user-name">{{ user?.username || '未登录用户' }}</h1>
+            <h1 class="user-name">{{ user?.username || "未登录用户" }}</h1>
             <p class="user-goal">{{ userGoal }}</p>
           </div>
         </div>
@@ -18,7 +17,9 @@
           <div class="snapshot-stats">
             <div class="snapshot-item">
               <span class="snapshot-label">任务</span>
-              <span class="snapshot-value">{{ todayDone }} / {{ todayTotal }}</span>
+              <span class="snapshot-value"
+                >{{ todayDone }} / {{ todayTotal }}</span
+              >
             </div>
             <div class="snapshot-divider"></div>
             <div class="snapshot-item">
@@ -35,7 +36,6 @@
 
       <!-- 第二部分：行为与成长反馈 -->
       <section class="growth-section">
-        
         <!-- 使用统计 -->
         <div class="stats-card">
           <h3 class="card-title">近 7 天</h3>
@@ -44,7 +44,9 @@
               <span class="stat-icon">✔</span>
               <div class="stat-content">
                 <span class="stat-label">完成任务</span>
-                <span class="stat-value">{{ weekStats.completedTasks }} 个</span>
+                <span class="stat-value"
+                  >{{ weekStats.completedTasks }} 个</span
+                >
               </div>
             </div>
             <div class="stat-item">
@@ -92,9 +94,7 @@
 
         <!-- AI 个人总结 -->
         <details class="ai-summary-card" open>
-          <summary class="ai-summary-header">
-            🤖 AI 本周观察
-          </summary>
+          <summary class="ai-summary-header">🤖 AI 本周观察</summary>
           <div class="ai-summary-content">
             <p>{{ aiSummary }}</p>
           </div>
@@ -104,14 +104,18 @@
       <!-- 第三部分：偏好与设置 -->
       <section class="settings-section">
         <h3 class="section-title">使用偏好</h3>
-        
+
         <div class="preference-list">
           <div class="preference-item">
             <div class="preference-label">
               <span class="preference-icon">🌗</span>
               <span>外观模式</span>
             </div>
-            <select v-model="themePreference" @change="handleThemeChange" class="preference-select">
+            <select
+              v-model="themePreference"
+              @change="handleThemeChange"
+              class="preference-select"
+            >
               <option value="auto">自动</option>
               <option value="light">明亮</option>
               <option value="dark">暗色</option>
@@ -165,14 +169,13 @@
       <section class="logout-section">
         <button class="btn-logout" @click="logout">退出登录</button>
       </section>
-
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
-import { useRouter } from 'vue-router';
+import { useRouter } from "vue-router";
 import { useUserStore } from "@/store/user";
 import { usePlanStore } from "@/store/plans";
 import { useTaskStore } from "@/store/tasks";
@@ -188,33 +191,45 @@ const user = computed(() => userStore.user);
 const avatarUrl = computed(() =>
   user.value?.username
     ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.value.username)}`
-    : 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+    : "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
 );
 
 // 用户目标（可以从用户设置中获取，这里暂时硬编码）
-const userGoal = computed(() => '专注完成长期计划，稳步前行');
+const userGoal = computed(() => "专注完成长期计划，稳步前行");
 
 // 今日状态
 const today = new Date().toISOString().slice(0, 10);
-const todayTasks = computed(() => taskStore.tasks.filter(t => t.task_date === today));
+const todayTasks = computed(() =>
+  taskStore.tasks.filter((t) => t.task_date === today),
+);
 const todayTotal = computed(() => todayTasks.value.length);
-const todayDone = computed(() => todayTasks.value.filter(t => t.status === 'done').length);
-const todaySchedules = computed(() => scheduleStore.schedules.filter(s => s.date === today).length);
+const todayDone = computed(
+  () => todayTasks.value.filter((t) => t.status === "done").length,
+);
+const todaySchedules = computed(
+  () => scheduleStore.schedules.filter((s) => s.date === today).length,
+);
 
 // 连续天数（简化版，实际应该从后端或 localStorage 计算）
 const streakDays = computed(() => {
   // 计算最近连续完成任务的天数
   let streak = 0;
-  const sortedDates = [...new Set(
-    taskStore.tasks
-      .filter(t => t.status === 'done')
-      .map(t => t.task_date)
-  )].sort().reverse();
-  
+  const sortedDates = [
+    ...new Set(
+      taskStore.tasks
+        .filter((t) => t.status === "done")
+        .map((t) => t.task_date),
+    ),
+  ]
+    .sort()
+    .reverse();
+
   let currentDate = new Date();
   for (const dateStr of sortedDates) {
-    const taskDate = new Date(dateStr + 'T00:00:00');
-    const diffDays = Math.floor((currentDate.getTime() - taskDate.getTime()) / (1000 * 60 * 60 * 24));
+    const taskDate = new Date(dateStr + "T00:00:00");
+    const diffDays = Math.floor(
+      (currentDate.getTime() - taskDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
     if (diffDays === streak) {
       streak++;
       currentDate = taskDate;
@@ -228,57 +243,64 @@ const streakDays = computed(() => {
 // 近7天统计
 const weekStats = computed(() => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const weekTasks = taskStore.tasks.filter(t => {
-    const taskDate = new Date(t.task_date + 'T00:00:00');
+  const weekTasks = taskStore.tasks.filter((t) => {
+    const taskDate = new Date(t.task_date + "T00:00:00");
     return taskDate >= sevenDaysAgo;
   });
-  
-  const completedTasks = weekTasks.filter(t => t.status === 'done').length;
-  
+
+  const completedTasks = weekTasks.filter((t) => t.status === "done").length;
+
   // 计算专注时间（基于任务时长）
   const focusMinutes = weekTasks
-    .filter(t => t.status === 'done' && t.start_time && t.end_time)
+    .filter((t) => t.status === "done" && t.start_time && t.end_time)
     .reduce((sum, t) => {
-      const [sh, sm] = t.start_time!.split(':').map(Number);
-      const [eh, em] = t.end_time!.split(':').map(Number);
-      return sum + ((eh * 60 + em) - (sh * 60 + sm));
+      const [sh, sm] = t.start_time!.split(":").map(Number);
+      const [eh, em] = t.end_time!.split(":").map(Number);
+      return sum + (eh * 60 + em - (sh * 60 + sm));
     }, 0);
   const focusHours = (focusMinutes / 60).toFixed(1);
-  
+
   // 日程准时率（这里简化为完成率）
-  const weekSchedules = scheduleStore.schedules.filter(s => {
-    const scheduleDate = new Date(s.date + 'T00:00:00');
+  const weekSchedules = scheduleStore.schedules.filter((s) => {
+    const scheduleDate = new Date(s.date + "T00:00:00");
     return scheduleDate >= sevenDaysAgo;
   });
-  const scheduleRate = weekSchedules.length === 0 
-    ? 0 
-    : Math.round((weekSchedules.filter(s => s.completed).length / weekSchedules.length) * 100);
-  
+  const scheduleRate =
+    weekSchedules.length === 0
+      ? 0
+      : Math.round(
+          (weekSchedules.filter((s) => s.completed).length /
+            weekSchedules.length) *
+            100,
+        );
+
   return {
     completedTasks,
     focusHours,
-    scheduleRate
+    scheduleRate,
   };
 });
 
 // 计划健康度
 const planHealth = computed(() => {
   const plans = planStore.plans;
-  let healthy = 0, stalled = 0, risk = 0;
-  
+  let healthy = 0,
+    stalled = 0,
+    risk = 0;
+
   plans.forEach((plan: any) => {
-    const planTasks = taskStore.tasks.filter(t => t.plan_id === plan.id);
-    const recentTasks = planTasks.filter(t => {
-      const taskDate = new Date(t.task_date + 'T00:00:00');
+    const planTasks = taskStore.tasks.filter((t) => t.plan_id === plan.id);
+    const recentTasks = planTasks.filter((t) => {
+      const taskDate = new Date(t.task_date + "T00:00:00");
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return taskDate >= sevenDaysAgo && t.status === 'done';
+      return taskDate >= sevenDaysAgo && t.status === "done";
     });
-    
+
     if (recentTasks.length >= 3) healthy++;
     else if (recentTasks.length === 0) risk++;
     else stalled++;
   });
-  
+
   return { healthy, stalled, risk };
 });
 
@@ -286,64 +308,64 @@ const planHealth = computed(() => {
 const bestPlan = computed(() => {
   const plans = planStore.plans;
   let maxRecent = 0;
-  let bestPlanName = '';
-  
+  let bestPlanName = "";
+
   plans.forEach((plan: any) => {
-    const planTasks = taskStore.tasks.filter(t => t.plan_id === plan.id);
-    const recentTasks = planTasks.filter(t => {
-      const taskDate = new Date(t.task_date + 'T00:00:00');
+    const planTasks = taskStore.tasks.filter((t) => t.plan_id === plan.id);
+    const recentTasks = planTasks.filter((t) => {
+      const taskDate = new Date(t.task_date + "T00:00:00");
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return taskDate >= sevenDaysAgo && t.status === 'done';
+      return taskDate >= sevenDaysAgo && t.status === "done";
     });
-    
+
     if (recentTasks.length > maxRecent) {
       maxRecent = recentTasks.length;
       bestPlanName = plan.title;
     }
   });
-  
+
   return maxRecent > 0 ? bestPlanName : null;
 });
 
 // AI 观察
 const aiSummary = computed(() => {
-  const morningTasks = taskStore.tasks.filter(t => {
-    if (!t.start_time || t.status !== 'done') return false;
-    const hour = parseInt(t.start_time.split(':')[0]);
+  const morningTasks = taskStore.tasks.filter((t) => {
+    if (!t.start_time || t.status !== "done") return false;
+    const hour = parseInt(t.start_time.split(":")[0]);
     return hour >= 6 && hour < 12;
   });
-  
-  const afternoonTasks = taskStore.tasks.filter(t => {
-    if (!t.start_time || t.status !== 'done') return false;
-    const hour = parseInt(t.start_time.split(':')[0]);
+
+  const afternoonTasks = taskStore.tasks.filter((t) => {
+    if (!t.start_time || t.status !== "done") return false;
+    const hour = parseInt(t.start_time.split(":")[0]);
     return hour >= 12 && hour < 18;
   });
-  
+
   if (morningTasks.length > afternoonTasks.length * 1.5) {
-    return '你在上午的执行力明显高于下午，建议将重要任务前移。';
+    return "你在上午的执行力明显高于下午，建议将重要任务前移。";
   }
-  
+
   if (weekStats.value.completedTasks >= 15) {
-    return '最近推进稳定，节奏把握得很好，继续保持！';
+    return "最近推进稳定，节奏把握得很好，继续保持！";
   }
-  
+
   if (weekStats.value.completedTasks < 5) {
-    return '本周推进较慢，建议重新评估任务难度和时间安排。';
+    return "本周推进较慢，建议重新评估任务难度和时间安排。";
   }
-  
-  return '保持当前节奏，适当增加任务密度可能会有更好效果。';
+
+  return "保持当前节奏，适当增加任务密度可能会有更好效果。";
 });
 
 // 偏好设置
-const themePreference = ref<'auto' | 'light' | 'dark'>('auto');
-const reminderPreference = ref('10');
-const aiLevel = ref('standard');
+const themePreference = ref<"auto" | "light" | "dark">("auto");
+const reminderPreference = ref("10");
+const aiLevel = ref("standard");
 
 function handleThemeChange() {
-  if (themePreference.value === 'auto') {
+  if (themePreference.value === "auto") {
     // 自动模式：移除 data-theme 属性，让浏览器使用系统设置
-    document.documentElement.removeAttribute('data-theme');
-    localStorage.removeItem('theme');
+    document.documentElement.removeAttribute("data-theme");
+    localStorage.removeItem("theme");
   } else {
     // 手动模式：使用 userStore 的 toggleTheme 方法
     userStore.toggleTheme(themePreference.value);
@@ -351,32 +373,32 @@ function handleThemeChange() {
 }
 
 function exportData() {
-  alert('数据导出功能开发中...');
+  alert("数据导出功能开发中...");
 }
 
 function showPrivacy() {
-  alert('隐私政策：我们重视您的隐私，所有数据存储在本地。');
+  alert("隐私政策：我们重视您的隐私，所有数据存储在本地。");
 }
 
 function logout() {
   userStore.logout();
-  router.push('/login');
+  router.push("/login");
 }
 
 onMounted(async () => {
   // 加载偏好设置 - 从 userStore 获取当前主题
-  const currentTheme = localStorage.getItem('theme');
-  if (currentTheme === 'light' || currentTheme === 'dark') {
+  const currentTheme = localStorage.getItem("theme");
+  if (currentTheme === "light" || currentTheme === "dark") {
     themePreference.value = currentTheme;
   } else {
-    themePreference.value = 'auto';
+    themePreference.value = "auto";
   }
-  
+
   // 加载数据
   await Promise.all([
     planStore.loadPlans(),
     taskStore.loadTasks(),
-    scheduleStore.load(today)
+    scheduleStore.load(today),
   ]);
 });
 </script>
@@ -735,7 +757,7 @@ onMounted(async () => {
 }
 
 .data-summary::before {
-  content: '›';
+  content: "›";
   display: inline-block;
   margin-right: 0.5rem;
   transition: transform 0.2s;

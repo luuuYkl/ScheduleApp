@@ -1,6 +1,6 @@
-import { secureGet, secureRemove, secureSet } from '@/services/bridge';
+import { secureGet, secureRemove, secureSet } from "@/services/bridge";
 
-const AUTH_KEY_PREFIX = 'auth:';
+const AUTH_KEY_PREFIX = "auth:";
 
 function withPrefix(key: string) {
   return `${AUTH_KEY_PREFIX}${key}`;
@@ -33,8 +33,7 @@ export async function getSecureAuthJson<T>(key: string): Promise<T | null> {
   }
 }
 
-
-const LEGACY_KEYS = ['token', 'user'] as const;
+const LEGACY_KEYS = ["token", "user"] as const;
 
 export async function migrateLegacyAuthStorageIfNeeded() {
   for (const key of LEGACY_KEYS) {

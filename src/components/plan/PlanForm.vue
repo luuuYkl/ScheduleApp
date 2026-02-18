@@ -1,6 +1,6 @@
 <template>
   <div class="card">
-    <h2>{{ mode === 'edit' ? '编辑计划' : '新建计划' }}</h2>
+    <h2>{{ mode === "edit" ? "编辑计划" : "新建计划" }}</h2>
 
     <div class="mb-2">
       <label>标题</label>
@@ -31,7 +31,7 @@
     </div>
 
     <button class="primary" @click="onSubmit">
-      {{ mode === 'edit' ? '保存修改' : '创建计划' }}
+      {{ mode === "edit" ? "保存修改" : "创建计划" }}
     </button>
   </div>
 </template>
@@ -65,7 +65,7 @@ const props = withDefaults(
       end_date: "",
       frequency: "daily" as Frequency,
     }),
-  }
+  },
 );
 
 const mode = props.mode;
@@ -91,7 +91,7 @@ watch(
       frequency: (v?.frequency as Frequency) ?? "daily",
     };
   },
-  { deep: true }
+  { deep: true },
 );
 
 /** 提交 */

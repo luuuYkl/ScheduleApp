@@ -1,7 +1,10 @@
 <template>
-  <div 
-    class="app-shell" 
-    :class="{ 'app-shell--desktop': isDesktop, 'app-shell--mobile': !isDesktop }"
+  <div
+    class="app-shell"
+    :class="{
+      'app-shell--desktop': isDesktop,
+      'app-shell--mobile': !isDesktop,
+    }"
     role="application"
     aria-label="日程管理应用"
   >
@@ -34,8 +37,8 @@
     <!-- 响应式主体布局 -->
     <div class="app-body">
       <!-- 桌面端左侧导航 -->
-      <aside 
-        class="app-sidebar" 
+      <aside
+        class="app-sidebar"
         v-if="isDesktop"
         role="navigation"
         aria-label="主导航菜单"
@@ -44,40 +47,40 @@
           <h2 class="sidebar-title">导航</h2>
         </div>
         <nav class="sidebar-nav" aria-label="主导航">
-          <router-link 
-            to="/home" 
-            class="nav-item" 
+          <router-link
+            to="/home"
+            class="nav-item"
             :aria-current="route.path === '/home' ? 'page' : undefined"
           >
             <span class="nav-icon" aria-hidden="true">🏠</span>
             <span>首页</span>
           </router-link>
-          <router-link 
-            to="/plan" 
-            class="nav-item" 
+          <router-link
+            to="/plan"
+            class="nav-item"
             :aria-current="route.path === '/plan' ? 'page' : undefined"
           >
             <span class="nav-icon" aria-hidden="true">📝</span>
             <span>计划</span>
           </router-link>
-          <router-link 
-            to="/calendar" 
+          <router-link
+            to="/calendar"
             class="nav-item"
             :aria-current="route.path === '/calendar' ? 'page' : undefined"
           >
             <span class="nav-icon" aria-hidden="true">📅</span>
             <span>日历</span>
           </router-link>
-          <router-link 
-            to="/log" 
+          <router-link
+            to="/log"
             class="nav-item"
             :aria-current="route.path === '/log' ? 'page' : undefined"
           >
             <span class="nav-icon" aria-hidden="true">📊</span>
             <span>复盘</span>
           </router-link>
-          <router-link 
-            to="/schedule" 
+          <router-link
+            to="/schedule"
             class="nav-item"
             :aria-current="route.path === '/schedule' ? 'page' : undefined"
           >
@@ -86,55 +89,50 @@
           </router-link>
         </nav>
       </aside>
-      
+
       <!-- 主内容区域 -->
-      <main 
-        class="app-main" 
-        role="main"
-        tabindex="-1"
-        ref="mainContent"
-      >
+      <main class="app-main" role="main" tabindex="-1" ref="mainContent">
         <router-view />
       </main>
     </div>
 
     <!-- 移动端底部导航 -->
-    <footer 
-      class="app-bottom-nav" 
+    <footer
+      class="app-bottom-nav"
       v-if="!isDesktop && showBottomNav"
-      role="navigation" 
+      role="navigation"
       aria-label="底部导航菜单"
     >
-      <router-link 
-        to="/home" 
-        class="nav-item" 
+      <router-link
+        to="/home"
+        class="nav-item"
         :class="{ active: isActive('/home') }"
         :aria-current="route.path === '/home' ? 'page' : undefined"
       >
         <span class="nav-icon" aria-hidden="true">🏠</span>
         <span class="nav-label">首页</span>
       </router-link>
-      <router-link 
-        to="/plan" 
-        class="nav-item" 
+      <router-link
+        to="/plan"
+        class="nav-item"
         :class="{ active: isActive('/plan') }"
         :aria-current="route.path === '/plan' ? 'page' : undefined"
       >
         <span class="nav-icon" aria-hidden="true">📝</span>
         <span class="nav-label">计划</span>
       </router-link>
-      <router-link 
-        to="/calendar" 
-        class="nav-item" 
+      <router-link
+        to="/calendar"
+        class="nav-item"
         :class="{ active: isActive('/calendar') }"
         :aria-current="route.path === '/calendar' ? 'page' : undefined"
       >
         <span class="nav-icon" aria-hidden="true">📅</span>
         <span class="nav-label">日历</span>
       </router-link>
-      <router-link 
-        to="/log" 
-        class="nav-item" 
+      <router-link
+        to="/log"
+        class="nav-item"
         :class="{ active: isActive('/log') }"
         :aria-current="route.path === '/log' ? 'page' : undefined"
       >
@@ -157,14 +155,14 @@ const router = useRouter();
 const showBottomNav = computed(() => route.meta.showBottomNav ?? true);
 
 // 响应式断点计算
-const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches);
+const isDesktop = ref(window.matchMedia("(min-width: 1024px)").matches);
 
 // 主内容区域引用
 const mainContent = ref<HTMLElement | null>(null);
 
 // 监听屏幕尺寸变化
 function handleResize() {
-  isDesktop.value = window.matchMedia('(min-width: 1024px)').matches;
+  isDesktop.value = window.matchMedia("(min-width: 1024px)").matches;
 }
 
 // 导航激活状态判断
@@ -177,7 +175,7 @@ const user = computed(() => userStore.user);
 const avatarUrl = computed(() =>
   user.value?.username
     ? `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(user.value.username)}`
-    : 'https://api.dicebear.com/7.x/identicon/svg?seed=default'
+    : "https://api.dicebear.com/7.x/identicon/svg?seed=default",
 );
 
 function goProfile() {
@@ -187,8 +185,8 @@ function goProfile() {
 // 应用启动时初始化主题
 onMounted(() => {
   userStore.initTheme();
-  window.addEventListener('resize', handleResize);
-  
+  window.addEventListener("resize", handleResize);
+
   // 路由变化时聚焦到主内容区域
   router.afterEach(() => {
     nextTick(() => {
@@ -203,10 +201,14 @@ onMounted(() => {
 // 注意：在Vue 3 Composition API中，通常不需要手动清理，但为了完整性保留
 
 // 监视主题变化并应用到DOM
-watch(() => userStore.theme, (newTheme) => {
-  // 仅设置data-theme属性，让CSS Tokens自动生效
-  document.documentElement.setAttribute('data-theme', newTheme);
-}, { immediate: true });
+watch(
+  () => userStore.theme,
+  (newTheme) => {
+    // 仅设置data-theme属性，让CSS Tokens自动生效
+    document.documentElement.setAttribute("data-theme", newTheme);
+  },
+  { immediate: true },
+);
 
 // 调试输出：在应用启动时打印本地存储的 token/user
 // eslint-disable-next-line no-console
@@ -280,7 +282,7 @@ console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
   border: 2px solid var(--ai-main);
   background: var(--bg-card);
   cursor: pointer;
-  transition: 
+  transition:
     box-shadow var(--dur-fast) var(--ease-standard),
     transform var(--dur-fast) var(--ease-standard),
     border-color var(--dur-fast) var(--ease-standard);
@@ -295,7 +297,9 @@ console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
 }
 
 .avatar-header:focus-visible {
-  box-shadow: 0 0 0 4px var(--ai-bg), 0 0 0 6px var(--focus-ring);
+  box-shadow:
+    0 0 0 4px var(--ai-bg),
+    0 0 0 6px var(--focus-ring);
 }
 
 /* 响应式主体布局 */
@@ -348,7 +352,7 @@ console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
-  transition: 
+  transition:
     background-color var(--dur-fast) var(--ease-standard),
     color var(--dur-fast) var(--ease-standard);
 }
@@ -415,7 +419,7 @@ console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 12px;
-  transition: 
+  transition:
     color var(--dur-fast) var(--ease-standard),
     background-color var(--dur-fast) var(--ease-standard);
   border-radius: var(--radius-sm);
@@ -449,17 +453,17 @@ console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
   .app-body {
     grid-template-columns: 220px minmax(0, 1fr);
   }
-  
+
   .app-main {
     padding: var(--space-6) var(--space-8);
   }
-  
+
   /* 桌面端主要内容区域增加内边距 */
   .app-main > * {
     flex: 1;
     padding: 0 var(--space-6);
   }
-  
+
   /* 移动端导航在桌面端隐藏 */
   .app-bottom-nav {
     display: none;
@@ -471,18 +475,18 @@ console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
   .header-inner {
     padding: 0 var(--space-3);
   }
-  
+
   .app-main {
     padding: var(--space-4) var(--space-3);
     padding-bottom: calc(var(--bottom-nav-height) + var(--space-4));
   }
-  
+
   /* 移动端主要内容区域 */
   .app-main > * {
     flex: 1;
     padding: 0 var(--space-3);
   }
-  
+
   /* 桌面端侧边栏在移动端隐藏 */
   .app-sidebar {
     display: none;
@@ -494,15 +498,15 @@ console.log("[APP] theme from localStorage:", localStorage.getItem("theme"));
   .header-inner {
     padding: 0 var(--space-2);
   }
-  
+
   .app-name {
     font-size: 16px;
   }
-  
+
   .username {
     font-size: 12px;
   }
-  
+
   .avatar-header {
     width: 32px;
     height: 32px;

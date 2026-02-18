@@ -1,13 +1,10 @@
 <template>
-  <PageScaffold 
-    title="主页概览" 
-    subtitle="查看您的计划进度和今日任务"
-  >
+  <PageScaffold title="主页概览" subtitle="查看您的计划进度和今日任务">
     <template #actions>
       <button class="btn btn--primary">创建计划</button>
       <button class="btn btn--secondary">添加任务</button>
     </template>
-    
+
     <div class="dashboard-grid">
       <!-- 进度概览卡片 -->
       <div class="card card--elevated">
@@ -27,7 +24,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 今日任务 -->
       <div class="card">
         <h3>今日任务</h3>
@@ -52,11 +49,13 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 快捷操作 -->
       <div class="card card--ai">
         <h3>AI 建议</h3>
-        <p class="ai-text">根据您的使用习惯，建议您今天重点关注「学习计划」的进度。</p>
+        <p class="ai-text">
+          根据您的使用习惯，建议您今天重点关注「学习计划」的进度。
+        </p>
         <button class="btn btn--ghost btn--sm">查看详情</button>
       </div>
     </div>
@@ -64,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import PageScaffold from '@/components/common/PageScaffold.vue';
+import PageScaffold from "@/components/common/PageScaffold.vue";
 </script>
 
 <style scoped>
@@ -155,11 +154,11 @@ import PageScaffold from '@/components/common/PageScaffold.vue';
     grid-template-columns: 1fr;
     gap: var(--space-4);
   }
-  
+
   .progress-stats {
     margin-top: var(--space-3);
   }
-  
+
   .stat-value {
     font-size: 20px;
   }

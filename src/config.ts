@@ -31,8 +31,8 @@ export const APP_CONFIG = {
   /**
    * 🪄 界面显示设置
    */
-  THEME_COLOR: "#3B82F6",  // 默认主色调（蓝色）
-  DARK_MODE: false,        // 默认不开启暗色模式
+  THEME_COLOR: "#3B82F6", // 默认主色调（蓝色）
+  DARK_MODE: false, // 默认不开启暗色模式
 
   /**
    * ⚙️ 调试工具

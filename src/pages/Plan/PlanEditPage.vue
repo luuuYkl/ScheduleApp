@@ -1,5 +1,11 @@
 <template>
-  <div class="page card" style="max-width:640px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;">
+  <div
+    class="page card"
+    style="
+      max-width: 640px;
+      margin: calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;
+    "
+  >
     <h1>编辑计划</h1>
     <p class="text-gray">当前计划 ID：{{ planId }}</p>
 
@@ -7,12 +13,20 @@
     <form class="form" @submit.prevent="savePlan">
       <label>
         标题
-        <input v-model="form.title" type="text" placeholder="计划标题" required />
+        <input
+          v-model="form.title"
+          type="text"
+          placeholder="计划标题"
+          required
+        />
       </label>
 
       <label>
         描述
-        <textarea v-model="form.description" placeholder="计划描述（可选）"></textarea>
+        <textarea
+          v-model="form.description"
+          placeholder="计划描述（可选）"
+        ></textarea>
       </label>
 
       <div class="row">
@@ -38,7 +52,7 @@
 
       <div class="ops">
         <button class="primary" type="submit" :disabled="saving">
-          {{ saving ? '保存中...' : '保存计划' }}
+          {{ saving ? "保存中..." : "保存计划" }}
         </button>
         <button type="button" class="secondary" @click="cancel">取消</button>
       </div>
@@ -57,9 +71,17 @@
 
       <!-- 任务列表 -->
       <ul v-if="tasks.length" class="task-list">
-        <li v-for="t in tasks" :key="t.id" :class="{ done: t.status === 'done' }">
+        <li
+          v-for="t in tasks"
+          :key="t.id"
+          :class="{ done: t.status === 'done' }"
+        >
           <div v-if="editingId !== t.id" class="task-row">
-            <input type="checkbox" :checked="t.status === 'done'" @change="toggleTask(t.id)" />
+            <input
+              type="checkbox"
+              :checked="t.status === 'done'"
+              @change="toggleTask(t.id)"
+            />
             <div class="task-main">
               <div class="title">{{ t.title }}</div>
               <div class="meta">{{ t.task_date }}</div>
@@ -97,7 +119,9 @@ const planStore = usePlanStore();
 const userStore = useUserStore();
 
 // 解析 planId（确保为数字）
-const rawId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id;
+const rawId = Array.isArray(route.params.id)
+  ? route.params.id[0]
+  : route.params.id;
 const planId = Number(rawId);
 
 // 表单模型
@@ -119,7 +143,9 @@ const editTitle = ref("");
 const editDate = ref("");
 
 // 任务列表（来自 store）
-const tasks = computed(() => planStore.tasks.filter((t: any) => t.plan_id === planId));
+const tasks = computed(() =>
+  planStore.tasks.filter((t: any) => t.plan_id === planId),
+);
 
 // 加载计划与任务
 async function loadData() {
@@ -174,7 +200,8 @@ function cancel() {
 
 async function addTask() {
   if (!newTaskTitle.value) return alert("请输入任务标题");
-  const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id") || 0);
+  const userId =
+    userStore.user?.id ?? Number(localStorage.getItem("user_id") || 0);
   if (!userId) return alert("请先登录");
   try {
     await planStore.createTask({
@@ -239,21 +266,86 @@ async function toggleTask(id: number) {
 </script>
 
 <style scoped>
-.page { padding: 1rem; }
-.form { display: grid; gap: .6rem; margin-bottom: 1rem; }
-.form label { display: flex; flex-direction: column; font-weight: 600; }
-.row { display: flex; gap: .6rem; }
-.ops { display: flex; gap: .5rem; margin-top: .5rem; }
-.primary { background: #3b82f6; color: #fff; border: none; padding: .5rem 1rem; border-radius: 6px; }
-.secondary { background: #f1f5f9; border: 1px solid #d1d5db; padding: .5rem 1rem; border-radius: 6px; }
-.tasks { margin-top: 1.2rem; }
-.task-add { display:flex; gap:.5rem; align-items:center; margin-bottom:.8rem; }
-.task-list { list-style:none; padding:0; margin:0; display:grid; gap:.5rem; }
-.task-row { display:flex; align-items:center; gap:.6rem; }
-.task-main { flex:1; }
-.task-actions { display:flex; gap:.4rem; }
-.done .title { text-decoration: line-through; color:#6b7280; }
-.task-edit { display:flex; gap:.5rem; align-items:center; }
-.text-gray { color:#6b7280; }
-.danger { background:#ef4444; color:#fff; border:none; padding:.3rem .6rem; border-radius:6px; }
+.page {
+  padding: 1rem;
+}
+.form {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.form label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+}
+.row {
+  display: flex;
+  gap: 0.6rem;
+}
+.ops {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+}
+.secondary {
+  background: #f1f5f9;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+}
+.tasks {
+  margin-top: 1.2rem;
+}
+.task-add {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.task-main {
+  flex: 1;
+}
+.task-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+.done .title {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+.task-edit {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.text-gray {
+  color: #6b7280;
+}
+.danger {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+}
 </style>

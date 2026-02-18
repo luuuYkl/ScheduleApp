@@ -15,5 +15,5 @@ app.mount("#app");
 // 调试：打印注册路由（此处应该能看到 /plan/:id/tasks）
 console.log(
   "Registered routes:",
-  router.getRoutes().map(r => ({ name: r.name, path: r.path }))
+  router.getRoutes().map((r) => ({ name: r.name, path: r.path })),
 );

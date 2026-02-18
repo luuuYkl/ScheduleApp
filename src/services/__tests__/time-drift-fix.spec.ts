@@ -1,53 +1,58 @@
 // src/services/__tests__/time-drift-fix.spec.ts
 // 时间漂移问题修复测试
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { CreateTaskPayload } from '../api.types';
-import { generateRepeatTaskPayloads, generateRepeatDates } from '../repeat-task';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { CreateTaskPayload } from "../api.types";
+import {
+  generateRepeatTaskPayloads,
+  generateRepeatDates,
+} from "../repeat-task";
 
 // 工具函数：获取相对日期
 const getRelativeDate = (daysFromToday: number = 0): string => {
   const date = new Date();
   date.setDate(date.getDate() + daysFromToday);
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 };
 
-describe('时间漂移问题修复测试', () => {
+describe("时间漂移问题修复测试", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  describe('日期验证测试', () => {
-    it('应该允许合理的长期计划（使用相对时间）', () => {
+  describe("日期验证测试", () => {
+    it("应该允许合理的长期计划（使用相对时间）", () => {
       // 使用相对时间窗口避免时间漂移
       const today = new Date();
-      const todayString = today.toISOString().split('T')[0];
-      
+      const todayString = today.toISOString().split("T")[0];
+
       const futureDate = new Date();
       futureDate.setFullYear(today.getFullYear() + 1); // 从今天起1年后
-      const futureDateString = futureDate.toISOString().split('T')[0];
+      const futureDateString = futureDate.toISOString().split("T")[0];
 
       const planWithReasonableFutureDate = {
         user_id: 1,
-        title: '年度计划',
+        title: "年度计划",
         start_date: todayString,
-        end_date: futureDateString
+        end_date: futureDateString,
       };
 
       // 验证1年内的计划是合理的
       const startDate = new Date(planWithReasonableFutureDate.start_date);
       const endDate = new Date(planWithReasonableFutureDate.end_date);
-      
+
       const oneYearInMs = 365 * 24 * 60 * 60 * 1000;
-      expect(endDate.getTime() - startDate.getTime()).toBeLessThanOrEqual(oneYearInMs);
+      expect(endDate.getTime() - startDate.getTime()).toBeLessThanOrEqual(
+        oneYearInMs,
+      );
     });
 
-    it('应该正确处理日期顺序验证', () => {
+    it("应该正确处理日期顺序验证", () => {
       const invalidPlan = {
         user_id: 1,
-        title: 'Valid Title',
+        title: "Valid Title",
         start_date: getRelativeDate(30), // 开始日期在结束日期之后
-        end_date: getRelativeDate(0)
+        end_date: getRelativeDate(0),
       };
 
       const startDate = new Date(invalidPlan.start_date);
@@ -57,15 +62,15 @@ describe('时间漂移问题修复测试', () => {
     });
   });
 
-  describe('重复任务生成测试', () => {
-    it('应该为每日重复生成正确的任务', () => {
+  describe("重复任务生成测试", () => {
+    it("应该为每日重复生成正确的任务", () => {
       const basePayload: CreateTaskPayload = {
         plan_id: 1,
         user_id: 1,
-        title: '每日学习',
+        title: "每日学习",
         task_date: getRelativeDate(0),
-        repeat_type: 'daily',
-        repeat_end_date: getRelativeDate(2)
+        repeat_type: "daily",
+        repeat_end_date: getRelativeDate(2),
       };
 
       const payloads = generateRepeatTaskPayloads(basePayload);
@@ -76,14 +81,14 @@ describe('时间漂移问题修复测试', () => {
       expect(payloads[2].task_date).toBe(getRelativeDate(2));
     });
 
-    it('应该为月度重复生成正确的任务', () => {
+    it("应该为月度重复生成正确的任务", () => {
       const basePayload: CreateTaskPayload = {
         plan_id: 1,
         user_id: 1,
-        title: '月度总结',
+        title: "月度总结",
         task_date: getRelativeDate(0),
-        repeat_type: 'monthly',
-        repeat_end_date: getRelativeDate(60) // 约2个月
+        repeat_type: "monthly",
+        repeat_end_date: getRelativeDate(60), // 约2个月
       };
 
       const payloads = generateRepeatTaskPayloads(basePayload);
@@ -93,13 +98,13 @@ describe('时间漂移问题修复测试', () => {
       // 月度重复的具体日期取决于当月天数
     });
 
-    it('应该处理没有重复的情况', () => {
+    it("应该处理没有重复的情况", () => {
       const basePayload: CreateTaskPayload = {
         plan_id: 1,
         user_id: 1,
-        title: '单次活动',
+        title: "单次活动",
         task_date: getRelativeDate(5),
-        repeat_type: 'none'
+        repeat_type: "none",
       };
 
       const payloads = generateRepeatTaskPayloads(basePayload);
@@ -109,26 +114,26 @@ describe('时间漂移问题修复测试', () => {
     });
   });
 
-  describe('基础日期生成测试', () => {
-    it('应该正确生成每日重复日期', () => {
+  describe("基础日期生成测试", () => {
+    it("应该正确生成每日重复日期", () => {
       const dates = generateRepeatDates(
         getRelativeDate(0),
         getRelativeDate(2),
-        'daily'
+        "daily",
       );
 
       expect(dates).toEqual([
         getRelativeDate(0),
         getRelativeDate(1),
-        getRelativeDate(2)
+        getRelativeDate(2),
       ]);
     });
 
-    it('应该正确生成月度重复日期', () => {
+    it("应该正确生成月度重复日期", () => {
       const startDate = getRelativeDate(0);
       const endDate = getRelativeDate(60); // 约2个月
-      
-      const dates = generateRepeatDates(startDate, endDate, 'monthly');
+
+      const dates = generateRepeatDates(startDate, endDate, "monthly");
 
       // 验证基本结构
       expect(dates).toHaveLength(3);

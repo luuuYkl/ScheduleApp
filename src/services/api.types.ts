@@ -16,8 +16,8 @@ export interface Plan {
   title: string;
   description?: string;
   start_date: string; // 格式: YYYY-MM-DD
-  end_date: string;   // 格式: YYYY-MM-DD
-  frequency: string;  // 频率: 'daily' | 'weekly' | 'custom'
+  end_date: string; // 格式: YYYY-MM-DD
+  frequency: string; // 频率: 'daily' | 'weekly' | 'custom'
   created_at?: string;
 }
 
@@ -30,14 +30,14 @@ export type TaskRepeatType = "none" | "daily" | "weekly" | "monthly";
 /** 任务模型 */
 export interface Task {
   id: number;
-  plan_id: number;    // 所属计划ID
+  plan_id: number; // 所属计划ID
   user_id: number;
   title: string;
-  task_date: string;  // 格式: YYYY-MM-DD
+  task_date: string; // 格式: YYYY-MM-DD
   start_time?: string; // HH:MM 可选
-  end_time?: string;   // HH:MM 可选
+  end_time?: string; // HH:MM 可选
   status: TaskStatus;
-  note?: string;      // 备注
+  note?: string; // 备注
   repeat_type?: TaskRepeatType; // 重复类型，默认 'none'
   repeat_end_date?: string; // 重复结束日期 (YYYY-MM-DD)，仅当 repeat_type 不为 'none' 时有效
   created_at?: string;
@@ -50,7 +50,7 @@ export interface ScheduleItem {
   title: string;
   date: string; // YYYY-MM-DD
   start_time?: string; // HH:MM 可选
-  end_time?: string;   // HH:MM 可选
+  end_time?: string; // HH:MM 可选
   description?: string;
   completed?: boolean; // 是否完成
   created_at?: string;
@@ -58,7 +58,7 @@ export interface ScheduleItem {
 
 /** AI 优化建议项 */
 export interface AISuggestion {
-  type: 'warning' | 'suggestion' | 'info';
+  type: "warning" | "suggestion" | "info";
   message: string;
   field?: string; // 相关的字段（如 'start_date', 'end_date'）
 }
@@ -77,8 +77,8 @@ export interface AIRecommendedTask {
   title: string;
   task_date?: string;
   start_time?: string; // HH:MM
-  end_time?: string;   // HH:MM
-  note?: string;       // 描述/备注
+  end_time?: string; // HH:MM
+  note?: string; // 描述/备注
   repeat_type?: TaskRepeatType;
   repeat_end_date?: string;
 }
@@ -121,8 +121,8 @@ export interface UpdateSchedulePayload {
 export interface Streak {
   id: number;
   user_id: number;
-  current_streak: number;  // 当前连续天数
-  longest_streak: number;  // 历史最长连续天数
+  current_streak: number; // 当前连续天数
+  longest_streak: number; // 历史最长连续天数
   last_checkin: string | null; // 最后签到日期
 }
 
@@ -147,10 +147,10 @@ export interface CreateTaskPayload {
   plan_id: number;
   user_id: number;
   title: string;
-  task_date: string;      // 格式: YYYY-MM-DD
-  start_time?: string;    // HH:MM
-  end_time?: string;      // HH:MM
-  status?: TaskStatus;    // 默认为 pending
+  task_date: string; // 格式: YYYY-MM-DD
+  start_time?: string; // HH:MM
+  end_time?: string; // HH:MM
+  status?: TaskStatus; // 默认为 pending
   note?: string;
   repeat_type?: TaskRepeatType; // 重复类型
   repeat_end_date?: string; // 重复结束日期
@@ -168,7 +168,7 @@ export interface UpdateTaskPayload {
   repeat_end_date?: string;
 }
 
-/** 
+/**
  * API 统一接口
  * Mock 和真实后端必须严格实现此接口，确保类型一致性
  */
@@ -215,11 +215,16 @@ export interface APIInterface {
   /** 创建日程 */
   createSchedule(payload: CreateSchedulePayload): Promise<ScheduleItem>;
   /** 更新日程 */
-  updateSchedule(id: number, payload: UpdateSchedulePayload): Promise<ScheduleItem>;
+  updateSchedule(
+    id: number,
+    payload: UpdateSchedulePayload,
+  ): Promise<ScheduleItem>;
   /** 删除日程 */
   deleteSchedule(id: number): Promise<{ success: boolean }>;
 
   // ========== AI 功能 ==========
   /** AI 优化计划建议 */
-  optimizePlanWithAI?(request: AIOptimizePlanRequest): Promise<AIOptimizePlanResponse>;
+  optimizePlanWithAI?(
+    request: AIOptimizePlanRequest,
+  ): Promise<AIOptimizePlanResponse>;
 }

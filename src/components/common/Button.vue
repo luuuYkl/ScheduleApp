@@ -10,8 +10,8 @@
 
 <script setup lang="ts">
 defineProps<{
-  type?: 'primary' | 'secondary' | 'danger',
-  disabled?: boolean
+  type?: "primary" | "secondary" | "danger";
+  disabled?: boolean;
 }>();
 </script>
 
@@ -23,8 +23,10 @@ defineProps<{
   padding: 0.6rem 1rem;
   font-size: 0.95rem;
   font-weight: 600;
-  transition: background 0.2s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition:
+    background 0.2s ease,
+    transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .btn:hover {

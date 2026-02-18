@@ -17,7 +17,7 @@ export default {
   name: "TaskCard",
   props: {
     title: { type: String, required: true },
-    status: { type: String, default: "pending" } // "completed" | "postponed" | "pending"
+    status: { type: String, default: "pending" }, // "completed" | "postponed" | "pending"
   },
   computed: {
     statusText() {
@@ -32,8 +32,8 @@ export default {
     },
     statusClass() {
       return `task-${this.status}`;
-    }
-  }
+    },
+  },
 };
 </script>
 

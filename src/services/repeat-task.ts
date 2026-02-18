@@ -13,7 +13,7 @@ import type { Task, CreateTaskPayload, TaskRepeatType } from "./api.types";
 export function generateRepeatDates(
   startDate: string,
   endDate: string,
-  repeatType: TaskRepeatType
+  repeatType: TaskRepeatType,
 ): string[] {
   if (repeatType === "none") {
     return [startDate];
@@ -40,10 +40,14 @@ export function generateRepeatDates(
       // 使用"目标月份 + 原始 day 上限裁剪"策略
       const anchorDay = current.getDate(); // 记住原始日期
       current.setMonth(current.getMonth() + 1);
-      
+
       // 获取目标月份的最后一天
-      const lastDayOfMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
-      
+      const lastDayOfMonth = new Date(
+        current.getFullYear(),
+        current.getMonth() + 1,
+        0,
+      ).getDate();
+
       // 取较小值，避免超出月份范围
       const targetDay = Math.min(anchorDay, lastDayOfMonth);
       current.setDate(targetDay);
@@ -71,7 +75,7 @@ function formatDate(date: Date): string {
  * @returns CreateTaskPayload 数组
  */
 export function generateRepeatTaskPayloads(
-  basePayload: CreateTaskPayload
+  basePayload: CreateTaskPayload,
 ): CreateTaskPayload[] {
   const { repeat_type, repeat_end_date, task_date } = basePayload;
 

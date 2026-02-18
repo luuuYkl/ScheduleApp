@@ -9,26 +9,28 @@
 export function getDateRelativeToToday(daysFromToday: number = 0): string {
   const date = new Date();
   date.setDate(date.getDate() + daysFromToday);
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 }
 
 /**
  * 创建测试用的计划数据模板
  * @param options 配置选项
  */
-export function createTestPlan(options: {
-  userId?: number;
-  title?: string;
-  startDateOffset?: number; // 距离今天的天数
-  endDateOffset?: number;   // 距离开始日期的天数
-  frequency?: 'daily' | 'weekly' | 'monthly';
-} = {}) {
+export function createTestPlan(
+  options: {
+    userId?: number;
+    title?: string;
+    startDateOffset?: number; // 距离今天的天数
+    endDateOffset?: number; // 距离开始日期的天数
+    frequency?: "daily" | "weekly" | "monthly";
+  } = {},
+) {
   const {
     userId = 1,
-    title = '测试计划',
+    title = "测试计划",
     startDateOffset = 0,
     endDateOffset = 30,
-    frequency = 'daily'
+    frequency = "daily",
   } = options;
 
   const startDate = getDateRelativeToToday(startDateOffset);
@@ -39,7 +41,7 @@ export function createTestPlan(options: {
     title,
     start_date: startDate,
     end_date: endDate,
-    frequency
+    frequency,
   };
 }
 
@@ -47,17 +49,19 @@ export function createTestPlan(options: {
  * 创建测试用的任务数据模板
  * @param options 配置选项
  */
-export function createTestTask(options: {
-  planId?: number;
-  userId?: number;
-  title?: string;
-  dateOffset?: number; // 距离今天的天数
-} = {}) {
+export function createTestTask(
+  options: {
+    planId?: number;
+    userId?: number;
+    title?: string;
+    dateOffset?: number; // 距离今天的天数
+  } = {},
+) {
   const {
     planId = 1,
     userId = 1,
-    title = '测试任务',
-    dateOffset = 0
+    title = "测试任务",
+    dateOffset = 0,
   } = options;
 
   const taskDate = getDateRelativeToToday(dateOffset);
@@ -66,7 +70,7 @@ export function createTestTask(options: {
     plan_id: planId,
     user_id: userId,
     title,
-    task_date: taskDate
+    task_date: taskDate,
   };
 }
 
@@ -78,6 +82,6 @@ export function createTestTask(options: {
 export function createDateRange(startOffset: number, endOffset: number) {
   return {
     start: getDateRelativeToToday(startOffset),
-    end: getDateRelativeToToday(endOffset)
+    end: getDateRelativeToToday(endOffset),
   };
 }

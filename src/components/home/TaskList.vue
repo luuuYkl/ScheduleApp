@@ -9,7 +9,7 @@
     <section v-if="schedules.length > 0" class="section">
       <h3 class="section-title">📅 日程</h3>
       <ul class="list">
-        <li v-for="s in schedules" :key="'s'+s.id" class="item">
+        <li v-for="s in schedules" :key="'s' + s.id" class="item">
           <!-- 左列：时间 -->
           <div class="time-col">
             <span v-if="s.start_time">{{ s.start_time }}</span>
@@ -20,13 +20,26 @@
           <div class="content-col">
             <!-- 第一行：勾选 + 状态圆点 + 标题 -->
             <div class="row title-row">
-              <input type="checkbox" :checked="s.completed" @change="toggleSchedule(s.id)" class="checkbox" />
-              <span class="status-dot" :class="{ completed: s.completed }"></span>
-              <span class="title" :class="{ completed: s.completed }">{{ s.title }}</span>
+              <input
+                type="checkbox"
+                :checked="s.completed"
+                @change="toggleSchedule(s.id)"
+                class="checkbox"
+              />
+              <span
+                class="status-dot"
+                :class="{ completed: s.completed }"
+              ></span>
+              <span class="title" :class="{ completed: s.completed }">{{
+                s.title
+              }}</span>
             </div>
 
             <!-- 第二行：副信息 -->
-            <div class="row meta" v-if="s.description && s.description.length <= 40">
+            <div
+              class="row meta"
+              v-if="s.description && s.description.length <= 40"
+            >
               <span>📝 {{ s.description }}</span>
             </div>
 
@@ -42,9 +55,14 @@
 
     <!-- 今日任务（若今日为空则显示最近未来任务） -->
     <section v-if="tasks.length > 0" class="section">
-      <h3 class="section-title">✅ 任务 <small v-if="tasks[0].task_date !== todayStr" class="hint">(即将开始)</small></h3>
+      <h3 class="section-title">
+        ✅ 任务
+        <small v-if="tasks[0].task_date !== todayStr" class="hint"
+          >(即将开始)</small
+        >
+      </h3>
       <ul class="list">
-        <li v-for="t in tasks" :key="'t'+t.id" class="item">
+        <li v-for="t in tasks" :key="'t' + t.id" class="item">
           <!-- 左列：日期 -->
           <div class="time-col">
             <span>{{ formatDate(t.task_date) }}</span>
@@ -54,21 +72,32 @@
           <div class="content-col">
             <!-- 第一行：勾选 + 状态圆点 + 标题 -->
             <div class="row title-row">
-              <input type="checkbox" :checked="t.status === 'done'" @change="toggle(t.id)" class="checkbox" />
+              <input
+                type="checkbox"
+                :checked="t.status === 'done'"
+                @change="toggle(t.id)"
+                class="checkbox"
+              />
               <span class="status-dot" :class="t.status"></span>
-              <span class="title" :class="{ completed: t.status === 'done' }">{{ t.title }}</span>
+              <span class="title" :class="{ completed: t.status === 'done' }">{{
+                t.title
+              }}</span>
             </div>
 
             <!-- 第二行：副信息 -->
             <div class="row meta">
-              <span v-if="t.start_time && t.end_time">⏱ {{ calcDuration(t) }} 分钟</span>
+              <span v-if="t.start_time && t.end_time"
+                >⏱ {{ calcDuration(t) }} 分钟</span
+              >
               <span v-if="t.note && t.note.length <= 30">· {{ t.note }}</span>
             </div>
 
             <!-- 第三行：标签与详情按钮 -->
             <div class="row tags">
               <span class="tag" v-if="t.task_date === todayStr">今日任务</span>
-              <span class="tag" :class="t.status">{{ statusLabel(t.status) }}</span>
+              <span class="tag" :class="t.status">{{
+                statusLabel(t.status)
+              }}</span>
               <button class="detail-btn" @click="open(t.id)">详情</button>
             </div>
           </div>
@@ -76,12 +105,13 @@
       </ul>
     </section>
 
-    <p v-if="tasks.length === 0 && schedules.length === 0" class="empty">今天暂无任务与日程</p>
+    <p v-if="tasks.length === 0 && schedules.length === 0" class="empty">
+      今天暂无任务与日程
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
-
 import { computed, onMounted } from "vue";
 import { useTaskStore } from "@/store/tasks";
 import { useScheduleStore } from "@/store/schedules";
@@ -91,59 +121,68 @@ import { useRouter } from "vue-router";
 
 const props = defineProps<{ planId?: number }>();
 
-
 const taskStore = useTaskStore();
 const scheduleStore = useScheduleStore();
 const logStore = useLogStore();
 const userStore = useUserStore();
 const router = useRouter();
 
-
 const todayStr = new Date().toISOString().slice(0, 10);
 
 // 辅助函数：日期格式化、时长计算、状态标签
 function formatDate(dateStr: string): string {
-  if (dateStr === todayStr) return '今天';
-  const d = new Date(dateStr + 'T00:00:00');
-  const today = new Date(todayStr + 'T00:00:00');
-  const diff = Math.floor((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (diff === 1) return '明天';
-  if (diff === -1) return '昨天';
+  if (dateStr === todayStr) return "今天";
+  const d = new Date(dateStr + "T00:00:00");
+  const today = new Date(todayStr + "T00:00:00");
+  const diff = Math.floor(
+    (d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (diff === 1) return "明天";
+  if (diff === -1) return "昨天";
   return dateStr.slice(5); // MM-DD
 }
 
 function calcDuration(t: { start_time?: string; end_time?: string }): number {
   if (!t.start_time || !t.end_time) return 0;
-  const [sh, sm] = t.start_time.split(':').map(Number);
-  const [eh, em] = t.end_time.split(':').map(Number);
-  return Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+  const [sh, sm] = t.start_time.split(":").map(Number);
+  const [eh, em] = t.end_time.split(":").map(Number);
+  return Math.max(0, eh * 60 + em - (sh * 60 + sm));
 }
 
 function statusLabel(status: string): string {
-  if (status === 'done') return '✔ 已完成';
-  if (status === 'missed') return '⚠ 逾期';
-  return '○ 未开始';
+  if (status === "done") return "✔ 已完成";
+  if (status === "missed") return "⚠ 逾期";
+  return "○ 未开始";
 }
 
 const tasks = computed(() => {
   // 今日任务列表
-  const todayList = taskStore.tasks.filter((t: any) => t.task_date === todayStr);
-  const filteredToday = props.planId ? todayList.filter((t: any) => t.plan_id === props.planId) : todayList;
+  const todayList = taskStore.tasks.filter(
+    (t: any) => t.task_date === todayStr,
+  );
+  const filteredToday = props.planId
+    ? todayList.filter((t: any) => t.plan_id === props.planId)
+    : todayList;
   if (filteredToday.length > 0) return filteredToday;
   // 回退：未来任务（日期 >= 今天），按日期升序取前 5 条
   const future = taskStore.tasks
-    .filter((t: any) => t.task_date >= todayStr && (!props.planId || t.plan_id === props.planId))
+    .filter(
+      (t: any) =>
+        t.task_date >= todayStr &&
+        (!props.planId || t.plan_id === props.planId),
+    )
     .sort((a: any, b: any) => a.task_date.localeCompare(b.task_date))
     .slice(0, 5);
   return future;
 });
-const schedules = computed(() => scheduleStore.schedules.filter(s => s.date === todayStr));
+const schedules = computed(() =>
+  scheduleStore.schedules.filter((s) => s.date === todayStr),
+);
 
 onMounted(async () => {
   await taskStore.loadTasks(props.planId);
   await scheduleStore.load(todayStr);
 });
-
 
 async function toggle(taskId: number) {
   await taskStore.toggleTaskStatus(taskId);
@@ -172,19 +211,19 @@ function open(id: number) {
 .header {
   display: flex;
   align-items: baseline;
-  gap: .5rem;
-  margin-bottom: .5rem;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
-.section { 
-  margin-bottom: 1.5rem; 
+.section {
+  margin-bottom: 1.5rem;
 }
 
-.section-title { 
-  font-size: 14px; 
-  font-weight: 600; 
-  color: var(--text-main); 
-  margin-bottom: 12px; 
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 12px;
   letter-spacing: 0.02em;
 }
 
@@ -194,10 +233,10 @@ function open(id: number) {
   font-weight: 400;
 }
 
-.list { 
-  list-style: none; 
-  padding: 0; 
-  margin: 0; 
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
 }
@@ -255,10 +294,18 @@ function open(id: number) {
   background: var(--text-muted);
   flex-shrink: 0;
 }
-.status-dot.pending { background: var(--color-warning); }
-.status-dot.done { background: var(--color-success); }
-.status-dot.missed { background: var(--color-danger); }
-.status-dot.completed { background: var(--color-success); }
+.status-dot.pending {
+  background: var(--color-warning);
+}
+.status-dot.done {
+  background: var(--color-success);
+}
+.status-dot.missed {
+  background: var(--color-danger);
+}
+.status-dot.completed {
+  background: var(--color-success);
+}
 
 /* 标题：视觉中心 */
 .title {
@@ -293,16 +340,28 @@ function open(id: number) {
 }
 
 .tag {
-  background: rgba(99,102,241,0.08);
-  color: #6366F1;
+  background: rgba(99, 102, 241, 0.08);
+  color: #6366f1;
   font-size: 11px;
   border-radius: 6px;
   padding: 2px 6px;
 }
-.tag.done { background: rgba(16,185,129,0.10); color: var(--color-success); }
-.tag.pending { background: rgba(234,179,8,0.12); color: var(--color-warning); }
-.tag.missed { background: rgba(239,68,68,0.10); color: var(--color-danger); }
-.tag.schedule-tag { background: rgba(250,204,21,0.15); color: #d97706; }
+.tag.done {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+.tag.pending {
+  background: rgba(234, 179, 8, 0.12);
+  color: var(--color-warning);
+}
+.tag.missed {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+}
+.tag.schedule-tag {
+  background: rgba(250, 204, 21, 0.15);
+  color: #d97706;
+}
 
 /* 详情按钮 */
 .detail-btn {
@@ -321,9 +380,9 @@ function open(id: number) {
   color: var(--text-main);
 }
 
-.empty { 
-  color: var(--text-muted); 
-  margin-top: 1rem; 
+.empty {
+  color: var(--text-muted);
+  margin-top: 1rem;
   text-align: center;
   font-size: 14px;
 }

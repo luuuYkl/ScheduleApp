@@ -7,14 +7,14 @@
       <h3>添加任务</h3>
       <form class="add-form" @submit.prevent="addTask">
         <div class="form-row">
-          <input 
-            v-model.trim="form.title" 
-            type="text" 
+          <input
+            v-model.trim="form.title"
+            type="text"
             placeholder="任务标题"
             required
           />
-          <input 
-            v-model="form.task_date" 
+          <input
+            v-model="form.task_date"
             type="date"
             :min="planStartDate"
             :max="planEndDate"
@@ -37,20 +37,16 @@
           </div>
           <div class="field" v-if="form.repeat_type !== 'none'">
             <label>重复结束日期</label>
-            <input 
-              v-model="form.repeat_end_date" 
+            <input
+              v-model="form.repeat_end_date"
               type="date"
               :min="form.task_date"
               :max="planEndDate"
               required
             />
           </div>
-          <button 
-            type="submit" 
-            class="primary" 
-            :disabled="submitting"
-          >
-            {{ submitting ? '添加中...' : '添加任务' }}
+          <button type="submit" class="primary" :disabled="submitting">
+            {{ submitting ? "添加中..." : "添加任务" }}
           </button>
         </div>
       </form>
@@ -64,8 +60,8 @@
           <!-- 编辑态：完整表单 -->
           <div v-if="editingId === t.id" class="edit-mode">
             <input v-model="edit.title" type="text" placeholder="标题" />
-            <input 
-              v-model="edit.task_date" 
+            <input
+              v-model="edit.task_date"
               type="date"
               :min="planStartDate"
               :max="planEndDate"
@@ -76,9 +72,9 @@
               <option value="daily">每日</option>
               <option value="monthly">每月</option>
             </select>
-            <input 
-              v-if="edit.repeat_type !== 'none'" 
-              v-model="edit.repeat_end_date" 
+            <input
+              v-if="edit.repeat_type !== 'none'"
+              v-model="edit.repeat_end_date"
               type="date"
               :min="edit.task_date"
               :max="planEndDate"
@@ -102,19 +98,27 @@
             <div class="content-col">
               <!-- 第一行：勾选 + 状态圆点 + 标题 -->
               <div class="row title-row">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   class="checkbox"
-                  :checked="t._isGrouped ? t._displayStatus === 'done' : t.status === 'done'" 
-                  @change="toggle(t)" 
+                  :checked="
+                    t._isGrouped
+                      ? t._displayStatus === 'done'
+                      : t.status === 'done'
+                  "
+                  @change="toggle(t)"
                 />
-                <span 
-                  class="status-dot" 
+                <span
+                  class="status-dot"
                   :class="t._isGrouped ? t._displayStatus : t.status"
                 ></span>
-                <span 
-                  class="title" 
-                  :class="{ completed: t._isGrouped ? t._displayStatus === 'done' : t.status === 'done' }"
+                <span
+                  class="title"
+                  :class="{
+                    completed: t._isGrouped
+                      ? t._displayStatus === 'done'
+                      : t.status === 'done',
+                  }"
                 >
                   {{ t.title }}
                 </span>
@@ -123,14 +127,12 @@
               <!-- 第二行：副信息 -->
               <div class="row meta">
                 <span v-if="t._isGrouped">
-                  {{ t.repeat_type === 'daily' ? '📅 每日重复' : '📆 每月重复' }}
+                  {{
+                    t.repeat_type === "daily" ? "📅 每日重复" : "📆 每月重复"
+                  }}
                 </span>
-                <span v-if="t._isGrouped">
-                  · {{ t._dateRange }}
-                </span>
-                <span v-if="t.note">
-                  · {{ t.note }}
-                </span>
+                <span v-if="t._isGrouped"> · {{ t._dateRange }} </span>
+                <span v-if="t.note"> · {{ t.note }} </span>
               </div>
 
               <!-- 第三行：标签与操作 -->
@@ -138,22 +140,22 @@
                 <span v-if="t._isGrouped" class="tag progress-tag">
                   {{ t._doneCount }}/{{ t._totalCount }} 已完成
                 </span>
-                <span 
-                  v-else 
-                  class="tag" 
-                  :class="t.status"
-                >
+                <span v-else class="tag" :class="t.status">
                   {{ statusLabel(t.status) }}
                 </span>
-                <span 
-                  v-if="t.repeat_type && t.repeat_type !== 'none'" 
+                <span
+                  v-if="t.repeat_type && t.repeat_type !== 'none'"
                   class="tag repeat-tag"
                 >
-                  {{ t.repeat_type === 'daily' ? '每日' : '每月' }}
+                  {{ t.repeat_type === "daily" ? "每日" : "每月" }}
                 </span>
                 <div class="spacer"></div>
-                <button class="op-btn edit-btn" @click="startEdit(t)">编辑</button>
-                <button class="op-btn delete-btn" @click="remove(t)">删除</button>
+                <button class="op-btn edit-btn" @click="startEdit(t)">
+                  编辑
+                </button>
+                <button class="op-btn delete-btn" @click="remove(t)">
+                  删除
+                </button>
               </div>
             </div>
           </template>
@@ -180,33 +182,36 @@ const planId = Number(route.params.id);
 
 // 对任务进行分组，重复任务只显示一条
 const list = computed(() => {
-  const tasks = taskStore.tasks.filter(x => x.plan_id === planId);
+  const tasks = taskStore.tasks.filter((x) => x.plan_id === planId);
   const grouped = new Map<string, any>();
-  
+
   for (const task of tasks) {
     // 如果是重复任务，生成分组键
-    if (task.repeat_type && task.repeat_type !== 'none') {
+    if (task.repeat_type && task.repeat_type !== "none") {
       // 分组键：标题 + 重复类型 + 备注（防止同名任务误合并）
-      const groupKey = `${task.title}_${task.repeat_type}_${task.note || ''}`;
-      
+      const groupKey = `${task.title}_${task.repeat_type}_${task.note || ""}`;
+
       if (!grouped.has(groupKey)) {
         // 第一次遇到这个分组，保存任务信息
-        const relatedTasks = tasks.filter(t => 
-          t.title === task.title && 
-          t.repeat_type === task.repeat_type &&
-          (t.note || '') === (task.note || '')
+        const relatedTasks = tasks.filter(
+          (t) =>
+            t.title === task.title &&
+            t.repeat_type === task.repeat_type &&
+            (t.note || "") === (task.note || ""),
         );
-        
+
         // 找到最早和最晚的日期
-        const dates = relatedTasks.map(t => t.task_date).sort();
+        const dates = relatedTasks.map((t) => t.task_date).sort();
         const startDate = dates[0];
         const endDate = dates[dates.length - 1];
-        
+
         // 计算完成状态：所有子任务都完成才算完成
-        const allDone = relatedTasks.every(t => t.status === 'done');
-        const someDone = relatedTasks.some(t => t.status === 'done');
-        const doneCount = relatedTasks.filter(t => t.status === 'done').length;
-        
+        const allDone = relatedTasks.every((t) => t.status === "done");
+        const someDone = relatedTasks.some((t) => t.status === "done");
+        const doneCount = relatedTasks.filter(
+          (t) => t.status === "done",
+        ).length;
+
         grouped.set(groupKey, {
           ...task,
           task_date: startDate, // 显示开始日期
@@ -214,8 +219,8 @@ const list = computed(() => {
           _dateRange: `${startDate} ~ ${endDate}`,
           _totalCount: relatedTasks.length,
           _doneCount: doneCount,
-          _groupedIds: relatedTasks.map(t => t.id),
-          _displayStatus: allDone ? 'done' : someDone ? 'partial' : 'pending'
+          _groupedIds: relatedTasks.map((t) => t.id),
+          _displayStatus: allDone ? "done" : someDone ? "partial" : "pending",
         });
       }
     } else {
@@ -223,14 +228,16 @@ const list = computed(() => {
       grouped.set(`single_${task.id}`, task);
     }
   }
-  
-  return Array.from(grouped.values()).sort((a, b) => 
-    a.task_date.localeCompare(b.task_date)
+
+  return Array.from(grouped.values()).sort((a, b) =>
+    a.task_date.localeCompare(b.task_date),
   );
 });
 
 // 获取当前计划信息
-const currentPlan = computed(() => planStore.plans.find((p: any) => p.id === planId));
+const currentPlan = computed(() =>
+  planStore.plans.find((p: any) => p.id === planId),
+);
 const planStartDate = computed(() => currentPlan.value?.start_date || "");
 const planEndDate = computed(() => currentPlan.value?.end_date || "");
 
@@ -239,7 +246,7 @@ const form = reactive({
   task_date: new Date().toISOString().slice(0, 10),
   note: "",
   repeat_type: "none" as "none" | "daily" | "monthly",
-  repeat_end_date: ""
+  repeat_end_date: "",
 });
 
 const submitting = ref(false);
@@ -247,7 +254,7 @@ const submitting = ref(false);
 async function addTask() {
   if (!form.title) return alert("请填写任务标题");
   if (!form.task_date) return alert("请选择任务日期");
-  
+
   // 验证日期在计划范围内
   if (planStartDate.value && form.task_date < planStartDate.value) {
     return alert(`任务日期不能早于计划开始日期（${planStartDate.value}）`);
@@ -255,17 +262,22 @@ async function addTask() {
   if (planEndDate.value && form.task_date > planEndDate.value) {
     return alert(`任务日期不能晚于计划结束日期（${planEndDate.value}）`);
   }
-  
+
   if (form.repeat_type !== "none" && !form.repeat_end_date) {
     return alert("请选择重复结束日期");
   }
-  
+
   // 验证重复结束日期在计划范围内
-  if (form.repeat_type !== "none" && planEndDate.value && form.repeat_end_date > planEndDate.value) {
+  if (
+    form.repeat_type !== "none" &&
+    planEndDate.value &&
+    form.repeat_end_date > planEndDate.value
+  ) {
     return alert(`重复结束日期不能晚于计划结束日期（${planEndDate.value}）`);
   }
 
-  const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id") || 0);
+  const userId =
+    userStore.user?.id ?? Number(localStorage.getItem("user_id") || 0);
   if (!userId) return alert("请先登录");
 
   submitting.value = true;
@@ -282,19 +294,19 @@ async function addTask() {
     };
 
     const payloads = generateRepeatTaskPayloads(basePayload);
-    
+
     // 批量创建任务
     for (const payload of payloads) {
       await taskStore.createTask(payload);
     }
-    
+
     // 重置表单
     form.title = "";
     form.task_date = new Date().toISOString().slice(0, 10);
     form.note = "";
     form.repeat_type = "none";
     form.repeat_end_date = "";
-    
+
     // 刷新任务列表
     await taskStore.loadTasks(planId);
   } catch (e: any) {
@@ -307,7 +319,7 @@ async function addTask() {
 async function toggle(task: any) {
   // 如果是分组任务，切换所有关联任务的状态
   if (task._isGrouped && task._groupedIds) {
-    const newStatus = task._displayStatus === 'done' ? 'pending' : 'done';
+    const newStatus = task._displayStatus === "done" ? "pending" : "done";
     for (const taskId of task._groupedIds) {
       await taskStore.updateTask(taskId, { status: newStatus });
     }
@@ -320,11 +332,11 @@ async function toggle(task: any) {
 }
 
 async function remove(task: any) {
-  const confirmMsg = task._isGrouped 
-    ? `确认删除该重复任务的所有 ${task._totalCount} 条记录？` 
+  const confirmMsg = task._isGrouped
+    ? `确认删除该重复任务的所有 ${task._totalCount} 条记录？`
     : "确认删除该任务？";
   if (!confirm(confirmMsg)) return;
-  
+
   // 如果是分组任务，删除所有关联任务
   if (task._isGrouped && task._groupedIds) {
     for (const taskId of task._groupedIds) {
@@ -333,37 +345,39 @@ async function remove(task: any) {
   } else {
     await taskStore.deleteTask(task.id);
   }
-  
+
   // 刷新列表
   await taskStore.loadTasks(planId);
 }
 
 const editingId = ref<number | null>(null);
-const edit = reactive({ 
-  id: 0, 
-  title: "", 
-  task_date: "", 
+const edit = reactive({
+  id: 0,
+  title: "",
+  task_date: "",
   note: "",
   repeat_type: "none" as "none" | "daily" | "monthly",
-  repeat_end_date: ""
+  repeat_end_date: "",
 });
 
 // 辅助函数
 function formatDate(dateStr: string): string {
   const today = new Date().toISOString().slice(0, 10);
-  if (dateStr === today) return '今天';
-  const d = new Date(dateStr + 'T00:00:00');
-  const todayDate = new Date(today + 'T00:00:00');
-  const diff = Math.floor((d.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
-  if (diff === 1) return '明天';
-  if (diff === -1) return '昨天';
+  if (dateStr === today) return "今天";
+  const d = new Date(dateStr + "T00:00:00");
+  const todayDate = new Date(today + "T00:00:00");
+  const diff = Math.floor(
+    (d.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (diff === 1) return "明天";
+  if (diff === -1) return "昨天";
   return dateStr.slice(5); // MM-DD
 }
 
 function statusLabel(status: string): string {
-  if (status === 'done') return '✔ 已完成';
-  if (status === 'missed') return '⚠ 逾期';
-  return '○ 未开始';
+  if (status === "done") return "✔ 已完成";
+  if (status === "missed") return "⚠ 逾期";
+  return "○ 未开始";
 }
 
 function startEdit(t: any) {
@@ -392,10 +406,7 @@ async function saveEdit() {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    taskStore.loadTasks(planId),
-    planStore.loadPlans()
-  ]);
+  await Promise.all([taskStore.loadTasks(planId), planStore.loadPlans()]);
 });
 </script>
 
@@ -583,7 +594,7 @@ onMounted(async () => {
 
 .tag {
   background: rgba(99, 102, 241, 0.08);
-  color: #6366F1;
+  color: #6366f1;
   font-size: 11px;
   border-radius: 6px;
   padding: 2px 6px;
@@ -607,7 +618,7 @@ onMounted(async () => {
 
 .tag.repeat-tag {
   background: rgba(139, 92, 246, 0.1);
-  color: #8B5CF6;
+  color: #8b5cf6;
 }
 
 .tag.progress-tag {
@@ -692,24 +703,24 @@ onMounted(async () => {
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .repeat-row {
     grid-template-columns: 1fr;
   }
-  
+
   .item {
     grid-template-columns: 48px 1fr;
     column-gap: 8px;
   }
-  
+
   .time-col {
     font-size: 11px;
   }
-  
+
   .title {
     font-size: 13px;
   }
-  
+
   .meta {
     font-size: 11px;
   }

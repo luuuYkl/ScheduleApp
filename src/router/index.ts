@@ -21,17 +21,48 @@ const routes = [
   { path: "/home", component: HomePage, meta: { requiresAuth: true } },
   { path: "/home-new", component: HomePageNew, meta: { requiresAuth: true } },
   { path: "/plan", component: PlanOverviewPage, meta: { requiresAuth: true } },
-  { path: "/plan/create", component: PlanCreatePage, meta: { requiresAuth: true } },
-  { path: "/plan/:id/tasks", component: PlanTasksPage, props: true, meta: { requiresAuth: true } },
-  { path: "/calendar", component: DynamicCalendarPage, meta: { requiresAuth: true } },
-  { path: "/plan/calendar/:id", component: PlanCalendarPage, props: true, meta: { requiresAuth: true } },
+  {
+    path: "/plan/create",
+    component: PlanCreatePage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/plan/:id/tasks",
+    component: PlanTasksPage,
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/calendar",
+    component: DynamicCalendarPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/plan/calendar/:id",
+    component: PlanCalendarPage,
+    props: true,
+    meta: { requiresAuth: true },
+  },
   { path: "/log", component: LogPage, meta: { requiresAuth: true } },
-  { path: "/task/:id", component: TaskDetailPage, props: true, meta: { requiresAuth: true } },
-  { path: "/user/profile", component: ProfilePage, meta: { requiresAuth: true } },
+  {
+    path: "/task/:id",
+    component: TaskDetailPage,
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/user/profile",
+    component: ProfilePage,
+    meta: { requiresAuth: true },
+  },
   { path: "/schedule", component: SchedulePage, meta: { requiresAuth: true } },
   { path: "/ui-demo", component: UIDemoPage, meta: { requiresAuth: true } },
   { path: "/login", component: LoginPage, meta: { showBottomNav: false } },
-  { path: "/register", component: RegisterPage, meta: { showBottomNav: false } },
+  {
+    path: "/register",
+    component: RegisterPage,
+    meta: { showBottomNav: false },
+  },
 ];
 
 const router = createRouter({
@@ -56,11 +87,15 @@ router.beforeEach(async (to, from) => {
 
     // 调试输出：路由目标 / token / user 状态
     // eslint-disable-next-line no-console
-    console.log(`[ROUTER] to=${to.fullPath} requiresAuth=${!!to.meta.requiresAuth} token=${token ? "YES" : "NO"} user=${user ? "YES" : "NO"}`);
+    console.log(
+      `[ROUTER] to=${to.fullPath} requiresAuth=${!!to.meta.requiresAuth} token=${token ? "YES" : "NO"} user=${user ? "YES" : "NO"}`,
+    );
 
     if (to.meta.requiresAuth && !token) {
       // eslint-disable-next-line no-console
-      console.warn(`[ROUTER] unauthenticated -> redirect to /login (from ${from.fullPath})`);
+      console.warn(
+        `[ROUTER] unauthenticated -> redirect to /login (from ${from.fullPath})`,
+      );
       return { path: "/login", query: { redirect: to.fullPath } };
     }
   } catch (err) {

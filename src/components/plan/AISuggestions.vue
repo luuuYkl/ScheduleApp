@@ -3,7 +3,14 @@
     <div class="ai-header">
       <span class="ai-icon">🤖</span>
       <h3>AI 智能建议</h3>
-      <button type="button" class="close-btn" @click="$emit('close')" v-if="closeable">✕</button>
+      <button
+        type="button"
+        class="close-btn"
+        @click="$emit('close')"
+        v-if="closeable"
+      >
+        ✕
+      </button>
     </div>
 
     <!-- 加载状态 -->
@@ -13,9 +20,12 @@
     </div>
 
     <!-- 建议列表 -->
-    <div v-else-if="suggestions && suggestions.length > 0" class="suggestions-list">
-      <div 
-        v-for="(suggestion, index) in suggestions" 
+    <div
+      v-else-if="suggestions && suggestions.length > 0"
+      class="suggestions-list"
+    >
+      <div
+        v-for="(suggestion, index) in suggestions"
         :key="index"
         :class="['suggestion-item', `type-${suggestion.type}`]"
       >
@@ -29,13 +39,16 @@
     </div>
 
     <!-- 推荐任务列表 -->
-    <div v-if="recommendedTasks && recommendedTasks.length > 0" class="recommended-tasks">
+    <div
+      v-if="recommendedTasks && recommendedTasks.length > 0"
+      class="recommended-tasks"
+    >
       <h4>📋 推荐任务清单</h4>
       <ul>
         <li v-for="(task, index) in recommendedTasks" :key="index">
-          <button 
+          <button
             type="button"
-            class="task-add-btn" 
+            class="task-add-btn"
             @click="handleAddTask(task)"
             title="添加到待创建任务列表（不会立即创建计划）"
           >
@@ -45,8 +58,13 @@
             <div class="task-title">{{ task.title }}</div>
             <div class="task-meta">
               <span v-if="task.task_date">📅 {{ task.task_date }}</span>
-              <span v-if="task.start_time">⏰ {{ task.start_time }}<span v-if="task.end_time"> - {{ task.end_time }}</span></span>
-              <span v-if="task.repeat_type && task.repeat_type !== 'none'">🔁 {{ renderRepeat(task) }}</span>
+              <span v-if="task.start_time"
+                >⏰ {{ task.start_time
+                }}<span v-if="task.end_time"> - {{ task.end_time }}</span></span
+              >
+              <span v-if="task.repeat_type && task.repeat_type !== 'none'"
+                >🔁 {{ renderRepeat(task) }}</span
+              >
               <span v-if="task.note">📝 {{ task.note }}</span>
             </div>
           </div>
@@ -64,9 +82,9 @@
 
     <!-- 应用优化建议按钮 -->
     <div v-if="optimizedPlan" class="ai-actions">
-      <button 
+      <button
         type="button"
-        class="btn-apply-optimization" 
+        class="btn-apply-optimization"
         @click="$emit('apply-optimization', optimizedPlan)"
       >
         ✨ 应用优化建议
@@ -76,8 +94,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { AISuggestion, AIOptimizePlanResponse, AIRecommendedTask } from '@/services/api.types';
+import { computed } from "vue";
+import type {
+  AISuggestion,
+  AIOptimizePlanResponse,
+  AIRecommendedTask,
+} from "@/services/api.types";
 
 interface Props {
   loading?: boolean;
@@ -88,48 +110,56 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   response: null,
-  closeable: true
+  closeable: true,
 });
 
 const emit = defineEmits<{
   close: [];
-  'add-task': [task: AIRecommendedTask];
-  'apply-optimization': [optimizedPlan: AIOptimizePlanResponse['optimized_plan']];
+  "add-task": [task: AIRecommendedTask];
+  "apply-optimization": [
+    optimizedPlan: AIOptimizePlanResponse["optimized_plan"],
+  ];
 }>();
 
 const showSuggestions = computed(() => {
   if (props.loading) return true;
   const res = props.response;
   if (!res) return false;
-  return (res.suggestions && res.suggestions.length > 0) || !!res.optimized_plan || !!res.reasoning;
+  return (
+    (res.suggestions && res.suggestions.length > 0) ||
+    !!res.optimized_plan ||
+    !!res.reasoning
+  );
 });
 
 const suggestions = computed(() => props.response?.suggestions || []);
-const recommendedTasks = computed<AIRecommendedTask[]>(() => props.response?.optimized_plan?.recommended_tasks || []);
-const reasoning = computed(() => props.response?.reasoning || '');
+const recommendedTasks = computed<AIRecommendedTask[]>(
+  () => props.response?.optimized_plan?.recommended_tasks || [],
+);
+const reasoning = computed(() => props.response?.reasoning || "");
 const optimizedPlan = computed(() => props.response?.optimized_plan);
 
-function getSuggestionIcon(type: AISuggestion['type']): string {
+function getSuggestionIcon(type: AISuggestion["type"]): string {
   switch (type) {
-    case 'warning':
-      return '⚠️';
-    case 'suggestion':
-      return '💡';
-    case 'info':
-      return 'ℹ️';
+    case "warning":
+      return "⚠️";
+    case "suggestion":
+      return "💡";
+    case "info":
+      return "ℹ️";
     default:
-      return '📌';
+      return "📌";
   }
 }
 
 function renderRepeat(task: AIRecommendedTask) {
-  if (!task.repeat_type || task.repeat_type === 'none') return '';
-  const end = task.repeat_end_date ? `，到 ${task.repeat_end_date}` : '';
+  if (!task.repeat_type || task.repeat_type === "none") return "";
+  const end = task.repeat_end_date ? `，到 ${task.repeat_end_date}` : "";
   return `${task.repeat_type} 重复${end}`;
 }
 
 function handleAddTask(task: AIRecommendedTask) {
-  emit('add-task', task);
+  emit("add-task", task);
 }
 </script>
 
@@ -196,7 +226,9 @@ function handleAddTask(task: AIRecommendedTask) {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .suggestions-list {

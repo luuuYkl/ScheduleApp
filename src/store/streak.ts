@@ -54,7 +54,10 @@ export const useStreakStore = defineStore("streak", () => {
         streak.value = {
           user_id: userId,
           current_streak: (streak.value?.current_streak ?? 0) + 1,
-          longest_streak: Math.max(streak.value?.longest_streak ?? 0, (streak.value?.current_streak ?? 0) + 1),
+          longest_streak: Math.max(
+            streak.value?.longest_streak ?? 0,
+            (streak.value?.current_streak ?? 0) + 1,
+          ),
           last_checkin: new Date().toISOString().slice(0, 10),
         };
         return streak.value;

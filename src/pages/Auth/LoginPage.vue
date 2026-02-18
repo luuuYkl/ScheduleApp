@@ -1,7 +1,10 @@
 <template>
-  <form 
-    class="page card" 
-    style="max-width:420px;margin:calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;"
+  <form
+    class="page card"
+    style="
+      max-width: 420px;
+      margin: calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;
+    "
     @submit.prevent="login"
     aria-labelledby="login-heading"
   >
@@ -9,10 +12,10 @@
 
     <div class="mb-2">
       <label for="username-input">用户名</label>
-      <input 
+      <input
         id="username-input"
-        v-model.trim="username" 
-        placeholder="请输入用户名（如 demoUser）" 
+        v-model.trim="username"
+        placeholder="请输入用户名（如 demoUser）"
         aria-required="true"
         autocomplete="username"
       />
@@ -20,40 +23,36 @@
 
     <div class="mb-2">
       <label for="password-input">密码</label>
-      <input 
+      <input
         id="password-input"
-        type="password" 
-        v-model="password" 
-        placeholder="任意输入即可（Mock 模式）" 
+        type="password"
+        v-model="password"
+        placeholder="任意输入即可（Mock 模式）"
         aria-required="true"
         autocomplete="current-password"
       />
     </div>
 
-    <p 
-      v-if="error" 
-      style="color:var(--color-danger)"
+    <p
+      v-if="error"
+      style="color: var(--color-danger)"
       role="alert"
       aria-live="polite"
     >
       {{ error }}
     </p>
 
-    <div class="mt-3 flex" style="gap:.5rem;justify-content:center">
-      <button 
-        class="primary" 
+    <div class="mt-3 flex" style="gap: 0.5rem; justify-content: center">
+      <button
+        class="primary"
         type="submit"
-        @click="login" 
+        @click="login"
         :disabled="loading"
         :aria-busy="loading"
       >
         {{ loading ? "登录中..." : "登录" }}
       </button>
-      <button 
-        type="button"
-        @click="goRegister"
-        aria-label="跳转到注册页面"
-      >
+      <button type="button" @click="goRegister" aria-label="跳转到注册页面">
         去注册
       </button>
     </div>

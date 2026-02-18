@@ -1,19 +1,12 @@
 <template>
-  <PageScaffold 
-    title="我的一天" 
-    subtitle="查看今日计划和待办事项"
-  >
+  <PageScaffold title="我的一天" subtitle="查看今日计划和待办事项">
     <template #actions>
-      <button 
-        class="btn btn-primary" 
-        @click="goCreate"
-        aria-label="创建新计划"
-      >
+      <button class="btn btn-primary" @click="goCreate" aria-label="创建新计划">
         <span class="btn-icon">➕</span>
         <span class="btn-text">新建计划</span>
       </button>
-      <button 
-        class="btn btn-secondary" 
+      <button
+        class="btn btn-secondary"
         @click="goSchedule"
         aria-label="创建日程"
       >
@@ -21,7 +14,7 @@
         <span class="btn-text">新建日程</span>
       </button>
     </template>
-    
+
     <div class="home-content">
       <div class="grid">
         <PlanOverview @create="goCreate" />
@@ -110,7 +103,7 @@ function goSchedule() {
   .grid {
     gap: var(--space-3);
   }
-  
+
   .btn {
     padding: var(--space-2) var(--space-3);
     font-size: 13px;
@@ -121,12 +114,12 @@ function goSchedule() {
   .grid {
     gap: var(--space-2);
   }
-  
+
   .btn {
     padding: var(--space-1) var(--space-2);
     font-size: 12px;
   }
-  
+
   .btn-text {
     display: none;
   }
