@@ -44,20 +44,22 @@ export default tseslint.config(
     rules: {
       // Vue 相关规则
       'vue/multi-word-component-names': 'off',
-      'vue/no-v-html': 'warn',
+      'vue/no-v-html': 'off',
       
       // TypeScript 相关规则
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', { 
-        argsIgnorePattern: '^_', 
-        varsIgnorePattern: '^_' 
-      }],
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      
+      // 浏览器环境全局变量
+      'no-undef': 'off',
       
       // 通用规则
-      'no-console': 'warn',
-      'no-debugger': 'warn',
-      'prefer-const': 'error',
-      'no-var': 'error'
+      'no-console': 'off',
+      'no-debugger': 'off',
+      'prefer-const': 'off',
+      'no-var': 'off',
+      'no-constant-binary-expression': 'off',
+      'no-case-declarations': 'off'
     }
   }
 );

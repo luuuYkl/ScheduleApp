@@ -33,6 +33,7 @@ export function generateRepeatDates(
   normalizedEnd.setHours(0, 0, 0, 0);
 
   let current = new Date(start);
+  current.setHours(0, 0, 0, 0); // 确保起始日期也是午夜
   const anchorDay = start.getDate(); // 固定锚点日，贯穿整个循环
 
   // 先添加起始日期
@@ -45,37 +46,31 @@ export function generateRepeatDates(
       current.setDate(current.getDate() + 1);
     }
   } else if (repeatType === "monthly") {
-    // 对于月度重复，我们需要生成所有可能的重复实例
-    // 即使某些实例可能超过结束日期
+    // 使用固定锚点日的月度重复算法
     while (true) {
-      // 增加月份
+      // 移动到下一个月的月初，避免 setMonth 在 31 号溢出
       const year = current.getFullYear();
-      let month = current.getMonth();
-      month += 1;
-      
+      let month = current.getMonth() + 1;
+
       // 处理年份进位
-      let targetYear = year;
-      let targetMonth = month;
-      if (month > 11) {
-        targetYear += Math.floor(month / 12);
-        targetMonth = month % 12;
-      }
-      
-      // 获取目标月份的最后一天
+      const targetYear = month > 11 ? year + Math.floor(month / 12) : year;
+      const targetMonth = month % 12;
+
+      // 获取该月最后一天
       const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-      
-      // 取较小值，避免超出月份范围
+
+      // 计算目标日期：取锚点日和月末的较小值
       const targetDay = Math.min(anchorDay, lastDayOfMonth);
-      
-      // 设置新日期，并确保时间是午夜
+
+      // 设置到目标日期
       current = new Date(targetYear, targetMonth, targetDay);
       current.setHours(0, 0, 0, 0);
-      
+
       // 如果新日期超过了结束日期，则停止
       if (current > normalizedEnd) {
         break;
       }
-      
+
       dates.push(formatDate(current));
     }
   }
