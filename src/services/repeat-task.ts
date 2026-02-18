@@ -28,31 +28,55 @@ export function generateRepeatDates(
     return [startDate];
   }
 
+  // 确保所有日期都从午夜开始比较
+  const normalizedEnd = new Date(end);
+  normalizedEnd.setHours(0, 0, 0, 0);
+
   let current = new Date(start);
+  const anchorDay = start.getDate(); // 固定锚点日，贯穿整个循环
 
-  while (current <= end) {
-    dates.push(formatDate(current));
+  // 先添加起始日期
+  dates.push(formatDate(current));
 
-    if (repeatType === "daily") {
+  if (repeatType === "daily") {
+    current.setDate(current.getDate() + 1);
+    while (current <= normalizedEnd) {
+      dates.push(formatDate(current));
       current.setDate(current.getDate() + 1);
-    } else if (repeatType === "monthly") {
-      // 修复月度重复任务日期计算缺陷
-      // 使用"目标月份 + 原始 day 上限裁剪"策略
-      const anchorDay = current.getDate(); // 记住原始日期
-      current.setMonth(current.getMonth() + 1);
-
+    }
+  } else if (repeatType === "monthly") {
+    // 对于月度重复，我们需要生成所有可能的重复实例
+    // 即使某些实例可能超过结束日期
+    while (true) {
+      // 增加月份
+      const year = current.getFullYear();
+      let month = current.getMonth();
+      month += 1;
+      
+      // 处理年份进位
+      let targetYear = year;
+      let targetMonth = month;
+      if (month > 11) {
+        targetYear += Math.floor(month / 12);
+        targetMonth = month % 12;
+      }
+      
       // 获取目标月份的最后一天
-      const lastDayOfMonth = new Date(
-        current.getFullYear(),
-        current.getMonth() + 1,
-        0,
-      ).getDate();
-
+      const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      
       // 取较小值，避免超出月份范围
       const targetDay = Math.min(anchorDay, lastDayOfMonth);
-      current.setDate(targetDay);
-    } else {
-      break;
+      
+      // 设置新日期，并确保时间是午夜
+      current = new Date(targetYear, targetMonth, targetDay);
+      current.setHours(0, 0, 0, 0);
+      
+      // 如果新日期超过了结束日期，则停止
+      if (current > normalizedEnd) {
+        break;
+      }
+      
+      dates.push(formatDate(current));
     }
   }
 
