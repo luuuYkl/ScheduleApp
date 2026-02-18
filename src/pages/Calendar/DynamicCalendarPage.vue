@@ -64,6 +64,18 @@
         </Button>
       </div>
       
+      <!-- 今天按钮 - 移动端独立一行 -->
+      <div v-if="isMobile" class="toolbar-section today-controls priority-medium">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          @click="goToToday"
+          class="today-btn-mobile"
+        >
+          今天
+        </Button>
+      </div>
+      
       <!-- 视图切换 -->
       <div class="toolbar-section view-controls priority-medium">
         <div class="view-toggle">
@@ -581,10 +593,10 @@ watch(selectedPlanId, (newPlanId) => {
   border: 1px solid var(--border-subtle);
 }
 
-/* 移动端工具栏分行显示 */
+/* 移动端工具栏分行显示 - 优化布局 */
 .mobile-split {
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: stretch;
 }
 
@@ -593,12 +605,25 @@ watch(selectedPlanId, (newPlanId) => {
   justify-content: center;
 }
 
+/* 导航控制区：左右箭头同行 */
 .mobile-split .nav-controls {
   order: -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--space-4);
+}
+
+/* 今天按钮独立一行 */
+.mobile-split .today-controls {
+  order: 0;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) 0;
 }
 
 .mobile-split .view-controls {
-  order: 0;
+  order: 1;
 }
 
 .toolbar-section {
@@ -716,7 +741,7 @@ watch(selectedPlanId, (newPlanId) => {
 }
 
 .calendar-day {
-  min-height: 120px;
+  min-height: 140px; /* 桌面端提升一档 */
   padding: var(--space-3);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -1035,6 +1060,11 @@ watch(selectedPlanId, (newPlanId) => {
     max-width: none;
   }
   
+  .calendar-day {
+    min-height: 110px; /* 移动端提升到更可读区间 */
+    aspect-ratio: 1/1;
+  }
+  
   .sticky-toolbar {
     position: sticky;
     top: var(--header-height);
@@ -1072,7 +1102,7 @@ watch(selectedPlanId, (newPlanId) => {
   
   .calendar-view {
     padding: var(--space-3);
-    min-height: 60vh; /* 移动端保持足够高度 */
+    min-height: 65vh; /* 移动端增加视口占比 */
   }
   
   .drawer-header {
@@ -1105,12 +1135,12 @@ watch(selectedPlanId, (newPlanId) => {
   }
   
   .events-column {
-    min-height: 1560px; /* 调整移动端日视图高度 */
+    min-height: 1620px; /* 统一移动端日视图高度 */
     padding: var(--space-1);
   }
   
   .week-content {
-    min-height: 500px; /* 统一移动端周视图高度 */
+    min-height: 550px; /* 统一移动端周视图高度 */
   }
   
   /* 移动端隐藏桌面计划选择器 */
@@ -1144,6 +1174,11 @@ watch(selectedPlanId, (newPlanId) => {
     max-width: none;
   }
   
+  .calendar-day {
+    min-height: 160px; /* 桌面端进一步提升 */
+    aspect-ratio: 1/1;
+  }
+  
   .sticky-toolbar {
     padding: var(--space-5);
     margin: var(--space-5) 0;
@@ -1151,7 +1186,7 @@ watch(selectedPlanId, (newPlanId) => {
   
   .calendar-view {
     padding: var(--space-6);
-    min-height: 75vh; /* 桌面端更大的视觉占位 */
+    min-height: 80vh; /* 桌面端更大的视觉占位 */
   }
   
   .month-view, .week-view, .day-view {
@@ -1164,11 +1199,11 @@ watch(selectedPlanId, (newPlanId) => {
   }
   
   .week-content {
-    min-height: 650px; /* 统一桌面端高度 */
+    min-height: 680px; /* 统一桌面端高度 */
   }
   
   .events-column {
-    min-height: 1800px; /* 桌面端日视图高度 */
+    min-height: 1860px; /* 桌面端日视图高度 */
   }
   
   .mobile-calendar-actions {
