@@ -4,16 +4,43 @@
     :subtitle="selectedPlanTitle || '选择计划查看日历'"
     show-back-button
     @back="goBack"
+    class="layer-context"
   >
     <template #actions>
-      <Button variant="outline" size="sm" @click="showPlanSelector = true">
-        {{ selectedPlanTitle || "选择计划" }}
-      </Button>
+      <div class="desktop-plan-selector priority-medium">
+        <Button variant="outline" size="sm" @click="showPlanSelector = true">
+          {{ selectedPlanTitle || "选择计划" }}
+        </Button>
+      </div>
+      <div class="mobile-calendar-actions priority-essential">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          @click="showPlanSelector = true"
+          class="plan-select-btn"
+        >
+          {{ selectedPlanTitleShort || "计划" }}
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          @click="goToToday"
+          class="today-btn"
+        >
+          今天
+        </Button>
+      </div>
     </template>
-
-    <div class="calendar-container">
-      <!-- 日期导航 -->
-      <div class="calendar-header">
+  </PageScaffold>
+  
+  <div class="calendar-container">
+    <!-- Context Layer: 顶部吸附工具栏 - 移动端分行显示 -->
+    <div 
+      class="sticky-toolbar layer-context priority-high"
+      :class="{ 'mobile-split': isMobile }"
+    >
+      <!-- 时间导航 -->
+      <div class="toolbar-section nav-controls priority-essential">
         <Button
           variant="outline"
           size="sm"
@@ -25,7 +52,6 @@
 
         <div class="period-display">
           <h3>{{ periodDisplay }}</h3>
-          <Button variant="ghost" size="sm" @click="goToToday"> 今天 </Button>
         </div>
 
         <Button
@@ -37,21 +63,26 @@
           →
         </Button>
       </div>
-
+      
       <!-- 视图切换 -->
-      <div class="view-toggle">
-        <button
-          v-for="view in calendarViews"
-          :key="view.key"
-          :class="['view-btn', { active: currentView === view.key }]"
-          @click="currentView = view.key"
-        >
-          {{ view.label }}
-        </button>
+      <div class="toolbar-section view-controls priority-medium">
+        <div class="view-toggle">
+          <button
+            v-for="view in calendarViews"
+            :key="view.key"
+            :class="['view-btn', { active: currentView === view.key }]"
+            @click="currentView = view.key"
+          >
+            {{ view.label }}
+          </button>
+        </div>
       </div>
+    </div>
 
+    <!-- Primary Layer: 主要内容区域 -->
+    <div class="main-content layer-primary priority-high">
       <!-- 日历视图 -->
-      <div class="calendar-content">
+      <div class="calendar-view">
         <!-- 月视图 -->
         <div v-if="currentView === 'month'" class="month-view">
           <div class="weekdays">
@@ -170,6 +201,36 @@
               </div>
             </div>
           </div>
+          
+          <!-- Secondary Layer: 当日详情抽屉 (桌面端右侧/移动端底部) -->
+          <div 
+            v-if="showDayDrawer && selectedDateEvents.length > 0"
+            class="day-drawer layer-secondary priority-medium"
+            :class="{ 
+              'drawer-open': isDrawerOpen,
+              'desktop-drawer': !isMobile,
+              'mobile-drawer': isMobile 
+            }"
+          >
+            <div class="drawer-header">
+              <h3>{{ selectedDateDisplay }}</h3>
+              <Button variant="ghost" size="sm" @click="closeDayDrawer">×</Button>
+            </div>
+            <div class="drawer-content">
+              <div 
+                v-for="event in selectedDateEvents" 
+                :key="event.id"
+                class="event-card"
+                :class="`event-${event.type}`"
+              >
+                <div class="event-time">{{ event.time }}</div>
+                <div class="event-title">{{ event.title }}</div>
+                <div class="event-description" v-if="event.description">
+                  {{ event.description }}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -180,7 +241,19 @@
       @select="handlePlanSelect"
       @close="showPlanSelector = false"
     />
-  </PageScaffold>
+    
+    <!-- Utility Layer: 移动端浮动操作按钮 -->
+    <div v-if="isMobile" class="mobile-fab layer-utility priority-low">
+      <Button 
+        variant="primary" 
+        size="lg" 
+        circle
+        @click="toggleDayDrawer"
+      >
+        📅
+      </Button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -214,6 +287,9 @@ const currentDate = ref(new Date());
 const selectedDate = ref(new Date());
 const selectedPlanId = ref<string | null>(null);
 const showPlanSelector = ref(false);
+const showDayDrawer = ref(false);
+const isDrawerOpen = ref(false);
+const isMobile = ref(window.innerWidth < 768);
 
 const calendarViews = [
   { key: "month" as const, label: "月" },
@@ -228,6 +304,12 @@ const selectedPlanTitle = computed(() => {
   if (!selectedPlanId.value) return null;
   const plan = planStore.plans.find((p: any) => p.id === selectedPlanId.value);
   return plan?.title || null;
+});
+
+const selectedPlanTitleShort = computed(() => {
+  const fullTitle = selectedPlanTitle.value;
+  if (!fullTitle) return null;
+  return fullTitle.length > 6 ? fullTitle.substring(0, 6) + '...' : fullTitle;
 });
 
 const periodDisplay = computed(() => {
@@ -313,6 +395,18 @@ const dayEvents = computed(() => {
   return getEventsForDate(selectedDate.value);
 });
 
+const selectedDateEvents = computed(() => {
+  return getEventsForDate(selectedDate.value);
+});
+
+const selectedDateDisplay = computed(() => {
+  return selectedDate.value.toLocaleDateString("zh-CN", {
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
+});
+
 // 导航控制
 const canNavigatePrev = computed(() => true);
 const canNavigateNext = computed(() => true);
@@ -371,6 +465,21 @@ function selectDate(dateInfo: any) {
   if (currentView.value !== "day") {
     currentView.value = "day";
   }
+  // 显示当日详情
+  showDayDrawer.value = true;
+  isDrawerOpen.value = true;
+}
+
+function toggleDayDrawer() {
+  isDrawerOpen.value = !isDrawerOpen.value;
+  showDayDrawer.value = isDrawerOpen.value;
+}
+
+function closeDayDrawer() {
+  isDrawerOpen.value = false;
+  setTimeout(() => {
+    showDayDrawer.value = false;
+  }, 300); // 等待动画完成
 }
 
 function getEventsForDate(date: Date): CalendarEvent[] {
@@ -419,6 +528,18 @@ onMounted(() => {
   if (planIdFromRoute) {
     selectedPlanId.value = planIdFromRoute;
   }
+  
+  // 监听窗口大小变化
+  const handleResize = () => {
+    isMobile.value = window.innerWidth < 768;
+  };
+  
+  window.addEventListener('resize', handleResize);
+  
+  // 组件卸载时清理
+  // onUnmounted(() => {
+  //   window.removeEventListener('resize', handleResize);
+  // });
 });
 
 // 监听计划选择变化
@@ -434,8 +555,61 @@ watch(selectedPlanId, (newPlanId) => {
 
 <style scoped>
 .calendar-container {
-  max-width: 1000px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--header-height, 64px));
+  padding: 0 var(--space-5);
+}
+
+/* 顶部吸附工具栏 */
+.sticky-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  margin: var(--space-4) 0;
+  position: sticky;
+  top: calc(var(--header-height, 64px) + var(--space-4));
+  z-index: var(--z-sticky);
+  box-shadow: var(--shadow-md);
+  transition: all var(--dur-normal) var(--ease-standard);
+  border: 1px solid var(--border-subtle);
+}
+
+/* 移动端工具栏分行显示 */
+.mobile-split {
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.mobile-split .toolbar-section {
+  width: 100%;
+  justify-content: center;
+}
+
+.mobile-split .nav-controls {
+  order: -1;
+}
+
+.mobile-split .view-controls {
+  order: 0;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.nav-controls {
+  flex: 1;
+  justify-content: center;
 }
 
 .calendar-header {
@@ -490,15 +664,35 @@ watch(selectedPlanId, (newPlanId) => {
   color: white;
 }
 
+.main-content {
+  display: flex;
+  flex: 1;
+  gap: var(--space-4);
+  overflow: hidden;
+}
+
 .calendar-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-card);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
+.calendar-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  min-height: 70vh; /* 确保内容区有足够的视觉占位 */
+}
+
 /* 月视图 */
 .month-view {
-  padding: var(--space-4);
+  padding: var(--space-5);
 }
 
 .weekdays {
@@ -518,16 +712,19 @@ watch(selectedPlanId, (newPlanId) => {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .calendar-day {
-  min-height: 80px;
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
+  min-height: 120px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--dur-fast) var(--ease-standard);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 1/1; /* 保持正方形单元格 */
 }
 
 .calendar-day:hover {
@@ -613,15 +810,16 @@ watch(selectedPlanId, (newPlanId) => {
 .week-content {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: var(--space-2);
-  min-height: 400px;
+  gap: var(--space-3);
+  min-height: 600px; /* 统一高度标准 */
 }
 
 .week-day-column {
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   position: relative;
+  background: var(--bg-main);
 }
 
 .week-event {
@@ -654,9 +852,115 @@ watch(selectedPlanId, (newPlanId) => {
   padding: var(--space-4) var(--space-2);
 }
 
+/* 当日详情抽屉 */
+.day-drawer {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--dur-normal) var(--ease-standard);
+}
+
+/* 桌面端右侧抽屉 */
+.desktop-drawer {
+  width: 300px;
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-8));
+  height: fit-content;
+  max-height: calc(100vh - var(--header-height) - var(--space-12));
+  transform: translateX(100%);
+}
+
+.desktop-drawer.drawer-open {
+  transform: translateX(0);
+}
+
+/* 移动端底部抽屉 */
+.mobile-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 70vh;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  transform: translateY(100%);
+}
+
+.mobile-drawer.drawer-open {
+  transform: translateY(0);
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.drawer-content {
+  flex: 1;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.event-card {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+  border-left: 3px solid;
+}
+
+.event-card.event-task {
+  border-left-color: var(--ai-main);
+  background: var(--ai-bg);
+}
+
+.event-card.event-schedule {
+  border-left-color: var(--warning);
+  background: var(--warning-bg);
+}
+
+.event-time {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+  margin-bottom: var(--space-1);
+}
+
+.event-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* 移动端浮动操作按钮 */
+.mobile-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: var(--z-fixed);
+}
+
 /* 日视图 */
 .day-view {
-  padding: var(--space-4);
+  padding: var(--space-5);
 }
 
 .day-header {
@@ -673,8 +977,8 @@ watch(selectedPlanId, (newPlanId) => {
 
 .day-content {
   display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: var(--space-3);
+  grid-template-columns: 100px 1fr;
+  gap: var(--space-4);
 }
 
 .time-column {
@@ -682,19 +986,24 @@ watch(selectedPlanId, (newPlanId) => {
 }
 
 .time-slot {
-  height: 60px;
+  height: 80px;
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  padding: var(--space-1) var(--space-2);
-  font-size: 12px;
+  padding: var(--space-2) var(--space-3);
+  font-size: 14px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-subtle);
+  font-weight: 500;
 }
 
 .events-column {
   position: relative;
-  min-height: 1440px; /* 24小时 × 60分钟 */
+  min-height: 1680px; /* 24小时 × 70分钟，与周视图高度比例协调 */
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  padding: var(--space-2);
 }
 
 .day-event {
@@ -717,28 +1026,170 @@ watch(selectedPlanId, (newPlanId) => {
   text-overflow: ellipsis;
 }
 
+/* 移动端优化 */
 @media (max-width: 768px) {
-  .calendar-header {
-    flex-direction: column;
-    gap: var(--space-3);
+  .calendar-container {
+    padding: 0 var(--space-3);
+    height: calc(100vh - var(--header-height));
+    width: 100vw;
+    max-width: none;
   }
-
-  .period-display h3 {
+  
+  .sticky-toolbar {
+    position: sticky;
+    top: var(--header-height);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-3);
+    margin: var(--space-3) 0;
+  }
+  
+  .toolbar-section {
+    width: 100%;
+    justify-content: center;
+    gap: var(--space-2);
+  }
+  
+  .nav-controls {
+    order: -1;
+  }
+  
+  .view-toggle {
+    width: 100%;
+    padding: var(--space-2);
+  }
+  
+  .view-btn {
+    flex: 1;
+    text-align: center;
+    padding: var(--space-2);
     font-size: 16px;
   }
 
+  .main-content {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  
+  .calendar-view {
+    padding: var(--space-3);
+    min-height: 60vh; /* 移动端保持足够高度 */
+  }
+  
+  .drawer-header {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .period-display h3 {
+    font-size: 18px;
+  }
+
   .calendar-day {
-    min-height: 60px;
-    padding: var(--space-1);
+    min-height: 100px; /* 提升移动端单元格高度 */
+    padding: var(--space-2);
+    aspect-ratio: 1/1;
+  }
+  
+  .day-number {
+    font-size: 16px;
   }
 
   .day-content {
-    grid-template-columns: 60px 1fr;
+    grid-template-columns: 70px 1fr;
+    gap: var(--space-3);
   }
 
   .time-slot {
-    font-size: 10px;
-    height: 40px;
+    font-size: 12px;
+    height: 60px;
+    padding: var(--space-1) var(--space-2);
   }
+  
+  .events-column {
+    min-height: 1560px; /* 调整移动端日视图高度 */
+    padding: var(--space-1);
+  }
+  
+  .week-content {
+    min-height: 500px; /* 统一移动端周视图高度 */
+  }
+  
+  /* 移动端隐藏桌面计划选择器 */
+  .desktop-plan-selector {
+    display: none !important;
+  }
+  
+  .mobile-calendar-actions {
+    display: flex !important;
+    gap: var(--space-2);
+    align-items: center;
+  }
+  
+  .plan-select-btn {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+  }
+  
+  .today-btn {
+    min-width: 70px;
+    font-size: 14px;
+  }
+}
+
+/* 桌面端优化 */
+@media (min-width: 769px) {
+  .calendar-container {
+    padding: 0 var(--space-6);
+    width: 100%;
+    max-width: none;
+  }
+  
+  .sticky-toolbar {
+    padding: var(--space-5);
+    margin: var(--space-5) 0;
+  }
+  
+  .calendar-view {
+    padding: var(--space-6);
+    min-height: 75vh; /* 桌面端更大的视觉占位 */
+  }
+  
+  .month-view, .week-view, .day-view {
+    padding: var(--space-6);
+  }
+  
+  .calendar-day {
+    min-height: 140px; /* 桌面端更大单元格 */
+    aspect-ratio: 1/1;
+  }
+  
+  .week-content {
+    min-height: 650px; /* 统一桌面端高度 */
+  }
+  
+  .events-column {
+    min-height: 1800px; /* 桌面端日视图高度 */
+  }
+  
+  .mobile-calendar-actions {
+    display: none !important;
+  }
+  
+  .desktop-plan-selector {
+    display: block !important;
+  }
+  
+  .view-btn {
+    padding: var(--space-3) var(--space-4);
+    font-size: 15px;
+  }
+}
+
+/* 移动端浮动操作按钮 */
+.mobile-fab {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: var(--z-fixed);
 }
 </style>

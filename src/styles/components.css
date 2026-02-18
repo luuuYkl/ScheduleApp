@@ -469,3 +469,101 @@ textarea:read-only {
 .bg-success { background: var(--success-bg); }
 .bg-warning { background: var(--warning-bg); }
 .bg-error { background: var(--error-bg); }
+
+/* ========================================
+   🎯 响应式行为优先级系统
+   ======================================== */
+
+/* Essential Priority - 必须保留 */
+.priority-essential {
+  /* 操作按钮、当前状态、下一步建议 */
+  order: -1;
+  z-index: 10;
+}
+
+/* High Priority - 高优先级 */
+.priority-high {
+  /* 核心信息、主要功能 */
+  order: 0;
+  z-index: 5;
+}
+
+/* Medium Priority - 中优先级 */
+.priority-medium {
+  /* 辅助信息、次要功能 */
+  order: 1;
+  z-index: 2;
+}
+
+/* Low Priority - 可折叠 */
+.priority-low {
+  /* 解释性文案、历史明细、次级筛选器 */
+  order: 2;
+  z-index: 1;
+}
+
+/* 移动端优先级调整 */
+@media (max-width: 768px) {
+  .priority-low {
+    display: none !important;
+  }
+  
+  .priority-medium {
+    font-size: 0.875rem;
+    padding: var(--space-2);
+  }
+  
+  /* 确保核心操作可见 */
+  .priority-essential {
+    position: sticky;
+    top: 0;
+    background: var(--bg-main);
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-main);
+    z-index: var(--z-sticky);
+  }
+}
+
+/* 极小屏优化 */
+@media (max-width: 480px) {
+  .priority-medium {
+    display: none !important;
+  }
+  
+  .priority-high {
+    font-size: 1rem;
+    padding: var(--space-3);
+  }
+  
+  /* 只保留最核心功能 */
+  .mobile-minimal {
+    display: flex !important;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+/* 平板优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tablet-expand {
+    display: block !important;
+  }
+  
+  .priority-medium {
+    display: block !important;
+  }
+}
+
+/* 桌面优化 */
+@media (min-width: 1025px) {
+  .desktop-full {
+    display: block !important;
+  }
+  
+  /* 双列布局支持 */
+  .desktop-sidebar {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-4));
+    align-self: start;
+  }
+}

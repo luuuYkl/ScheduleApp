@@ -1,177 +1,227 @@
 <template>
-  <div class="page task-detail-page">
-    <div class="detail-container">
+  <PageScaffold
+    :title="pageTitle"
+    :subtitle="pageSubtitle"
+    show-back-button
+    @back="back"
+    class="layer-context"
+  >
+    <template #actions>
+      <div class="desktop-actions priority-medium">
+        <Button variant="outline" @click="editTask">
+          ✏️ 编辑
+        </Button>
+        <Button variant="primary" @click="duplicateTask">
+          📋 复制
+        </Button>
+      </div>
+      <div class="mobile-actions priority-essential">
+        <Button 
+          :variant="isTaskDone ? 'secondary' : 'primary'" 
+          size="sm"
+          :loading="toggling"
+          @click="toggleTaskStatus"
+          class="mobile-complete-btn"
+        >
+          {{ isTaskDone ? '撤销' : '完成' }}
+        </Button>
+      </div>
+    </template>
+    
+    <div class="task-detail-container layout-template-l">
       <template v-if="task">
-        <!-- 右上角操作菜单 -->
-        <div class="actions-menu">
-          <button class="action-btn" @click="back" title="返回">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M19 12H5m0 0l7 7m-7-7l7-7"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-          <button class="action-btn" title="编辑">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-              <path
-                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <!-- ========== 第一段：任务头部区 ========== -->
-        <section class="task-header">
-          <!-- 标题 + 状态 -->
-          <div class="title-row">
-            <span class="status-dot" :class="task.status"></span>
-            <h1 class="task-title">{{ task.title }}</h1>
-          </div>
-          <div class="status-label">
-            <span class="label" :class="task.status">{{ statusText }}</span>
-          </div>
-
-          <!-- 核心属性条 -->
-          <div class="task-meta">
-            <span class="meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <rect
-                  x="3"
-                  y="4"
-                  width="18"
-                  height="18"
-                  rx="2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <line
-                  x1="3"
-                  y1="10"
-                  x2="21"
-                  y2="10"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-              </svg>
-              {{ formatDateReadable(task.task_date) }}
-            </span>
-            <span class="meta-item" v-if="task.start_time && task.end_time">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <path
-                  d="M12 6v6l4 2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
-              {{ task.start_time }} – {{ task.end_time }}
-            </span>
-            <span class="meta-item" v-if="durationMinutes > 0">
-              ⏱ {{ durationMinutes }}分钟
-            </span>
-            <span
-              class="meta-item priority"
-              v-if="task.repeat_type && task.repeat_type !== 'none'"
-            >
-              🔁 {{ repeatTypeLabel }}
-            </span>
-          </div>
-        </section>
-
-        <div class="divider"></div>
-
-        <!-- ========== 第二段：任务内容区 ========== -->
-        <section class="task-content">
-          <!-- 进度条 -->
-          <div class="progress-section">
-            <TaskProgress
-              :value="task.status === 'done' ? 100 : 0"
-              label="该任务进度"
-            />
-            <div v-if="planProgress !== null" class="plan-progress">
-              <TaskProgress :value="planProgress" label="所属计划整体进度" />
-              <small class="hint">基于该计划下任务的完成比例计算</small>
+        <!-- Context Layer: 强化的计划贡献展示 -->
+        <Card class="plan-contribution-card layer-context priority-high">
+          <div class="contribution-header">
+            <h2>🎯 对计划的贡献</h2>
+            <div class="contribution-score" :class="getContributionClass(contributionScore)">
+              <span class="score-value">{{ contributionScore }}</span>
+              <span class="score-label">贡献度</span>
             </div>
           </div>
-
-          <!-- 快速操作：标记完成 -->
-          <div class="quick-action">
-            <TaskCheckBox v-model="isTaskDone" :disabled="toggling">
-              {{ isTaskDone ? "标记为未完成" : "标记为已完成" }}
-            </TaskCheckBox>
-          </div>
-
-          <!-- 任务描述 -->
-          <div class="task-description" v-if="task.note">
-            <h3 class="section-heading">📝 备注</h3>
-            <p class="description-text">{{ task.note }}</p>
-          </div>
-        </section>
-
-        <div class="divider"></div>
-
-        <!-- ========== 第三段：AI 分析区 ========== -->
-        <section class="ai-section">
-          <button class="ai-toggle" @click="aiExpanded = !aiExpanded">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-              />
-            </svg>
-            <span class="ai-title">🤖 AI 分析与建议</span>
-            <svg
-              class="chevron"
-              :class="{ expanded: aiExpanded }"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M6 9l6 6 6-6"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-
-          <div class="ai-panel" v-show="aiExpanded">
-            <div class="ai-content">
-              <p class="ai-insight">
-                📊 <strong>任务分析：</strong>{{ aiAnalysis }}
-              </p>
-
-              <div class="ai-suggestions">
-                <p class="suggestion-title">✨ <strong>建议：</strong></p>
-                <ul class="suggestion-list">
-                  <li v-for="(suggestion, idx) in aiSuggestions" :key="idx">
-                    {{ suggestion }}
-                  </li>
-                </ul>
+          
+          <div class="contribution-content">
+            <div class="plan-info">
+              <div class="plan-avatar">{{ planEmoji }}</div>
+              <div class="plan-details">
+                <h3 class="plan-title">{{ planTitle }}</h3>
+                <p class="plan-period">{{ planPeriod }}</p>
+              </div>
+            </div>
+            
+            <div class="contribution-stats">
+              <div class="stat-item">
+                <span class="stat-label">计划进度</span>
+                <div class="stat-progress">
+                  <div class="progress-bar">
+                    <div 
+                      class="progress-fill" 
+                      :style="{ width: (planProgress || 0) + '%' }"
+                      :class="getProgressClass(planProgress || 0)">
+                    </div>
+                  </div>
+                  <span class="progress-text">{{ planProgress }}%</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">任务权重</span>
+                <span class="stat-value">{{ taskWeight }}%</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">关键节点</span>
+                <span class="stat-value" :class="milestoneClass">{{ milestoneText }}</span>
               </div>
             </div>
           </div>
-        </section>
+        </Card>
+
+        <!-- Primary Layer: 任务核心信息 -->
+        <Card class="task-core-card layer-primary priority-high">
+          <div class="task-header">
+            <!-- 标题 + 状态 -->
+            <div class="title-row">
+              <span class="status-dot" :class="task.status"></span>
+              <h1 class="task-title">{{ task.title }}</h1>
+            </div>
+            <div class="status-label">
+              <span class="label" :class="task.status">{{ statusText }}</span>
+            </div>
+
+            <!-- 核心属性条 -->
+            <div class="task-meta">
+              <span class="meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <rect
+                    x="3"
+                    y="4"
+                    width="18"
+                    height="18"
+                    rx="2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="3"
+                    y1="10"
+                    x2="21"
+                    y2="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                </svg>
+                {{ formatDateReadable(task.task_date) }}
+              </span>
+              <span class="meta-item" v-if="task.start_time && task.end_time">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M12 6v6l4 2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                {{ task.start_time }} – {{ task.end_time }}
+              </span>
+              <span class="meta-item" v-if="durationMinutes > 0">
+                ⏱ {{ durationMinutes }}分钟
+              </span>
+              <span
+                class="meta-item priority"
+                v-if="task.repeat_type && task.repeat_type !== 'none'"
+              >
+                🔁 {{ repeatTypeLabel }}
+              </span>
+            </div>
+          </div>
+        </Card>
+
+        <!-- Primary Layer: 任务内容区 -->
+        <div class="task-content-section layer-primary priority-high">
+          <!-- 双进度展示 -->
+          <Card class="progress-card">
+            <h3>📊 进度追踪</h3>
+            <div class="dual-progress">
+              <div class="progress-item">
+                <TaskProgress
+                  :value="task.status === 'done' ? 100 : 0"
+                  label="任务完成度"
+                />
+              </div>
+              <div v-if="planProgress !== null" class="progress-item">
+                <TaskProgress :value="planProgress" label="计划整体进度" />
+                <small class="progress-hint">基于该计划下所有任务的完成比例计算</small>
+              </div>
+            </div>
+          </Card>
+
+          <!-- 主要操作按钮 -->
+          <Card class="actions-card">
+            <div class="main-actions">
+              <Button 
+                :variant="isTaskDone ? 'secondary' : 'primary'" 
+                size="lg"
+                :loading="toggling"
+                @click="toggleTaskStatus"
+                class="complete-btn desktop-complete priority-essential"
+              >
+                {{ isTaskDone ? '撤销完成' : '✅ 标记完成' }}
+              </Button>
+              <div class="action-buttons">
+                <Button variant="outline" @click="rescheduleTask" class="priority-medium">
+                  📅 改期
+                </Button>
+                <Button variant="outline" @click="setReminder" class="priority-medium">
+                  ⏰ 提醒
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <!-- 任务详情 -->
+          <Card class="details-card" v-if="task.note">
+            <h3>📝 任务详情</h3>
+            <div class="note-content">
+              <p class="note-text">{{ task.note }}</p>
+            </div>
+          </Card>
+        </div>
+
+        <!-- Secondary Layer: AI 分析区 - 移动端默认折叠 -->
+        <Card 
+          class="ai-analysis-card layer-secondary priority-medium"
+          :class="{ 'mobile-collapsed': isMobile && !showAiPanel }"
+        >
+          <div class="ai-header" @click="toggleAiPanel">
+            <h3>🤖 AI 智能分析</h3>
+            <button 
+              v-if="isMobile" 
+              class="expand-toggle"
+              type="button"
+            >
+              {{ showAiPanel ? '▲' : '▼' }}
+            </button>
+          </div>
+          <div v-show="!isMobile || showAiPanel" class="ai-content">
+            <p class="ai-insight">
+              📊 <strong>任务分析：</strong>{{ aiAnalysis }}
+            </p>
+            <div class="ai-suggestions">
+              <p class="suggestion-title">✨ <strong>优化建议：</strong></p>
+              <ul class="suggestion-list">
+                <li v-for="(suggestion, idx) in aiSuggestions" :key="idx">
+                  {{ suggestion }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Card>
       </template>
 
       <div v-else class="loading-state">
@@ -179,67 +229,177 @@
         <p>正在加载任务详情…</p>
       </div>
     </div>
-  </div>
+  </PageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTaskStore } from "@/store/tasks";
-import { useLogStore } from "@/store/log"; // 新增
-import { useUserStore } from "@/store/user"; // 新增
-import { usePlanStore } from "@/store/plans"; // 新增
+import { useLogStore } from "@/store/log";
+import { useUserStore } from "@/store/user";
+import { usePlanStore } from "@/store/plans";
+import PageScaffold from "@/components/common/PageScaffold.vue";
+import Button from "@/components/common/Button.vue";
+import Card from "@/components/common/Card.vue";
 import TaskProgress from "@/components/task/TaskProgress.vue";
-import TaskCheckBox from "@/components/task/TaskCheckBox.vue";
 
 const route = useRoute();
 const router = useRouter();
 const taskStore = useTaskStore();
-const logStore = useLogStore(); // 新增
-const userStore = useUserStore(); // 新增
-const planStore = usePlanStore(); // 新增
+const logStore = useLogStore();
+const userStore = useUserStore();
+const planStore = usePlanStore();
 
 const id = Number(route.params.id);
 const toggling = ref(false);
-const aiExpanded = ref(false);
+const showAiPanel = ref(false);
+const isMobile = ref(window.innerWidth < 768);
 
 // 当前任务
 const task = computed(() => taskStore.tasks.find((t) => t.id === id));
 
-// 使用计算属性处理任务完成状态
-const isTaskDone = computed({
-  get: () => {
-    const isDone = task.value?.status === "done";
-    console.log("[Debug] isTaskDone.get:", isDone);
-    return isDone;
-  },
-  set: async (newValue: boolean) => {
-    console.log("[Debug] isTaskDone.set 开始, newValue:", newValue);
-    if (!task.value) {
-      console.error("[Error] task.value 为空");
-      return;
-    }
-    toggling.value = true;
-    try {
-      await taskStore.toggleTaskStatus(task.value.id);
-      // 勾选或取消都应更新当天日志
-      const userId = userStore.user?.id;
-      if (!userId) {
-        console.error("[Error] 用户未登录或ID无效");
-        return;
-      }
-      // 只同步同计划下所有任务（如需全量可改为 taskStore.tasks）
-      const planTasks = taskStore.tasks.filter(
-        (t) => t.plan_id === task.value!.plan_id,
-      );
-      await logStore.generateTodayLog(userId, planTasks);
-    } catch (err) {
-      console.error("[Error] 更新任务状态或生成日志失败:", err);
-    } finally {
-      toggling.value = false;
-    }
-  },
+function toggleAiPanel() {
+  if (isMobile.value) {
+    showAiPanel.value = !showAiPanel.value;
+  }
+}
+
+// 页面标题数据
+const pageTitle = computed(() => {
+  return task.value ? task.value.title : '任务详情';
 });
+
+const pageSubtitle = computed(() => {
+  const plan = planStore.plans.find((p: any) => p.id === task.value?.plan_id);
+  return plan ? `来自计划：${plan.title}` : '查看任务详细信息';
+});
+
+// 计划相关信息
+const planInfo = computed(() => {
+  return planStore.plans.find((p: any) => p.id === task.value?.plan_id);
+});
+
+const planTitle = computed(() => {
+  return planInfo.value?.title || '未关联计划';
+});
+
+const planPeriod = computed(() => {
+  if (!planInfo.value) return '';
+  return `${formatDate(planInfo.value.start_date)} - ${formatDate(planInfo.value.end_date)}`;
+});
+
+const planEmoji = computed(() => {
+  const emojis = ['🎯', '🚀', '📚', '💪', '💰', '🎨'];
+  const index = planInfo.value?.id ? planInfo.value.id % emojis.length : 0;
+  return emojis[index];
+});
+
+// 贡献度相关
+const contributionScore = computed(() => {
+  if (!task.value || !planInfo.value) return 0;
+  
+  // 基于任务权重和计划进度计算贡献度
+  const weight = taskWeight.value;
+  const progress = planProgress.value || 0;
+  const progressFactor = progress / 100;
+  return Math.round(weight * progressFactor * 100);
+});
+
+const taskWeight = computed(() => {
+  // 简化计算：根据任务日期在计划周期中的位置
+  if (!task.value || !planInfo.value) return 0;
+  
+  const taskDate = new Date(task.value.task_date);
+  const startDate = new Date(planInfo.value.start_date);
+  const endDate = new Date(planInfo.value.end_date);
+  
+  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const elapsedDays = Math.ceil((taskDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // 关键节点权重更高
+  if (elapsedDays <= 3 || elapsedDays >= totalDays - 3) {
+    return 25;
+  } else if (elapsedDays <= 7 || elapsedDays >= totalDays - 7) {
+    return 15;
+  } else {
+    return 10;
+  }
+});
+
+const milestoneText = computed(() => {
+  if (taskWeight.value >= 25) return '关键节点';
+  if (taskWeight.value >= 15) return '重要任务';
+  return '普通任务';
+});
+
+const milestoneClass = computed(() => {
+  if (taskWeight.value >= 25) return 'critical';
+  if (taskWeight.value >= 15) return 'important';
+  return 'normal';
+});
+
+// 任务完成状态
+const isTaskDone = computed(() => {
+  return task.value?.status === "done";
+});
+
+// 方法函数
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('zh-CN', {
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+function getContributionClass(score: number): string {
+  if (score >= 80) return 'high';
+  if (score >= 50) return 'medium';
+  return 'low';
+}
+
+function getProgressClass(progress: number): string {
+  if (progress >= 80) return 'good';
+  if (progress >= 60) return 'warning';
+  return 'danger';
+}
+
+// 操作函数
+async function toggleTaskStatus() {
+  if (!task.value) return;
+  
+  toggling.value = true;
+  try {
+    await taskStore.toggleTaskStatus(task.value.id);
+    const userId = userStore.user?.id;
+    if (userId) {
+      const planTasks = taskStore.tasks.filter(t => t.plan_id === task.value!.plan_id);
+      await logStore.generateTodayLog(userId, planTasks);
+    }
+  } catch (err) {
+    console.error("更新任务状态失败:", err);
+  } finally {
+    toggling.value = false;
+  }
+}
+
+function editTask() {
+  if (task.value) {
+    router.push(`/task/edit/${task.value.id}`);
+  }
+}
+
+function duplicateTask() {
+  console.log('复制任务功能待实现');
+}
+
+function rescheduleTask() {
+  console.log('改期功能待实现');
+}
+
+function setReminder() {
+  console.log('设置提醒功能待实现');
+}
 
 // 辅助：日期格式化、时长、重复类型、状态文案
 function formatDateReadable(dateStr: string): string {
@@ -346,239 +506,380 @@ onMounted(async () => {
 function back() {
   router.back();
 }
+
+// 生命周期
+onMounted(async () => {
+  if (!task.value) {
+    await taskStore.loadTasks();
+  }
+  await planStore.loadPlans();
+});
 </script>
 
 <style scoped>
-.task-detail-page {
-  min-height: 100vh;
-  background: var(--bg-main);
-  padding: 1rem;
-  padding-top: calc(var(--header-height, 64px) + 1rem);
-  padding-bottom: calc(var(--footer-height, 64px) + 1rem);
-}
-
-.detail-container {
-  max-width: 720px;
+.task-detail-container {
+  max-width: 800px;
   margin: 0 auto;
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-/* 右上角操作菜单 */
-.actions-menu {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  display: flex;
-  gap: 0.5rem;
+/* 响应式布局 */
+.task-detail-container {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.action-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--border-main);
-  background: var(--bg-card);
-  color: var(--text-secondary);
+/* 桌面端双列布局 */
+@media (min-width: 1025px) {
+  .task-detail-container {
+    grid-template-columns: 2fr 1fr;
+  }
+  
+  .plan-contribution-card {
+    /* 左侧：计划贡献 */
+    grid-column: 1 / -1;
+  }
+  
+  .task-core-card {
+    /* 左侧：任务核心 */
+  }
+  
+  .task-content-section {
+    /* 左侧：任务内容 */
+  }
+  
+  .ai-analysis-card {
+    /* 右侧：AI分析 */
+    align-self: start;
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-4));
+  }
+}
+
+/* 计划贡献卡片 */
+.plan-contribution-card {
+  background: linear-gradient(135deg, var(--ai-bg) 0%, var(--bg-card) 100%);
+  border-left: 4px solid var(--ai-main);
+  padding: var(--space-5);
+}
+
+.contribution-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
+  margin-bottom: var(--space-4);
 }
 
-.action-btn:hover {
-  background: var(--bg-main);
-  color: var(--text-main);
-}
-
-/* ========== 第一段：任务头部区 ========== */
-.task-header {
-  margin-bottom: 2rem;
-}
-
-.title-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-top: 8px;
-  flex-shrink: 0;
-}
-.status-dot.pending {
-  background: var(--color-warning);
-}
-.status-dot.done {
-  background: var(--color-success);
-}
-.status-dot.missed {
-  background: var(--color-danger);
-}
-
-.task-title {
-  font-size: 24px;
+.contribution-header h2 {
+  margin: 0;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-main);
-  line-height: 1.3;
+}
+
+.contribution-score {
+  text-align: right;
+}
+
+.contribution-score.high {
+  color: var(--success);
+}
+
+.contribution-score.medium {
+  color: var(--warning);
+}
+
+.contribution-score.low {
+  color: var(--text-secondary);
+}
+
+.score-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.contribution-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.plan-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+}
+
+.plan-avatar {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.plan-details {
+  flex: 1;
+}
+
+.plan-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.plan-period {
+  font-size: 14px;
+  color: var(--text-secondary);
   margin: 0;
 }
 
-.status-label {
-  margin-bottom: 16px;
+.contribution-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
 }
 
-.label {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-weight: 500;
-}
-.label.done {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--color-success);
-}
-.label.pending {
-  background: rgba(234, 179, 8, 0.12);
-  color: var(--color-warning);
-}
-.label.missed {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger);
-}
-
-/* 核心属性条 */
-.task-meta {
+.stat-item {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+}
+
+.stat-label {
   font-size: 13px;
   color: var(--text-secondary);
 }
 
-.meta-item {
+.stat-progress {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
-.meta-item svg {
-  opacity: 0.6;
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-card);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-.meta-item.priority {
-  color: var(--color-primary);
-  font-weight: 500;
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
 }
 
-/* 分割线 */
-.divider {
-  height: 1px;
-  background: var(--border-subtle);
-  margin: 2rem 0;
+.progress-fill.good {
+  background: var(--success);
 }
 
-/* ========== 第二段：任务内容区 ========== */
-.task-content {
-  margin-bottom: 2rem;
+.progress-fill.warning {
+  background: var(--warning);
 }
 
-.progress-section {
-  margin-bottom: 1.5rem;
+.progress-fill.danger {
+  background: var(--error);
 }
 
-.plan-progress {
-  margin-top: 1rem;
-}
-
-.hint {
-  display: block;
-  margin-top: 0.5rem;
+.progress-text {
   font-size: 12px;
-  color: var(--text-muted);
-}
-
-.quick-action {
-  margin: 1.5rem 0;
-}
-
-.section-heading {
-  font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
-  margin: 0 0 12px 0;
+  font-variant-numeric: tabular-nums;
 }
 
-.task-description {
-  margin-top: 1.5rem;
-}
-
-.description-text {
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  max-width: 65ch;
-  margin: 0;
-}
-
-/* ========== 第三段：AI 分析区 ========== */
-.ai-section {
-  margin-top: 2rem;
-}
-
-.ai-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: transparent;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
+.stat-value {
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text-main);
 }
 
-.ai-toggle:hover {
+.stat-value.critical {
+  color: var(--error);
+}
+
+.stat-value.important {
+  color: var(--warning);
+}
+
+.stat-value.normal {
+  color: var(--text-secondary);
+}
+
+/* 任务核心卡片 */
+.task-core-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.task-header {
+  margin-bottom: 0;
+}
+
+/* 任务内容区 */
+.task-content-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.progress-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.progress-card h3 {
+  margin: 0 0 var(--space-4) 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.dual-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progress-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+.actions-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.main-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.complete-btn {
+  width: 100%;
+  padding: var(--space-4);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.details-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.details-card h3 {
+  margin: 0 0 var(--space-3) 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.note-content {
+  padding: var(--space-4);
   background: var(--bg-main);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--ai-main);
 }
 
-.ai-title {
-  flex: 1;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 500;
+.note-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-main);
 }
 
-.chevron {
-  transition: transform 0.2s;
+/* AI 分析卡片 */
+.ai-analysis-card {
+  background: linear-gradient(135deg, var(--ai-bg) 0%, var(--bg-card) 100%);
+  border-left: 4px solid var(--ai-main);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  transition: all var(--dur-normal) var(--ease-standard);
 }
 
-.chevron.expanded {
-  transform: rotate(180deg);
+.ai-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
 }
 
-.ai-panel {
-  margin-top: 16px;
-  padding: 16px;
-  border-left: 3px solid var(--ai-main, #6366f1);
-  background: var(--ai-bg, rgba(99, 102, 241, 0.05));
-  border-radius: 0 8px 8px 0;
+.expand-toggle {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: all var(--dur-fast) var(--ease-standard);
+}
+
+.expand-toggle:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+}
+
+.mobile-collapsed .ai-header {
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-3);
+}
+
+.ai-header {
+  margin-bottom: var(--space-4);
+}
+
+.ai-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 .ai-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .ai-insight {
@@ -586,6 +887,9 @@ function back() {
   line-height: 1.6;
   color: var(--text-main);
   margin: 0;
+  padding: var(--space-4);
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
 }
 
 .ai-suggestions {
@@ -593,7 +897,7 @@ function back() {
 }
 
 .suggestion-title {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--space-2) 0;
   color: var(--text-main);
 }
 
@@ -603,21 +907,16 @@ function back() {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .suggestion-list li {
-  padding-left: 20px;
-  position: relative;
+  padding: var(--space-3) var(--space-4);
+  background: var(--ai-bg);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
+  border-left: 3px solid var(--ai-main);
   line-height: 1.5;
-}
-
-.suggestion-list li::before {
-  content: "•";
-  position: absolute;
-  left: 8px;
-  color: var(--ai-main, #6366f1);
 }
 
 /* 加载状态 */
@@ -627,7 +926,7 @@ function back() {
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
-  gap: 1rem;
+  gap: var(--space-3);
   color: var(--text-secondary);
 }
 
@@ -635,7 +934,7 @@ function back() {
   width: 40px;
   height: 40px;
   border: 3px solid var(--border-main);
-  border-top-color: var(--color-primary);
+  border-top-color: var(--ai-main);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -646,24 +945,83 @@ function back() {
   }
 }
 
-/* 响应式 */
-@media (max-width: 640px) {
-  .detail-container {
-    padding: 1.5rem;
-    border-radius: 0;
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .task-detail-container {
+    padding: var(--space-4);
   }
-
-  .actions-menu {
-    top: 1rem;
-    right: 1rem;
+  
+  .contribution-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
   }
-
-  .task-title {
-    font-size: 20px;
+  
+  .contribution-score {
+    text-align: left;
   }
+  
+  .plan-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  
+  .contribution-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .action-buttons Button {
+    width: 100%;
+  }
+  
+  /* 移动端优先级调整 */
+  .desktop-actions {
+    display: none !important;
+  }
+  
+  .mobile-actions {
+    display: flex !important;
+  }
+  
+  .mobile-complete-btn {
+    min-width: 80px;
+    padding: var(--space-2) var(--space-3);
+  }
+  
+  /* 桌面端完成按钮在移动端隐藏 */
+  .desktop-complete {
+    display: none !important;
+  }
+  
+  /* AI面板默认折叠 */
+  .ai-analysis-card {
+    order: 3;
+  }
+}
 
-  .task-meta {
-    gap: 12px;
+/* 桌面端优化 */
+@media (min-width: 769px) {
+  .mobile-actions {
+    display: none !important;
+  }
+  
+  .desktop-actions {
+    display: flex !important;
+    gap: var(--space-2);
+  }
+  
+  /* 移动端完成按钮在桌面端隐藏 */
+  .mobile-complete-btn {
+    display: none !important;
+  }
+  
+  .desktop-complete {
+    display: block !important;
   }
 }
 </style>

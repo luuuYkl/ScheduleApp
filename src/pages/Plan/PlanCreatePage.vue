@@ -1,129 +1,238 @@
 <template>
-  <div
-    class="page plan-create"
-    style="
-      max-width: 720px;
-      margin: calc(var(--header-height, 64px) + 1.5rem) auto 2rem auto;
-    "
+  <PageScaffold
+    :title="editId ? '编辑计划' : '创建新计划'"
+    :subtitle="editId ? '修改现有计划配置' : '规划你的下一个重要目标'"
+    show-back-button
+    @back="goBack"
   >
-    <h1>{{ editId ? "编辑计划" : "创建新计划" }}</h1>
+    <template #actions>
+      <Button 
+        variant="outline" 
+        @click="resetForm"
+        :disabled="submitting"
+      >
+        重置
+      </Button>
+    </template>
+    
+    <!-- 双栏布局 -->
+    <div class="create-layout">
+      <!-- 左侧：表单区域 -->
+      <div class="form-section">
+        <Card class="form-card">
+          <form class="plan-form" @submit.prevent="createPlan" novalidate>
+            <div class="form-group">
+              <label class="form-label">
+                📝 计划标题 *
+                <input
+                  v-model.trim="form.title"
+                  type="text"
+                  class="form-input"
+                  placeholder="例如：准备期末考试、完成项目开发等"
+                  required
+                  @input="clearAISuggestions"
+                />
+                <small class="error-hint" v-if="errors.title">{{ errors.title }}</small>
+              </label>
+            </div>
 
-    <!-- 表单内容 -->
-    <form class="form" @submit.prevent="createPlan" novalidate>
-      <label>
-        标题 *
-        <input
-          v-model.trim="form.title"
-          type="text"
-          placeholder="计划标题"
-          required
-          @input="clearAISuggestions"
-        />
-        <small class="error" v-if="errors.title">{{ errors.title }}</small>
-      </label>
+            <div class="form-group">
+              <label class="form-label">
+                📖 详细描述
+                <textarea
+                  v-model="form.description"
+                  class="form-textarea"
+                  placeholder="详细描述你的计划目标、背景和期望成果..."
+                  rows="4"
+                  @input="clearAISuggestions"
+                ></textarea>
+              </label>
+            </div>
 
-      <label>
-        描述
-        <textarea
-          v-model="form.description"
-          placeholder="计划描述（可选）"
-          rows="3"
-          @input="clearAISuggestions"
-        ></textarea>
-      </label>
-
-      <div class="row">
-        <label>
-          开始日期 *
-          <input
-            v-model="form.start_date"
-            type="date"
-            required
-            @change="clearAISuggestions"
-          />
-          <small class="error" v-if="errors.start_date">{{
-            errors.start_date
-          }}</small>
-        </label>
-        <label>
-          结束日期 *
-          <input
-            v-model="form.end_date"
-            type="date"
-            required
-            @change="clearAISuggestions"
-          />
-          <small class="error" v-if="errors.end_date">{{
-            errors.end_date
-          }}</small>
-        </label>
-      </div>
-
-      <!-- AI 优化按钮 -->
-      <div class="ai-optimize-section">
-        <button
-          type="button"
-          class="btn-ai-optimize"
-          @click="getAISuggestions"
-          :disabled="aiLoading || !canOptimize"
-        >
-          <span class="ai-icon">🤖</span>
-          {{ aiLoading ? "AI 分析中..." : "AI 智能优化" }}
-        </button>
-        <small class="ai-hint" v-if="!canOptimize">
-          请先填写标题和日期后再使用 AI 优化
-        </small>
-      </div>
-
-      <!-- AI 建议展示 -->
-      <AISuggestions
-        :loading="aiLoading"
-        :response="aiResponse"
-        @close="clearAISuggestions"
-        @add-task="addRecommendedTask"
-        @apply-optimization="applyOptimization"
-      />
-
-      <!-- 推荐任务列表（用户已添加） -->
-      <div v-if="pendingTasks.length > 0" class="pending-tasks">
-        <h3>📝 待创建任务（{{ pendingTasks.length }}）</h3>
-        <p class="hint">点击下方"保存计划"按钮后，这些任务将自动创建</p>
-        <ul>
-          <li v-for="(task, index) in pendingTasks" :key="index">
-            <div class="task-info">
-              <div class="task-title">{{ task.title }}</div>
-              <div class="task-meta">
-                <span v-if="task.task_date">📅 {{ task.task_date }}</span>
-                <span v-if="task.start_time"
-                  >⏰ {{ task.start_time
-                  }}<span v-if="task.end_time">
-                    - {{ task.end_time }}</span
-                  ></span
-                >
-                <span v-if="task.repeat_type && task.repeat_type !== 'none'"
-                  >🔁 {{ task.repeat_type
-                  }}<span v-if="task.repeat_end_date">
-                    · 至 {{ task.repeat_end_date }}</span
-                  ></span
-                >
-                <span v-if="task.note">📝 {{ task.note }}</span>
+            <div class="date-row">
+              <div class="form-group">
+                <label class="form-label">
+                  📅 开始日期 *
+                  <input
+                    v-model="form.start_date"
+                    type="date"
+                    class="form-input"
+                    required
+                    @change="clearAISuggestions"
+                  />
+                  <small class="error-hint" v-if="errors.start_date">{{
+                    errors.start_date
+                  }}</small>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  📅 结束日期 *
+                  <input
+                    v-model="form.end_date"
+                    type="date"
+                    class="form-input"
+                    required
+                    @change="clearAISuggestions"
+                  />
+                  <small class="error-hint" v-if="errors.end_date">{{
+                    errors.end_date
+                  }}</small>
+                </label>
               </div>
             </div>
-            <button type="button" class="btn-remove" @click="removeTask(index)">
-              ✕
-            </button>
-          </li>
-        </ul>
-      </div>
 
-      <div class="ops">
-        <button class="primary" type="submit" :disabled="submitting">
-          {{ submitting ? "提交中..." : editId ? "保存修改" : "保存计划" }}
-        </button>
-        <button type="button" class="secondary" @click="goBack">返回</button>
+            <div class="form-group">
+              <label class="form-label">
+                🏷️ 标签分类
+                <div class="tag-selector">
+                  <button 
+                    v-for="tag in availableTags" 
+                    :key="tag.key"
+                    type="button"
+                    :class="['tag-option', { active: selectedTags.includes(tag.key) }]"
+                    @click="toggleTag(tag.key)"
+                  >
+                    {{ tag.icon }} {{ tag.label }}
+                  </button>
+                </div>
+              </label>
+            </div>
+
+            <!-- AI 优化按钮 -->
+            <div class="ai-optimize-section">
+              <Button
+                variant="ai"
+                size="lg"
+                @click="getAISuggestions"
+                :loading="aiLoading"
+                :disabled="!canOptimize"
+                class="ai-optimize-btn"
+              >
+                <template #icon>
+                  <span class="ai-icon">🤖</span>
+                </template>
+                {{ aiLoading ? 'AI 分析中...' : 'AI 智能优化' }}
+              </Button>
+              <p class="ai-hint" v-if="!canOptimize">
+                请先填写标题和日期后再使用 AI 优化
+              </p>
+            </div>
+
+            <div class="form-actions">
+              <button 
+                type="submit" 
+                class="btn primary"
+                :disabled="submitting"
+              >
+                {{ submitting ? '保存中...' : (editId ? '保存修改' : '创建计划') }}
+              </button>
+              <button 
+                type="button"
+                class="btn secondary"
+                @click="goBack"
+                :disabled="submitting"
+              >
+                取消
+              </button>
+            </div>
+          </form>
+        </Card>
       </div>
-    </form>
-  </div>
+      
+      <!-- 右侧：AI 建议和预览区域 -->
+      <div class="preview-section">
+        <!-- AI 建议面板 -->
+        <Card class="ai-panel" v-if="aiResponse || pendingTasks.length > 0">
+          <div class="panel-header">
+            <h3>🤖 AI 智能建议</h3>
+            <Button 
+              v-if="aiResponse" 
+              variant="ghost" 
+              size="sm" 
+              @click="clearAISuggestions"
+            >
+              清除
+            </Button>
+          </div>
+          
+          <AISuggestions
+            :loading="aiLoading"
+            :response="aiResponse"
+            @close="clearAISuggestions"
+            @add-task="addRecommendedTask"
+            @apply-optimization="applyOptimization"
+          />
+        </Card>
+        
+        <!-- 待创建任务预览 -->
+        <Card class="tasks-preview" v-if="pendingTasks.length > 0">
+          <div class="preview-header">
+            <h3>📝 待创建任务 ({{ pendingTasks.length }})</h3>
+            <span class="preview-hint">保存后将自动创建</span>
+          </div>
+          
+          <div class="tasks-list">
+            <div 
+              v-for="(task, index) in pendingTasks" 
+              :key="index" 
+              class="task-preview-item"
+            >
+              <div class="task-preview-content">
+                <div class="task-preview-title">{{ task.title }}</div>
+                <div class="task-preview-meta">
+                  <span v-if="task.task_date" class="meta-item">
+                    📅 {{ formatDate(task.task_date) }}
+                  </span>
+                  <span v-if="task.start_time" class="meta-item">
+                    ⏰ {{ task.start_time }}
+                  </span>
+                  <span v-if="task.repeat_type && task.repeat_type !== 'none'" class="meta-item">
+                    🔁 {{ getRepeatLabel(task.repeat_type) }}
+                  </span>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                @click="removeTask(index)"
+                class="remove-task-btn"
+              >
+                ✕
+              </Button>
+            </div>
+          </div>
+        </Card>
+        
+        <!-- 计划预览 -->
+        <Card class="plan-preview" v-if="form.title">
+          <div class="preview-header">
+            <h3>📋 计划预览</h3>
+          </div>
+          <div class="preview-content">
+            <div class="preview-title">{{ form.title || '未命名计划' }}</div>
+            <div class="preview-dates" v-if="form.start_date && form.end_date">
+              {{ formatDate(form.start_date) }} - {{ formatDate(form.end_date) }}
+              <span class="duration">({{ calculateDuration() }}天)</span>
+            </div>
+            <div class="preview-description" v-if="form.description">
+              {{ form.description }}
+            </div>
+            <div class="preview-tags" v-if="selectedTags.length > 0">
+              <span 
+                v-for="tag in selectedTags" 
+                :key="tag" 
+                class="preview-tag"
+              >
+                {{ getTagLabel(tag) }}
+              </span>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  </PageScaffold>
+
 </template>
 
 <script setup lang="ts">
@@ -138,7 +247,9 @@ import type {
   CreateTaskPayload,
 } from "@/services/api.types";
 import AISuggestions from "@/components/plan/AISuggestions.vue";
-import { APP_CONFIG } from "@/config";
+import PageScaffold from "@/components/common/PageScaffold.vue";
+import Button from "@/components/common/Button.vue";
+import Card from "@/components/common/Card.vue";
 
 /*
   功能增强：
@@ -171,6 +282,18 @@ const form = reactive({
   end_date: "",
 });
 
+// 标签选择
+const selectedTags = ref<string[]>([]);
+
+const availableTags = [
+  { key: 'work', label: '工作', icon: '💼' },
+  { key: 'study', label: '学习', icon: '📚' },
+  { key: 'personal', label: '个人', icon: '👤' },
+  { key: 'health', label: '健康', icon: '💪' },
+  { key: 'finance', label: '财务', icon: '💰' },
+  { key: 'creative', label: '创意', icon: '🎨' },
+];
+
 // 验证错误集合
 const errors = reactive({
   title: "",
@@ -190,6 +313,60 @@ const pendingTasks = ref<AIRecommendedTask[]>([]); // 用户选择要创建的�
 const canOptimize = computed(() => {
   return form.title.trim().length >= 2 && form.start_date && form.end_date;
 });
+
+// 辅助方法
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+function getRepeatLabel(type: string): string {
+  const labels: Record<string, string> = {
+    'daily': '每日',
+    'weekly': '每周',
+    'monthly': '每月',
+    'yearly': '每年'
+  };
+  return labels[type] || type;
+}
+
+function getTagLabel(key: string): string {
+  const tag = availableTags.find(t => t.key === key);
+  return tag ? tag.label : key;
+}
+
+function calculateDuration(): number {
+  if (!form.start_date || !form.end_date) return 0;
+  const start = new Date(form.start_date);
+  const end = new Date(form.end_date);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
+
+function toggleTag(key: string) {
+  const index = selectedTags.value.indexOf(key);
+  if (index > -1) {
+    selectedTags.value.splice(index, 1);
+  } else {
+    selectedTags.value.push(key);
+  }
+}
+
+function resetForm() {
+  form.title = '';
+  form.description = '';
+  form.start_date = '';
+  form.end_date = '';
+  selectedTags.value = [];
+  Object.keys(errors).forEach(key => {
+    (errors as any)[key] = '';
+  });
+  clearAISuggestions();
+  pendingTasks.value = [];
+}
 
 // 编辑态加载数据
 async function loadForEdit() {
@@ -413,180 +590,384 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page.plan-create {
-  padding: 1rem;
-}
-.form {
+/* 整体布局 */
+.create-layout {
   display: grid;
-  gap: 0.6rem;
-}
-.form label {
-  display: flex;
-  flex-direction: column;
-  font-weight: 600;
-}
-.row {
-  display: flex;
-  gap: 0.6rem;
-}
-.ops {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.6rem;
-}
-.primary {
-  background: var(--color-primary, #3b82f6);
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.primary:hover {
-  background: var(--color-primary-dark, #2563eb);
-}
-.primary:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
-.secondary {
-  background: #6b7280;
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.secondary:hover {
-  background: #4b5563;
-}
-.error {
-  color: #ef4444;
-  font-size: 0.85rem;
+  grid-template-columns: 1fr 380px;
+  gap: var(--space-6);
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-/* AI 优化相关样式 */
-.ai-optimize-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 1rem 0;
+/* 左侧表单区域 */
+.form-section {
+  min-width: 0;
 }
 
-.btn-ai-optimize {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
+.form-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.plan-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   font-weight: 600;
+  color: var(--text-main);
+  font-size: 15px;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--ai-main);
+  box-shadow: 0 0 0 3px var(--ai-bg);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.error-hint {
+  color: var(--error);
+  font-size: 13px;
+  margin-top: var(--space-1);
+}
+
+/* 标签选择器 */
+.tag-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.tag-option {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-main);
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-  font-size: 1rem;
+  gap: var(--space-1);
 }
 
-.btn-ai-optimize:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+.tag-option:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
 }
 
-.btn-ai-optimize:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  transform: none;
+.tag-option.active {
+  background: var(--ai-main);
+  color: white;
+  border-color: var(--ai-main);
 }
 
-.ai-icon {
-  font-size: 1.25rem;
-}
-
-.ai-hint {
-  color: #6b7280;
-  font-size: 0.875rem;
+/* AI 优化区域 */
+.ai-optimize-section {
+  margin: var(--space-2) 0;
   text-align: center;
 }
 
-/* 待创建任务列表 */
-.pending-tasks {
-  background: #f3f4f6;
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-}
-
-.pending-tasks h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
-  color: #1f2937;
-}
-
-.pending-tasks .hint {
-  margin: 0 0 1rem 0;
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.pending-tasks ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.pending-tasks li {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: white;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-}
-
-.pending-tasks .task-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.pending-tasks .task-title {
+.ai-optimize-btn {
+  width: 100%;
+  padding: var(--space-4);
+  font-size: 16px;
   font-weight: 600;
-  color: #111827;
 }
 
-.pending-tasks .task-meta {
+.ai-icon {
+  font-size: 20px;
+}
+
+.ai-hint {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: var(--space-2);
+}
+
+/* 表单操作按钮 */
+.form-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn {
+  flex: 1;
+  padding: var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--ai-main);
+  color: white;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--ai-main-dark);
+  transform: translateY(-1px);
+}
+
+.btn.secondary {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-main);
+}
+
+.btn.secondary:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+}
+
+/* 右侧预览区域 */
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: fit-content;
+}
+
+.ai-panel,
+.tasks-preview,
+.plan-preview {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-header,
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.panel-header h3,
+.preview-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.preview-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 任务预览列表 */
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.task-preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.task-preview-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.task-preview-title {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.task-preview-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  font-size: 0.9rem;
-  color: #4b5563;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
-.btn-remove {
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  font-size: 0.9rem;
+.meta-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
+  gap: var(--space-1);
 }
 
-.btn-remove:hover {
-  background: #dc2626;
+.remove-task-btn {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--error-bg);
+  color: var(--error);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.remove-task-btn:hover {
+  background: var(--error);
+  color: white;
+}
+
+/* 计划预览 */
+.preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.preview-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.preview-dates {
+  font-size: 14px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.duration {
+  background: var(--ai-bg);
+  color: var(--ai-main);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.preview-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.preview-tag {
+  background: var(--ai-bg);
+  color: var(--ai-main);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .create-layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  
+  .preview-section {
+    order: -1;
+  }
+  
+  .date-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-card {
+    padding: var(--space-4);
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+  
+  .tag-selector {
+    gap: var(--space-1);
+  }
+  
+  .tag-option {
+    font-size: 12px;
+    padding: var(--space-1) var(--space-2);
+  }
+  
+  .task-preview-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .task-preview-meta {
+    width: 100%;
+  }
 }
 </style>

@@ -1,5 +1,5 @@
 /* ========================================
-   🎨 Design Tokens - 统一设计变量系统
+   🎨 Design Tokens - 六层颜色架构系统
    ======================================== */
 
 :root {
@@ -35,11 +35,18 @@
   --dur-normal: 220ms;
   --dur-slow: 320ms;
   
-  /* 📱 响应式断点 */
+  /* 📱 响应式断点 - 语义化命名 */
   --breakpoint-sm: 480px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
+  
+  /* 📱 语义化断点别名 */
+  --screen-mobile-small: 480px;    /* 单手极小屏（最小信息，强操作） */
+  --screen-mobile-medium: 768px;   /* 移动主流屏（一列流式 + 吸底动作） */
+  --screen-tablet: 1024px;         /* 平板/小桌面（1.5列：主内容+可折叠辅助） */
+  --screen-desktop: 1280px;        /* 桌面标准（双列） */
+  --screen-wide: 1440px;           /* 宽屏（双列+侧栏摘要） */
   
   /* 🎨 阴影层级 */
   --shadow-none: none;
@@ -57,85 +64,171 @@
   --z-modal: 1050;
   --z-popover: 1060;
   --z-tooltip: 1070;
+  
+  /* 🎨 六层颜色架构 - Brand 层 */
+  --color-brand-500: #6366F1;  /* 主品牌色 */
+  --color-brand-600: #4F46E5;  /* Hover/Active */
+  --color-brand-400: #818CF8;  /* 浅色高亮 */
+  --color-brand-100: #E0E7FF;  /* 轻背景 */
+  --color-brand-alpha-12: rgba(99, 102, 241, 0.12);  /* 浅高亮面 */
+  --color-brand-alpha-24: rgba(99, 102, 241, 0.24);  /* 边框/焦点 */
+  
+  /* 🎨 Semantic 语义色 */
+  --color-success: #22C55E;
+  --color-success-bg: rgba(34, 197, 94, 0.12);
+  --color-warning: #F59E0B;
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-error: #EF4444;
+  --color-error-bg: rgba(239, 68, 68, 0.12);
+  --color-info: #3B82F6;
+  --color-info-bg: rgba(59, 130, 246, 0.12);
+  
+  /* 🎯 Focus Ring */
+  --color-focus-ring: var(--color-brand-alpha-24);
 }
 
 /* ========================================
-   🌙 暗色主题 Tokens
+   🌙 暗色主题 Tokens (Dark Theme)
    ======================================== */
 html[data-theme='dark'],
 html:not([data-theme]) {
-  /* 🎨 背景色层级系统 */
-  --bg-main: #0E1117;        /* 主背景 - 深蓝灰 */
-  --bg-card: #161B22;        /* 卡片背景 - 第一层 */
-  --bg-card-hover: #1C2128;  /* 卡片悬停 - 第二层 */
-  --bg-input: #0D1117;       /* 输入框背景 */
-  --bg-elevated: #21262D;    /* 抬升层 */
-  --bg-overlay: rgba(13, 17, 23, 0.85); /* 遮罩层 */
+  /* 🎨 Neutral 中性色系统 */
+  --color-bg-page: #0E1117;        /* 页面背景 */
+  --color-bg-card: #161B22;        /* 卡片背景 */
+  --color-bg-elevated: #21262D;    /* 抬升层 */
+  --color-bg-input: #0D1117;       /* 输入框背景 */
+  --color-bg-overlay: rgba(13, 17, 23, 0.85); /* 遮罩层 */
   
-  /* 🎯 AI 主色调 */
-  --ai-main: #6366F1;        /* 主AI蓝 */
-  --ai-light: #818CF8;       /* 浅AI蓝 */
-  --ai-dark: #4F46E5;        /* 深AI蓝 */
-  --ai-soft: #C7D2FE;        /* 柔和AI文字 */
-  --ai-bg: rgba(99, 102, 241, 0.12);    /* AI背景 */
-  --ai-border: rgba(99, 102, 241, 0.25); /* AI边框 */
+  --color-text-primary: #E5E7EB;   /* 主文本 */
+  --color-text-secondary: #9CA3AF; /* 次文本 */
+  --color-text-muted: #6B7280;     /* 说明文本 */
+  --color-text-emphasis: #F3F4F6;  /* 强调文本 */
+  --color-text-inverse: #0F172A;   /* 反色文本 */
   
-  /* 🎨 状态色 */
-  --success: #22C55E;
-  --success-bg: rgba(34, 197, 94, 0.12);
-  --success-border: rgba(34, 197, 94, 0.25);
+  --color-border-primary: rgba(255, 255, 255, 0.08);  /* 主边框 */
+  --color-border-subtle: rgba(255, 255, 255, 0.04);   /* 细边框 */
+  --color-border-emphasis: rgba(255, 255, 255, 0.15); /* 强调边框 */
   
-  --warning: #F59E0B;
-  --warning-bg: rgba(245, 158, 11, 0.12);
-  --warning-border: rgba(245, 158, 11, 0.25);
+  /* 🎯 Surface 组件表面色 */
+  --color-surface-card-hover: #1C2128;  /* 卡片悬停 */
   
-  --error: #EF4444;
-  --error-bg: rgba(239, 68, 68, 0.12);
-  --error-border: rgba(239, 68, 68, 0.25);
+  /* 🌟 交互状态色 */
+  --color-interactive-hover: var(--color-brand-600);
+  --color-interactive-active: var(--color-brand-600);
   
-  --info: #3B82F6;
-  --info-bg: rgba(59, 130, 246, 0.12);
-  --info-border: rgba(59, 130, 246, 0.25);
-  
-  /* 📝 文字色系统 */
-  --text-main: #E5E7EB;      /* 主文本 - 柔和白 */
-  --text-secondary: #9CA3AF; /* 次文本 - 中灰 */
-  --text-muted: #6B7280;     /* 说明文本 - 深灰 */
-  --text-emphasis: #F3F4F6;  /* 强调文本 */
-  --text-inverse: #0F172A;   /* 反色文本 */
-  
-  /* 🎯 边框色系统 */
-  --border-main: rgba(255, 255, 255, 0.08);  /* 主边框 */
-  --border-subtle: rgba(255, 255, 255, 0.04); /* 细边框 */
-  --border-emphasis: rgba(255, 255, 255, 0.15); /* 强调边框 */
+  /* 🎯 玻璃态效果 */
+  --color-glass-dark: rgba(13, 17, 23, 0.72);
+  --color-glass-light: rgba(250, 250, 250, 0.82);
   
   /* 🌟 特殊效果 */
   --backdrop-blur: blur(12px);
   --ring-offset: #0E1117;
-  --ring-color: rgba(99, 102, 241, 0.3);
+  
+  /* 🔄 兼容性映射（保持向后兼容） */
+  --bg-main: var(--color-bg-page);
+  --bg-card: var(--color-bg-card);
+  --bg-card-hover: var(--color-surface-card-hover);
+  --bg-input: var(--color-bg-input);
+  --bg-elevated: var(--color-bg-elevated);
+  --bg-overlay: var(--color-bg-overlay);
+  
+  --text-main: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --text-emphasis: var(--color-text-emphasis);
+  --text-inverse: var(--color-text-inverse);
+  
+  --border-main: var(--color-border-primary);
+  --border-subtle: var(--color-border-subtle);
+  --border-emphasis: var(--color-border-emphasis);
+  
+  --ai-main: var(--color-brand-500);
+  --ai-light: var(--color-brand-400);
+  --ai-dark: var(--color-brand-600);
+  --ai-soft: #C7D2FE;
+  --ai-bg: var(--color-brand-alpha-12);
+  --ai-border: rgba(99, 102, 241, 0.25);
+  
+  --success: var(--color-success);
+  --success-bg: var(--color-success-bg);
+  --success-border: rgba(34, 197, 94, 0.25);
+  
+  --warning: var(--color-warning);
+  --warning-bg: var(--color-warning-bg);
+  --warning-border: rgba(245, 158, 11, 0.25);
+  
+  --error: var(--color-error);
+  --error-bg: var(--color-error-bg);
+  --error-border: rgba(239, 68, 68, 0.25);
+  
+  --info: var(--color-info);
+  --info-bg: var(--color-info-bg);
+  --info-border: rgba(59, 130, 246, 0.25);
+  
+  --ring-color: var(--color-focus-ring);
 }
 
 /* ========================================
-   ☀️ 浅色主题 Tokens
+   ☀️ 浅色主题 Tokens (Light Theme)
    ======================================== */
 html[data-theme='light'] {
-  /* 🎨 背景色层级系统 */
-  --bg-main: #F5F5F5;        /* 主背景 - 柔和灰白 */
-  --bg-card: #FAFAFA;        /* 卡片背景 - 近白灰 */
-  --bg-card-hover: #F0F0F0;  /* 卡片悬停 - 稍深灰 */
-  --bg-input: #FFFFFF;       /* 输入框背景 - 纯白 */
-  --bg-elevated: #F8F8F8;    /* 抬升层 */
-  --bg-overlay: rgba(245, 245, 245, 0.9); /* 遮罩层 */
+  /* 🎨 Neutral 中性色系统 */
+  --color-bg-page: #F5F5F5;     /* 页面背景 */
+  --color-bg-card: #FAFAFA;     /* 卡片背景 */
+  --color-bg-elevated: #F0F0F0; /* 抬升层 */
+  --color-bg-input: #FFFFFF;    /* 输入框背景 */
+  --color-bg-overlay: rgba(245, 245, 245, 0.9); /* 遮罩层 */
   
-  /* 🎯 AI 主色调（保持一致） */
-  --ai-main: #6366F1;
-  --ai-light: #7C3AED;
-  --ai-dark: #4F46E5;
-  --ai-soft: #312E81;        /* 深紫蓝 - 确保可读性 */
-  --ai-bg: rgba(99, 102, 241, 0.08);
+  --color-text-primary: #0F172A;   /* 主文本 */
+  --color-text-secondary: #475569; /* 次文本 */
+  --color-text-muted: #94A3B8;     /* 说明文本 */
+  --color-text-emphasis: #000000;  /* 强调文本 */
+  --color-text-inverse: #E5E7EB;   /* 反色文本 */
+  
+  --color-border-primary: rgba(15, 23, 42, 0.10); /* 主边框 */
+  --color-border-subtle: rgba(15, 23, 42, 0.05);  /* 细边框 */
+  --color-border-emphasis: rgba(15, 23, 42, 0.15); /* 强调边框 */
+  
+  /* 🎯 Surface 组件表面色 */
+  --color-surface-card-hover: #F0F0F0;  /* 卡片悬停 */
+  
+  /* 🌟 交互状态色 */
+  --color-interactive-hover: var(--color-brand-600);
+  --color-interactive-active: var(--color-brand-600);
+  
+  /* 🎯 玻璃态效果 */
+  --color-glass-dark: rgba(13, 17, 23, 0.72);
+  --color-glass-light: rgba(250, 250, 250, 0.82);
+  
+  /* 🌟 特殊效果 */
+  --backdrop-blur: blur(12px);
+  --ring-offset: #FFFFFF;
+  
+  /* 🔄 兼容性映射（保持向后兼容） */
+  --bg-main: var(--color-bg-page);
+  --bg-card: var(--color-bg-card);
+  --bg-card-hover: var(--color-surface-card-hover);
+  --bg-input: var(--color-bg-input);
+  --bg-elevated: var(--color-bg-elevated);
+  --bg-overlay: var(--color-bg-overlay);
+  
+  --text-main: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --text-emphasis: var(--color-text-emphasis);
+  --text-inverse: var(--color-text-inverse);
+  
+  --border-main: var(--color-border-primary);
+  --border-subtle: var(--color-border-subtle);
+  --border-emphasis: var(--color-border-emphasis);
+  
+  --ai-main: var(--color-brand-500);
+  --ai-light: var(--color-brand-400);
+  --ai-dark: var(--color-brand-600);
+  --ai-soft: #312E81;  /* 深紫蓝 - 确保可读性 */
+  --ai-bg: var(--color-brand-alpha-12);
   --ai-border: rgba(99, 102, 241, 0.2);
   
-  /* 🎨 状态色 */
   --success: #16A34A;
   --success-bg: rgba(22, 163, 74, 0.08);
   --success-border: rgba(22, 163, 74, 0.2);
@@ -152,20 +245,5 @@ html[data-theme='light'] {
   --info-bg: rgba(37, 99, 235, 0.08);
   --info-border: rgba(37, 99, 235, 0.2);
   
-  /* 📝 文字色系统 */
-  --text-main: #0F172A;      /* 深蓝灰 */
-  --text-secondary: #475569; /* 阅读友好灰 */
-  --text-muted: #94A3B8;     /* 注释灰 */
-  --text-emphasis: #000000;  /* 强调纯黑 */
-  --text-inverse: #E5E7EB;   /* 反色文本 */
-  
-  /* 🎯 边框色系统 */
-  --border-main: rgba(15, 23, 42, 0.08);
-  --border-subtle: rgba(15, 23, 42, 0.04);
-  --border-emphasis: rgba(15, 23, 42, 0.15);
-  
-  /* 🌟 特殊效果 */
-  --backdrop-blur: blur(12px);
-  --ring-offset: #FFFFFF;
-  --ring-color: rgba(99, 102, 241, 0.25);
+  --ring-color: var(--color-focus-ring);
 }

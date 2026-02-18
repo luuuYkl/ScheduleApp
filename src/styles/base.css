@@ -203,6 +203,98 @@ input, button, a, select, textarea {
 .gap-4 { gap: var(--space-4); }
 
 /* ========================================
+   🎯 4层语义结构框架
+   ======================================== */
+
+/* 语义层级定义 */
+.layer-context {
+  /* 上下文层：页面标题、副标题、当前计划/日期范围 */
+}
+
+.layer-primary {
+  /* 核心动作层：本页最重要任务（创建、调整、完成） */
+}
+
+.layer-secondary {
+  /* 辅助信息层：统计、AI建议、历史数据 */
+}
+
+.layer-utility {
+  /* 工具区层：筛选、导出、设置、次要按钮 */
+}
+
+/* 三档布局模板 */
+.layout-template-s {
+  /* Template S（移动）：1列，卡片上下堆叠，CTA 吸底/吸顶 */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.layout-template-m {
+  /* Template M（平板）：主列 + 折叠侧区（可展开 AI/筛选） */
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+.layout-template-l {
+  /* Template L（桌面）：2列 7:5 或 8:4（主内容左侧） */
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: var(--space-6);
+}
+
+/* 响应式布局变换 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .layout-template-m {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+@media (min-width: 1025px) {
+  .layout-template-s {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
+  }
+}
+
+/* ========================================
+   🎯 响应式行为优先级
+   ======================================== */
+
+.priority-essential {
+  /* 必须保留：操作按钮、当前状态、下一步建议 */
+  order: -1;
+}
+
+.priority-high {
+  /* 高优先级：核心信息、主要功能 */
+  order: 0;
+}
+
+.priority-medium {
+  /* 中优先级：辅助信息、次要功能 */
+  order: 1;
+}
+
+.priority-low {
+  /* 可折叠：解释性文案、历史明细、次级筛选器 */
+  order: 2;
+}
+
+/* 移动端优先级调整 */
+@media (max-width: 768px) {
+  .priority-low {
+    display: none;
+  }
+  
+  .priority-medium {
+    font-size: 0.875rem;
+  }
+}
+
+/* ========================================
    🎯 应用根容器
    ======================================== */
 

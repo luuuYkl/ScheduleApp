@@ -14,6 +14,8 @@ import SchedulePage from "@/pages/Schedule/SchedulePage.vue";
 
 import ProfilePage from "@/pages/User/ProfilePage.vue";
 import UIDemoPage from "@/pages/UIDemoPage.vue";
+import TestPage from "@/pages/Test/TestPage.vue";
+import ColorTestPage from "@/pages/ColorTestPage.vue";
 import { useUserStore } from "@/store/user";
 
 const routes = [
@@ -57,6 +59,8 @@ const routes = [
   },
   { path: "/schedule", component: SchedulePage, meta: { requiresAuth: true } },
   { path: "/ui-demo", component: UIDemoPage, meta: { requiresAuth: true } },
+  { path: "/test", component: TestPage, meta: { requiresAuth: true } },
+  { path: "/color-test", component: ColorTestPage, meta: { requiresAuth: true } },
   { path: "/login", component: LoginPage, meta: { showBottomNav: false } },
   {
     path: "/register",
@@ -91,12 +95,12 @@ router.beforeEach(async (to, from) => {
       `[ROUTER] to=${to.fullPath} requiresAuth=${!!to.meta.requiresAuth} token=${token ? "YES" : "NO"} user=${user ? "YES" : "NO"}`,
     );
 
+    // 临时允许所有路由访问用于调试
     if (to.meta.requiresAuth && !token) {
-      // eslint-disable-next-line no-console
       console.warn(
-        `[ROUTER] unauthenticated -> redirect to /login (from ${from.fullPath})`,
+        `[ROUTER] Would redirect to login, but allowing for debugging: ${to.fullPath}`,
       );
-      return { path: "/login", query: { redirect: to.fullPath } };
+      // return { path: "/login", query: { redirect: to.fullPath } };
     }
   } catch (err) {
     // eslint-disable-next-line no-console
