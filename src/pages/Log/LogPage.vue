@@ -6,36 +6,34 @@
   >
     <template #actions>
       <div class="desktop-actions priority-medium">
-        <button
-          class="btn btn-primary"
+        <a-button
+          type="primary"
           @click="refreshLogs"
           :disabled="loading"
-          aria-label="刷新日志"
         >
-          <span class="btn-icon">🔄</span>
-          <span class="btn-text">{{ loading ? "加载中..." : "刷新" }}</span>
-        </button>
-        <button
-          class="btn btn-secondary"
+          <template #icon>🔄</template>
+          {{ loading ? "加载中..." : "刷新" }}
+        </a-button>
+        <a-button
+          type="outline"
           @click="generateReport"
-          aria-label="生成报告"
         >
-          <span class="btn-icon">📊</span>
-          <span class="btn-text">生成报告</span>
-        </button>
+          <template #icon>📊</template>
+          生成报告
+        </a-button>
       </div>
       <div class="mobile-actions priority-essential">
-        <button
-          class="btn btn-primary"
+        <a-button
+          type="primary"
           @click="toggleAiPanel"
-          aria-label="AI分析"
         >
-          <span class="btn-icon">🤖</span>
-          <span class="btn-text">AI</span>
-        </button>
+          <template #icon>🤖</template>
+          AI
+        </a-button>
       </div>
     </template>
 
+    <PullToRefresh @refresh="handleRefresh">
     <div class="log-content layout-template-l">
       <!-- Context Layer: 顶部筛选器 -->
       <div class="filters-section card layer-context priority-high">
@@ -46,31 +44,21 @@
           <!-- 时间筛选 -->
           <div class="filter-group">
             <label class="filter-label">时间范围</label>
-            <div class="filter-options">
-              <button 
-                v-for="range in timeRanges" 
-                :key="range.key"
-                :class="['filter-btn', { active: currentTimeRange === range.key }]"
-                @click="currentTimeRange = range.key"
-              >
+            <a-radio-group v-model="currentTimeRange" type="button" size="small">
+              <a-radio v-for="range in timeRanges" :key="range.key" :value="range.key">
                 {{ range.label }}
-              </button>
-            </div>
+              </a-radio>
+            </a-radio-group>
           </div>
           
           <!-- 偏差类型筛选 -->
           <div class="filter-group">
             <label class="filter-label">偏差类型</label>
-            <div class="filter-options">
-              <button 
-                v-for="type in deviationTypes" 
-                :key="type.key"
-                :class="['filter-btn', { active: currentDeviationType === type.key }]"
-                @click="currentDeviationType = type.key"
-              >
+            <a-radio-group v-model="currentDeviationType" type="button" size="small">
+              <a-radio v-for="type in deviationTypes" :key="type.key" :value="type.key">
                 {{ type.label }}
-              </button>
-            </div>
+              </a-radio>
+            </a-radio-group>
           </div>
         </div>
       </div>
@@ -103,12 +91,13 @@
               <h4 class="action-title">{{ action.title }}</h4>
               <p class="action-description">{{ action.description }}</p>
             </div>
-            <button 
-              class="action-btn primary"
+            <a-button 
+              type="primary"
+              size="small"
               @click="executeAction(action)"
             >
               一键执行
-            </button>
+            </a-button>
           </div>
         </div>
       </section>
@@ -244,6 +233,7 @@
         </div>
       </main>
     </div>
+    </PullToRefresh>
   </PageScaffold>
 </template>
 
@@ -254,6 +244,7 @@ import { useUserStore } from "@/store/user";
 import type { LogEntry } from "@/services/generate-log";
 import AIReviewPanel from "@/components/log/AIReviewPanel.vue";
 import PageScaffold from "@/components/common/PageScaffold.vue";
+import PullToRefresh from "@/components/common/PullToRefresh.vue";
 
 const logStore = useLogStore();
 const userStore = useUserStore();
@@ -442,6 +433,13 @@ function refreshLogs() {
 function generateReport() {
   // TODO: 实现报告生成功能
   alert("报告生成功能开发中...");
+}
+
+// 下拉刷新处理
+async function handleRefresh() {
+  const userId =
+    userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+  await logStore.loadLogs(userId);
 }
 
 onMounted(async () => {

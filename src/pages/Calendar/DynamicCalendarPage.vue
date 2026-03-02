@@ -977,7 +977,7 @@ watch(selectedPlanId, (newPlanId) => {
 
 /* 移动端浮动操作按钮 */
 .mobile-fab {
-  position: fixed;
+  position: absolute;
   bottom: 1.5rem;
   right: 1.5rem;
   z-index: var(--z-fixed);
@@ -1024,7 +1024,9 @@ watch(selectedPlanId, (newPlanId) => {
 
 .events-column {
   position: relative;
-  min-height: 1680px; /* 24小时 × 70分钟，与周视图高度比例协调 */
+  min-height: 1200px; /* 优化高度，避免大屏幕下内容溢出 */
+  max-height: 70vh; /* 限制最大高度，确保内容在视窗内 */
+  overflow-y: auto; /* 超出时可滚动 */
   background: var(--bg-main);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
@@ -1135,7 +1137,8 @@ watch(selectedPlanId, (newPlanId) => {
   }
   
   .events-column {
-    min-height: 1620px; /* 统一移动端日视图高度 */
+    min-height: 960px; /* 移动端优化高度 */
+    max-height: 60vh; /* 移动端最大高度限制 */
     padding: var(--space-1);
   }
   
@@ -1203,7 +1206,8 @@ watch(selectedPlanId, (newPlanId) => {
   }
   
   .events-column {
-    min-height: 1860px; /* 桌面端日视图高度 */
+    min-height: 1440px; /* 桌面端优化高度 */
+    max-height: 75vh; /* 桌面端最大高度限制 */
   }
   
   .mobile-calendar-actions {
@@ -1222,7 +1226,7 @@ watch(selectedPlanId, (newPlanId) => {
 
 /* 移动端浮动操作按钮 */
 .mobile-fab {
-  position: fixed;
+  position: absolute;
   bottom: 1rem;
   right: 1rem;
   z-index: var(--z-fixed);

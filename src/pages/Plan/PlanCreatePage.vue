@@ -15,71 +15,46 @@
       </Button>
     </template>
     
+    <PullToRefresh @refresh="handleRefresh">
     <!-- 双栏布局 -->
     <div class="create-layout">
       <!-- 左侧：表单区域 -->
       <div class="form-section">
         <Card class="form-card">
           <form class="plan-form" @submit.prevent="createPlan" novalidate>
-            <div class="form-group">
-              <label class="form-label">
-                📝 计划标题 *
-                <input
-                  v-model.trim="form.title"
-                  type="text"
-                  class="form-input"
-                  placeholder="例如：准备期末考试、完成项目开发等"
-                  required
-                  @input="clearAISuggestions"
-                />
-                <small class="error-hint" v-if="errors.title">{{ errors.title }}</small>
-              </label>
-            </div>
+            <a-form-item label="📝 计划标题 *" :error="errors.title">
+              <a-input
+                v-model.trim="form.title"
+                placeholder="例如：准备期末考试、完成项目开发等"
+                allow-clear
+                @input="clearAISuggestions"
+              />
+            </a-form-item>
 
-            <div class="form-group">
-              <label class="form-label">
-                📖 详细描述
-                <textarea
-                  v-model="form.description"
-                  class="form-textarea"
-                  placeholder="详细描述你的计划目标、背景和期望成果..."
-                  rows="4"
-                  @input="clearAISuggestions"
-                ></textarea>
-              </label>
-            </div>
+            <a-form-item label="📖 详细描述">
+              <a-textarea
+                v-model="form.description"
+                placeholder="详细描述你的计划目标、背景和期望成果..."
+                :auto-size="{ minRows: 4, maxRows: 8 }"
+                @input="clearAISuggestions"
+              />
+            </a-form-item>
 
             <div class="date-row">
-              <div class="form-group">
-                <label class="form-label">
-                  📅 开始日期 *
-                  <input
-                    v-model="form.start_date"
-                    type="date"
-                    class="form-input"
-                    required
-                    @change="clearAISuggestions"
-                  />
-                  <small class="error-hint" v-if="errors.start_date">{{
-                    errors.start_date
-                  }}</small>
-                </label>
-              </div>
-              <div class="form-group">
-                <label class="form-label">
-                  📅 结束日期 *
-                  <input
-                    v-model="form.end_date"
-                    type="date"
-                    class="form-input"
-                    required
-                    @change="clearAISuggestions"
-                  />
-                  <small class="error-hint" v-if="errors.end_date">{{
-                    errors.end_date
-                  }}</small>
-                </label>
-              </div>
+              <a-form-item label="📅 开始日期 *" :error="errors.start_date">
+                <a-date-picker
+                  v-model="form.start_date"
+                  style="width: 100%"
+                  @change="clearAISuggestions"
+                />
+              </a-form-item>
+              <a-form-item label="📅 结束日期 *" :error="errors.end_date">
+                <a-date-picker
+                  v-model="form.end_date"
+                  style="width: 100%"
+                  @change="clearAISuggestions"
+                />
+              </a-form-item>
             </div>
 
             <div class="form-group">
@@ -103,7 +78,7 @@
             <div class="ai-optimize-section">
               <Button
                 variant="ai"
-                size="lg"
+                size="large"
                 @click="getAISuggestions"
                 :loading="aiLoading"
                 :disabled="!canOptimize"
@@ -149,7 +124,7 @@
             <Button 
               v-if="aiResponse" 
               variant="ghost" 
-              size="sm" 
+              size="small" 
               @click="clearAISuggestions"
             >
               清除
@@ -194,7 +169,7 @@
               </div>
               <Button 
                 variant="ghost" 
-                size="sm" 
+                size="small" 
                 @click="removeTask(index)"
                 class="remove-task-btn"
               >
@@ -231,6 +206,7 @@
         </Card>
       </div>
     </div>
+    </PullToRefresh>
   </PageScaffold>
 
 </template>
@@ -238,6 +214,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { Message } from "@arco-design/web-vue";
 import { usePlanStore } from "@/store/plans";
 import { useUserStore } from "@/store/user";
 import { optimizePlanWithAI, quickValidatePlan } from "@/services/ai";
@@ -250,6 +227,7 @@ import AISuggestions from "@/components/plan/AISuggestions.vue";
 import PageScaffold from "@/components/common/PageScaffold.vue";
 import Button from "@/components/common/Button.vue";
 import Card from "@/components/common/Card.vue";
+import PullToRefresh from "@/components/common/PullToRefresh.vue";
 
 /*
   功能增强：
@@ -388,26 +366,64 @@ async function loadForEdit() {
   form.end_date = plan.end_date ?? "";
 }
 
-// 基本表单校验
+// 辅助函数：将日期值转换为字符串格式
+function formatDateValue(value: any): string {
+  if (!value) return "";
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && typeof value.format === 'function') {
+    return value.format('YYYY-MM-DD');
+  }
+  return String(value);
+}
+
+// 基本表单校验 - 带有友好的必填提醒
 function validate() {
   errors.title = "";
   errors.start_date = "";
   errors.end_date = "";
 
-  if (!form.title || form.title.trim().length < 2) {
+  let isValid = true;
+  const missingFields: string[] = [];
+
+  // 标题验证
+  if (!form.title || form.title.trim().length === 0) {
+    errors.title = "请输入计划标题";
+    missingFields.push("计划标题");
+    isValid = false;
+  } else if (form.title.trim().length < 2) {
     errors.title = "标题至少需要 2 个字符";
+    isValid = false;
   }
-  if (!form.start_date) {
+  
+  // 日期验证
+  const startDateStr = formatDateValue(form.start_date);
+  const endDateStr = formatDateValue(form.end_date);
+  
+  if (!startDateStr) {
     errors.start_date = "请选择开始日期";
+    missingFields.push("开始日期");
+    isValid = false;
   }
-  if (!form.end_date) {
+  if (!endDateStr) {
     errors.end_date = "请选择结束日期";
+    missingFields.push("结束日期");
+    isValid = false;
   }
-  if (form.start_date && form.end_date && form.start_date > form.end_date) {
+  
+  // 日期逻辑验证
+  if (startDateStr && endDateStr && startDateStr > endDateStr) {
     errors.end_date = "结束日期不能早于开始日期";
+    Message.error("📅 结束日期不能早于开始日期");
+    isValid = false;
   }
 
-  return !errors.title && !errors.start_date && !errors.end_date;
+  // 显示必填项提醒
+  if (missingFields.length > 0) {
+    const fieldNames = missingFields.join("、");
+    Message.warning(`⚠️ 请完善必填信息：${fieldNames}`);
+  }
+
+  return isValid;
 }
 
 // AI 优化相关函数
@@ -512,12 +528,24 @@ function applyOptimization(
 async function createPlan() {
   if (!validate()) return;
 
+  // 检查用户登录状态
+  if (!userStore.user?.id) {
+    alert("请先登录");
+    router.push("/login");
+    return;
+  }
+
   submitting.value = true;
+  
+  // 转换日期格式（Arco Design 的 date-picker 返回 Dayjs 对象）
+  const startDateStr = formatDateValue(form.start_date);
+  const endDateStr = formatDateValue(form.end_date);
+  
   const payload = {
     title: form.title.trim(),
     description: form.description?.trim() ?? "",
-    start_date: form.start_date,
-    end_date: form.end_date,
+    start_date: startDateStr,
+    end_date: endDateStr,
   };
 
   try {
@@ -579,6 +607,18 @@ async function createRecommendedTasks(planId: number) {
 function goBack() {
   if (window.history.length > 1) router.back();
   else router.push("/home");
+}
+
+// 下拉刷新处理
+async function handleRefresh() {
+  // 重新加载计划数据
+  if (planStore.loadPlans) {
+    await planStore.loadPlans();
+  }
+  // 如果是编辑模式，重新加载当前编辑的计划
+  if (editId.value) {
+    await loadForEdit();
+  }
 }
 
 // 组件挂载时，若为编辑态则加载数据

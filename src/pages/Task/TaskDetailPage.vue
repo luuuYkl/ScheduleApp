@@ -18,7 +18,7 @@
       <div class="mobile-actions priority-essential">
         <Button 
           :variant="isTaskDone ? 'secondary' : 'primary'" 
-          size="sm"
+          size="small"
           :loading="toggling"
           @click="toggleTaskStatus"
           class="mobile-complete-btn"
@@ -166,7 +166,7 @@
             <div class="main-actions">
               <Button 
                 :variant="isTaskDone ? 'secondary' : 'primary'" 
-                size="lg"
+                size="large"
                 :loading="toggling"
                 @click="toggleTaskStatus"
                 class="complete-btn desktop-complete priority-essential"

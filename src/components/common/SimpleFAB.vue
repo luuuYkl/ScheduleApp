@@ -33,7 +33,7 @@ function goToSchedule() {
 
 <style scoped>
 .simple-fab {
-  position: fixed;
+  position: absolute;
   bottom: 100px;
   right: 20px;
   z-index: 1000;

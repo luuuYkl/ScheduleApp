@@ -11,6 +11,7 @@
       </Button>
     </template>
     
+    <PullToRefresh @refresh="handleRefresh">
     <div class="schedule-page-container">
       <div class="main-content">
         <!-- 上下文提示区域 -->
@@ -122,6 +123,7 @@
         </Card>
       </div>
     </div>
+    </PullToRefresh>
   </PageScaffold>
 </template>
 
@@ -135,6 +137,7 @@ import PageScaffold from "@/components/common/PageScaffold.vue";
 import Button from "@/components/common/Button.vue";
 import Card from "@/components/common/Card.vue";
 import ScheduleForm from "@/components/schedule/ScheduleForm.vue";
+import PullToRefresh from "@/components/common/PullToRefresh.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -228,6 +231,28 @@ function proceedAnyway() {
 
 function handleCreated() {
   router.push("/home"); // 创建成功后返回首页查看
+}
+
+// 下拉刷新处理
+async function handleRefresh() {
+  // 重新加载所有相关数据
+  await Promise.all([
+    planStore.loadPlans(),
+    taskStore.loadTasks(),
+    scheduleStore.load(new Date().toISOString().slice(0, 10))
+  ]);
+  
+  // 重新检查上下文
+  const planId = route.query.planId;
+  const taskId = route.query.taskId;
+  
+  if (planId) {
+    relatedPlan.value = planStore.plans.find((p: any) => p.id === Number(planId));
+  }
+  
+  if (taskId) {
+    relatedTask.value = taskStore.tasks.find((t: any) => t.id === Number(taskId));
+  }
 }
 
 // 初始化

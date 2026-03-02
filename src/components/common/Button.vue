@@ -1,59 +1,57 @@
 <template>
-  <button
-    :class="['btn', type, { disabled }]"
+  <a-button
+    :type="arcoType"
+    :status="arcoStatus"
     :disabled="disabled"
+    :size="arcoSize"
     @click="$emit('click')"
   >
     <slot />
-  </button>
+  </a-button>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from "vue";
+
+const props = defineProps<{
   type?: "primary" | "secondary" | "danger";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "ai";
   disabled?: boolean;
+  loading?: boolean;
+  icon?: string;
+  size?: "small" | "sm" | "medium" | "large" | "lg";
 }>();
+
+defineEmits<{
+  (e: "click"): void;
+}>();
+
+// 类型映射：自定义 variant/type -> Arco type
+const arcoType = computed(() => {
+  // 优先使用 variant
+  const v = props.variant || props.type;
+  if (v === "secondary" || v === "outline" || v === "ghost") return "outline";
+  return "primary";
+});
+
+// 状态映射：danger 使用 status
+const arcoStatus = computed(() => {
+  const v = props.variant || props.type;
+  if (v === "danger") return "danger";
+  return undefined;
+});
+
+// 尺寸映射：支持 "sm" 作为 "small" 的别名，"lg" 作为 "large" 的别名
+const arcoSize = computed(() => {
+  if (props.size === "small" || props.size === "sm") return "small";
+  if (props.size === "large" || props.size === "lg") return "large";
+  return "medium";
+});
 </script>
 
 <style scoped>
-.btn {
-  cursor: pointer;
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  transition:
-    background 0.2s ease,
-    transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-}
-
-/* 类型 */
-.primary {
-  background-color: var(--color-primary);
-  color: #fff;
-}
-.primary:hover {
-  background-color: var(--color-primary-dark);
-}
-.secondary {
-  background-color: var(--color-secondary);
-  color: #fff;
-}
-.danger {
-  background-color: var(--color-danger);
-  color: #fff;
-}
-
-.disabled {
-  background-color: var(--color-gray);
-  color: var(--color-text-light);
-  cursor: not-allowed;
-  box-shadow: none;
+/* Arco Button 自定义样式覆盖 */
+:deep(.arco-btn) {
+  font-weight: 500;
 }
 </style>

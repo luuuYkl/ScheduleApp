@@ -12,126 +12,121 @@
     </template>
 
     <div class="plan-overview">
-      <!-- 扩展统计卡片 -->
-      <div class="enhanced-stats-grid">
-        <Card class="stat-card enhanced-card">
-          <div class="stat-content">
-            <div class="stat-icon">📋</div>
-            <div class="stat-number">{{ planStats.total }}</div>
-            <div class="stat-label">总计划数</div>
+      <!-- 计划概览与筛选 - 合并卡片 -->
+      <Card class="overview-unified-card mb-4">
+        <!-- 第一层：数量统计 -->
+        <div class="stats-section">
+          <div class="mini-stat-card">
+            <div class="mini-stat-icon gray">📋</div>
+            <div class="mini-stat-number">{{ planStats.total }}</div>
+            <div class="mini-stat-label">总计划数</div>
           </div>
-        </Card>
-        <Card class="stat-card enhanced-card">
-          <div class="stat-content">
-            <div class="stat-icon">⚡</div>
-            <div class="stat-number">{{ planStats.inProgress }}</div>
-            <div class="stat-label">进行中</div>
-            <div class="stat-subtext" v-if="planStats.riskCount > 0">
-              {{ planStats.riskCount }}个风险中
-            </div>
+          <div class="mini-stat-card">
+            <div class="mini-stat-icon orange">⚡</div>
+            <div class="mini-stat-number">{{ planStats.inProgress }}</div>
+            <div class="mini-stat-label">进行中</div>
           </div>
-        </Card>
-        <Card class="stat-card enhanced-card">
-          <div class="stat-content">
-            <div class="stat-icon">⚠️</div>
-            <div class="stat-number">{{ planStats.riskCount }}</div>
-            <div class="stat-label">风险中</div>
-            <div class="risk-indicator" v-if="planStats.riskCount > 0"></div>
+          <div class="mini-stat-card">
+            <div class="mini-stat-icon yellow">⚠️</div>
+            <div class="mini-stat-number">{{ planStats.riskCount }}</div>
+            <div class="mini-stat-label">风险中</div>
           </div>
-        </Card>
-        <Card class="stat-card enhanced-card">
-          <div class="stat-content">
-            <div class="stat-icon">✅</div>
-            <div class="stat-number">{{ planStats.completed }}</div>
-            <div class="stat-label">已完成</div>
-          </div>
-        </Card>
-      </div>
-      
-      <!-- 计划健康度概览 -->
-      <Card class="health-overview-card mb-4">
-        <div class="health-header">
-          <h3>📊 计划健康度</h3>
-          <div class="health-score">
-            <span class="score-value">{{ healthScore }}%</span>
-            <span class="score-label">整体健康度</span>
+          <div class="mini-stat-card">
+            <div class="mini-stat-icon green">✅</div>
+            <div class="mini-stat-number">{{ planStats.completed }}</div>
+            <div class="mini-stat-label">已完成</div>
           </div>
         </div>
-        <div class="health-bars">
-          <div class="health-bar">
-            <span class="bar-label">按时完成率</span>
-            <div class="bar-container">
-              <div 
-                class="bar-fill" 
-                :style="{ width: completionRate + '%' }"
-                :class="getHealthClass(completionRate)">
-              </div>
+
+        <!-- 分隔线 -->
+        <div class="section-divider"></div>
+
+        <!-- 第二层：执行健康度 -->
+        <div class="health-section">
+          <div class="health-section-header">
+            <span class="health-section-title">执行健康度</span>
+            <div class="health-total-score">
+              <span class="total-score-value">{{ healthScore }}%</span>
+              <span class="total-score-label">整体健康度</span>
             </div>
-            <span class="bar-value">{{ completionRate }}%</span>
           </div>
-          <div class="health-bar">
-            <span class="bar-label">任务密度</span>
-            <div class="bar-container">
-              <div 
-                class="bar-fill" 
-                :style="{ width: taskDensity + '%' }"
-                :class="getHealthClass(taskDensity)">
+          <div class="health-metrics">
+            <div class="health-metric">
+              <span class="metric-label">按时完成率</span>
+              <div class="metric-bar-container">
+                <div 
+                  class="metric-bar-fill green" 
+                  :style="{ width: completionRate + '%' }">
+                </div>
+              </div>
+              <span class="metric-value">{{ completionRate }}%</span>
+            </div>
+            <div class="health-metric">
+              <span class="metric-label">任务密度</span>
+              <div class="metric-bar-container">
+                <div 
+                  class="metric-bar-fill" 
+                  :class="taskDensity > 0 ? 'red' : 'gray'"
+                  :style="{ width: taskDensity + '%' }">
+                </div>
+              </div>
+              <span class="metric-value">{{ taskDensity }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="section-divider"></div>
+
+        <!-- 第三层：精准筛选 -->
+        <div class="filter-section">
+          <div class="filter-row">
+            <!-- 状态筛选 -->
+            <div class="filter-item">
+              <span class="filter-label">状态</span>
+              <div class="compact-chips">
+                <button 
+                  v-for="status in statusFilters" 
+                  :key="status.key"
+                  :class="['compact-chip', { active: activeStatusFilters.includes(status.key) }]"
+                  @click="toggleStatusFilter(status.key)"
+                >
+                  {{ status.label }}
+                </button>
               </div>
             </div>
-            <span class="bar-value">{{ taskDensity }}%</span>
+            
+            <!-- 时间窗口筛选 -->
+            <div class="filter-item">
+              <span class="filter-label">时间</span>
+              <select v-model="timeWindowFilter" class="compact-select">
+                <option value="all">全部时间</option>
+                <option value="this_month">本月</option>
+                <option value="next_month">下月</option>
+                <option value="this_quarter">本季度</option>
+                <option value="next_quarter">下季度</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- 标签筛选 - 第二行 -->
+          <div class="filter-row">
+            <div class="filter-item full-width">
+              <span class="filter-label">标签</span>
+              <div class="compact-chips">
+                <button 
+                  v-for="tag in tagFilters" 
+                  :key="tag.key"
+                  :class="['compact-chip', { active: activeTagFilters.includes(tag.key) }]"
+                  @click="toggleTagFilter(tag.key)"
+                >
+                  {{ tag.label }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </Card>
-
-      <!-- 多维筛选器 -->
-      <div class="advanced-filters card mb-4">
-        <div class="filters-header">
-          <h3>🔍 高级筛选</h3>
-        </div>
-        <div class="filters-grid">
-          <!-- 状态筛选 -->
-          <div class="filter-group">
-            <label>状态</label>
-            <div class="filter-chips">
-              <button 
-                v-for="status in statusFilters" 
-                :key="status.key"
-                :class="['chip', { active: activeStatusFilters.includes(status.key) }]"
-                @click="toggleStatusFilter(status.key)"
-              >
-                {{ status.label }}
-              </button>
-            </div>
-          </div>
-          
-          <!-- 时间窗口筛选 -->
-          <div class="filter-group">
-            <label>时间窗口</label>
-            <select v-model="timeWindowFilter" class="filter-select">
-              <option value="all">全部时间</option>
-              <option value="this_month">本月</option>
-              <option value="next_month">下月</option>
-              <option value="this_quarter">本季度</option>
-              <option value="next_quarter">下季度</option>
-            </select>
-          </div>
-          
-          <!-- 标签筛选 -->
-          <div class="filter-group">
-            <label>标签</label>
-            <div class="filter-chips">
-              <button 
-                v-for="tag in tagFilters" 
-                :key="tag.key"
-                :class="['chip', { active: activeTagFilters.includes(tag.key) }]"
-                @click="toggleTagFilter(tag.key)"
-              >
-                {{ tag.label }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
       
       <!-- 计划列表 -->
       <div class="plan-list-section">
@@ -505,136 +500,149 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* 扩展统计卡片 */
-.enhanced-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
+/* ========== 合并卡片样式 ========== */
+.overview-unified-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-lg);
 }
 
-.enhanced-card {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s;
+.overview-unified-card :deep(.card-content) {
+  padding: 0;
 }
 
-.enhanced-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+/* 第一层：数量统计 */
+.stats-section {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-4);
+  gap: var(--space-2);
 }
 
-.stat-icon {
-  font-size: 24px;
-  margin-bottom: var(--space-2);
+.mini-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 70px;
+  padding: var(--space-2);
 }
 
-.stat-subtext {
-  font-size: 12px;
-  color: var(--warning);
-  font-weight: 500;
-  margin-top: var(--space-1);
+.mini-stat-icon {
+  font-size: 20px;
+  margin-bottom: 2px;
 }
 
-.risk-indicator {
-  width: 8px;
-  height: 8px;
-  background: var(--warning);
-  border-radius: 50%;
-  margin-top: var(--space-1);
-  animation: pulse 2s infinite;
+.mini-stat-icon.gray { opacity: 0.7; }
+.mini-stat-icon.orange { opacity: 1; }
+.mini-stat-icon.yellow { opacity: 1; }
+.mini-stat-icon.green { opacity: 1; }
+
+.mini-stat-number {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+.mini-stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 2px;
 }
 
-/* 健康度概览 */
-.health-overview-card {
-  background: linear-gradient(135deg, var(--ai-bg) 0%, var(--bg-card) 100%);
-  border-left: 4px solid var(--ai-main);
+/* 分隔线 */
+.section-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0 var(--space-4);
 }
 
-.health-header {
+/* 第二层：执行健康度 */
+.health-section {
+  padding: var(--space-3) var(--space-4);
+}
+
+.health-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
-.health-header h3 {
-  margin: 0;
+.health-section-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.health-total-score {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.total-score-value {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-main);
-}
-
-.health-score {
-  text-align: right;
-}
-
-.score-value {
-  display: block;
-  font-size: 28px;
-  font-weight: 700;
   color: var(--ai-main);
   font-variant-numeric: tabular-nums;
 }
 
-.score-label {
-  font-size: 12px;
+.total-score-label {
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
-.health-bars {
+.health-metrics {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-6);
 }
 
-.health-bar {
+.health-metric {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  flex: 1;
 }
 
-.bar-label {
-  font-size: 14px;
+.metric-label {
+  font-size: 12px;
   color: var(--text-secondary);
-  width: 80px;
+  width: 72px;
   flex-shrink: 0;
 }
 
-.bar-container {
+.metric-bar-container {
   flex: 1;
-  height: 8px;
+  height: 10px;
   background: var(--bg-main);
-  border-radius: 4px;
+  border-radius: 5px;
   overflow: hidden;
 }
 
-.bar-fill {
+.metric-bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 5px;
   transition: width 0.5s ease;
 }
 
-.bar-fill.good {
+.metric-bar-fill.green {
   background: var(--success);
 }
 
-.bar-fill.warning {
-  background: var(--warning);
-}
-
-.bar-fill.danger {
+.metric-bar-fill.red {
   background: var(--error);
 }
 
-.bar-value {
-  font-size: 14px;
+.metric-bar-fill.gray {
+  background: var(--border-main);
+}
+
+.metric-value {
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-main);
   width: 40px;
@@ -642,79 +650,87 @@ onMounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
-/* 高级筛选器 */
-.advanced-filters {
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+/* 第三层：精准筛选 */
+.filter-section {
+  padding: var(--space-3) var(--space-4);
 }
 
-.filters-header {
-  margin-bottom: var(--space-4);
-}
-
-.filters-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+.filter-row {
+  display: flex;
+  align-items: center;
   gap: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
-.filter-group {
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-item {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
 }
 
-.filter-group label {
-  font-size: 14px;
-  font-weight: 500;
+.filter-item.full-width {
+  flex: 1;
+}
+
+.filter-label {
+  font-size: 12px;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
-.filter-chips {
+.compact-chips {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 5px;
 }
 
-.chip {
-  padding: var(--space-2) var(--space-3);
+.compact-chip {
+  padding: 4px 10px;
   border: 1px solid var(--border-main);
   background: var(--bg-main);
   color: var(--text-secondary);
   border-radius: var(--radius-full);
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
-.chip:hover {
+.compact-chip:hover {
   background: var(--bg-card-hover);
   color: var(--text-main);
 }
 
-.chip.active {
+.compact-chip.active {
   background: var(--ai-main);
   color: white;
   border-color: var(--ai-main);
 }
 
-.filter-select {
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
+.compact-select {
+  padding: 4px 8px;
   border: 1px solid var(--border-main);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--bg-main);
   color: var(--text-main);
-  font-size: 14px;
+  font-size: 12px;
+  min-width: 100px;
+  cursor: pointer;
+}
+
+.compact-select:focus {
+  outline: none;
+  border-color: var(--ai-main);
+}
+
+/* ========== 动画 ========== */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 /* 增强的计划卡片 */
@@ -990,24 +1006,51 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .enhanced-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  /* 合并卡片移动端适配 */
+  .stats-section {
+    flex-wrap: wrap;
+    padding: var(--space-3);
+    gap: var(--space-1);
   }
   
-  .health-header {
+  .mini-stat-card {
+    min-width: calc(50% - var(--space-2));
+    padding: var(--space-2) var(--space-1);
+  }
+  
+  .mini-stat-number {
+    font-size: 18px;
+  }
+  
+  .health-metrics {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .health-metric {
+    width: 100%;
+  }
+  
+  .filter-row {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);
   }
   
-  .health-score {
-    text-align: left;
+  .filter-item {
+    width: 100%;
+    flex-wrap: wrap;
   }
   
-  .filters-grid {
-    grid-template-columns: 1fr;
+  .compact-chips {
+    flex-wrap: wrap;
   }
   
+  .compact-select {
+    min-width: 120px;
+  }
+  
+  /* 计划列表适配 */
   .section-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1025,7 +1068,8 @@ onMounted(() => {
   }
   
   .plan-status-section {
-    align-self: flex-end;
+    align-self: flex-start;
+    margin-top: var(--space-1);
   }
   
   .info-row {

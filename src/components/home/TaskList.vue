@@ -7,7 +7,7 @@
 
     <!-- 今日日程 -->
     <section v-if="schedules.length > 0" class="section">
-      <h3 class="section-title">📅 日程</h3>
+      <h3 class="section-title">日程</h3>
       <ul class="list">
         <li v-for="s in schedules" :key="'s' + s.id" class="item">
           <!-- 左列：时间 -->
@@ -20,11 +20,9 @@
           <div class="content-col">
             <!-- 第一行：勾选 + 状态圆点 + 标题 -->
             <div class="row title-row">
-              <input
-                type="checkbox"
-                :checked="s.completed"
+              <a-checkbox
+                :model-value="s.completed"
                 @change="toggleSchedule(s.id)"
-                class="checkbox"
               />
               <span
                 class="status-dot"
@@ -46,7 +44,7 @@
             <!-- 第三行：标签 -->
             <div class="row tags">
               <span class="tag schedule-tag">日程</span>
-              <span class="tag" v-if="s.completed">✔ 已完成</span>
+              <span class="tag" v-if="s.completed">已完成</span>
             </div>
           </div>
         </li>
@@ -56,7 +54,7 @@
     <!-- 今日任务（若今日为空则显示最近未来任务） -->
     <section v-if="tasks.length > 0" class="section">
       <h3 class="section-title">
-        ✅ 任务
+        任务
         <small v-if="tasks[0].task_date !== todayStr" class="hint"
           >(即将开始)</small
         >
@@ -72,11 +70,9 @@
           <div class="content-col">
             <!-- 第一行：勾选 + 状态圆点 + 标题 -->
             <div class="row title-row">
-              <input
-                type="checkbox"
-                :checked="t.status === 'done'"
+              <a-checkbox
+                :model-value="t.status === 'done'"
                 @change="toggle(t.id)"
-                class="checkbox"
               />
               <span class="status-dot" :class="t.status"></span>
               <span class="title" :class="{ completed: t.status === 'done' }">{{
@@ -98,7 +94,7 @@
               <span class="tag" :class="t.status">{{
                 statusLabel(t.status)
               }}</span>
-              <button class="detail-btn" @click="open(t.id)">详情</button>
+              <a-button size="mini" type="text" @click="open(t.id)">详情</a-button>
             </div>
           </div>
         </li>
@@ -150,9 +146,9 @@ function calcDuration(t: { start_time?: string; end_time?: string }): number {
 }
 
 function statusLabel(status: string): string {
-  if (status === "done") return "✔ 已完成";
-  if (status === "missed") return "⚠ 逾期";
-  return "○ 未开始";
+  if (status === "done") return "已完成";
+  if (status === "missed") return "逾期";
+  return "未开始";
 }
 
 const tasks = computed(() => {

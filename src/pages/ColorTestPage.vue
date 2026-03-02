@@ -4,23 +4,27 @@
     
     <!-- Brand Colors -->
     <section class="test-section">
-      <h2>Brand 品牌色</h2>
+      <h2>Brand 品牌色（纯蓝色系）</h2>
       <div class="color-swatches">
         <div class="swatch" style="background: var(--color-brand-500)">
           <span>500</span>
-          <small>#6366F1</small>
+          <small>#2563EB</small>
         </div>
         <div class="swatch" style="background: var(--color-brand-600)">
           <span>600</span>
-          <small>#4F46E5</small>
+          <small>#1D4ED8</small>
+        </div>
+        <div class="swatch" style="background: var(--color-brand-700)">
+          <span>700</span>
+          <small>#1E40AF</small>
         </div>
         <div class="swatch" style="background: var(--color-brand-400)">
           <span>400</span>
-          <small>#818CF8</small>
+          <small>#60A5FA</small>
         </div>
         <div class="swatch" style="background: var(--color-brand-100)">
           <span>100</span>
-          <small>#E0E7FF</small>
+          <small>#DBEAFE</small>
         </div>
       </div>
       <div class="alpha-swatches">
@@ -39,26 +43,26 @@
       <div class="neutral-swatches">
         <div class="swatch large" style="background: var(--color-bg-page)">
           <span>Page BG</span>
-          <small>#0E1117</small>
+          <small>#0B0F14</small>
         </div>
         <div class="swatch large" style="background: var(--color-bg-card)">
           <span>Card BG</span>
-          <small>#161B22</small>
+          <small>#111827</small>
         </div>
         <div class="swatch large" style="background: var(--color-bg-elevated)">
           <span>Elevated</span>
-          <small>#21262D</small>
+          <small>#1F2937</small>
         </div>
         <div class="swatch large" style="background: var(--color-bg-input)">
           <span>Input BG</span>
-          <small>#0D1117</small>
+          <small>#0B0F14</small>
         </div>
       </div>
       
       <div class="text-swatches">
         <div class="text-sample" style="color: var(--color-text-primary)">
           <span>Primary Text</span>
-          <small>#E5E7EB</small>
+          <small>#F9FAFB</small>
         </div>
         <div class="text-sample" style="color: var(--color-text-secondary)">
           <span>Secondary Text</span>
@@ -73,11 +77,11 @@
       <div class="border-swatches">
         <div class="border-sample" style="border-color: var(--color-border-primary)">
           <span>Primary Border</span>
-          <small>rgba(255,255,255,0.08)</small>
+          <small>rgba(255,255,255,0.10)</small>
         </div>
         <div class="border-sample" style="border-color: var(--color-border-subtle)">
           <span>Subtle Border</span>
-          <small>rgba(255,255,255,0.04)</small>
+          <small>rgba(255,255,255,0.05)</small>
         </div>
       </div>
     </section>

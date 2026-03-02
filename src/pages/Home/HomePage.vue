@@ -1,20 +1,15 @@
 <template>
   <PageScaffold 
-    title="我的一天" 
-    subtitle="专注当下，掌控节奏"
+    title=""
     show-back-button={false}
     class="layer-context"
   >
     <template #actions>
-      <div class="desktop-actions priority-medium">
-        <Button variant="outline" size="sm" @click="refreshData">
-          🔄 刷新
-        </Button>
-      </div>
+      <!-- 刷新按钮已移除 -->
       <div class="mobile-cta priority-essential">
         <Button 
           variant="primary" 
-          size="sm" 
+          size="small" 
           @click="goToCreateTask"
           class="cta-main"
         >
@@ -28,41 +23,21 @@
     <div class="home-content layout-template-l">
       <!-- Context Layer: 今日节奏条 -->
       <div class="rhythm-bar card layer-context priority-high">
-        <div class="rhythm-header">
-          <h2>🎯 今日节奏</h2>
-          <div class="rhythm-score">
-            <span class="score-value">{{ rhythmScore }}%</span>
-            <span class="score-label">完成度</span>
-          </div>
-        </div>
+        <!-- 标题和完成度已移除 -->
         
-        <div class="rhythm-indicators">
-          <div 
-            v-for="indicator in rhythmIndicators" 
-            :key="indicator.key"
-            class="indicator"
-            :class="{
-              'active': indicator.isActive,
-              'completed': indicator.isCompleted,
-              'overdue': indicator.isOverdue
-            }"
-          >
-            <div class="indicator-icon">{{ indicator.icon }}</div>
-            <div class="indicator-label">{{ indicator.label }}</div>
-          </div>
-        </div>
+        <!-- 节奏指标已移除 -->
         
         <div class="rhythm-summary">
           <div class="summary-item">
-            <span class="summary-label">📅 今日任务</span>
+            <span class="summary-label">今日任务</span>
             <span class="summary-value">{{ todayStats.totalTasks }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-label">✅ 已完成</span>
+            <span class="summary-label">已完成</span>
             <span class="summary-value success">{{ todayStats.completedTasks }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-label">⏰ 待处理</span>
+            <span class="summary-label">待处理</span>
             <span class="summary-value warning">{{ todayStats.pendingTasks }}</span>
           </div>
         </div>
@@ -88,6 +63,27 @@
     <div class="desktop-fab priority-low">
       <FloatingActionButton />
     </div>
+    
+    <!-- 移动端双按钮 - 保留文本 -->
+    <div v-if="isMobile" class="mobile-double-buttons priority-essential">
+      <Button 
+        variant="primary" 
+        size="small" 
+        @click="goToCreateTask"
+        class="btn-with-text"
+      >
+        <span class="btn-icon">+</span>
+        <span class="btn-text">添加任务</span>
+      </Button>
+      <Button 
+        variant="outline" 
+        size="small" 
+        @click="goToCalendar"
+        class="btn-with-icon"
+      >
+        <span class="btn-icon">📅</span>
+      </Button>
+    </div>
   </PageScaffold>
 </template>
 
@@ -108,33 +104,7 @@ const scheduleStore = useScheduleStore();
 
 const todayStr = new Date().toISOString().slice(0, 10);
 
-// 节奏指标数据
-const rhythmIndicators = computed(() => [
-  {
-    key: 'morning',
-    icon: '🌅',
-    label: '晨间启动',
-    isActive: isMorningActive(),
-    isCompleted: isMorningCompleted(),
-    isOverdue: isMorningOverdue()
-  },
-  {
-    key: 'focus',
-    icon: '🎯',
-    label: '专注时段',
-    isActive: isFocusActive(),
-    isCompleted: isFocusCompleted(),
-    isOverdue: isFocusOverdue()
-  },
-  {
-    key: 'review',
-    icon: '📝',
-    label: '晚间复盘',
-    isActive: isReviewActive(),
-    isCompleted: isReviewCompleted(),
-    isOverdue: isReviewOverdue()
-  }
-]);
+// 节奏指标已移除
 
 // 今日统计数据
 const todayStats = computed(() => {
@@ -148,75 +118,13 @@ const todayStats = computed(() => {
   };
 });
 
-// 节奏分数计算
+// 节奏分数计算（基于任务完成率）
 const rhythmScore = computed(() => {
-  const activeIndicators = rhythmIndicators.value.filter(i => i.isActive);
-  if (activeIndicators.length === 0) return 100;
-  
-  const completedCount = activeIndicators.filter(i => i.isCompleted).length;
-  return Math.round((completedCount / activeIndicators.length) * 100);
+  if (todayStats.value.totalTasks === 0) return 100;
+  return Math.round((todayStats.value.completedTasks / todayStats.value.totalTasks) * 100);
 });
 
-// 节奏指标状态判断函数
-function isMorningActive(): boolean {
-  const hour = new Date().getHours();
-  return hour >= 6 && hour < 12;
-}
-
-function isMorningCompleted(): boolean {
-  // 检查是否有早上完成的任务
-  const morningTasks = taskStore.tasks.filter((t: any) => {
-    if (t.task_date !== todayStr || t.status !== 'done') return false;
-    const taskHour = new Date(`${todayStr}T${t.start_time || '09:00'}`).getHours();
-    return taskHour >= 6 && taskHour < 12;
-  });
-  return morningTasks.length > 0;
-}
-
-function isMorningOverdue(): boolean {
-  const hour = new Date().getHours();
-  return hour >= 12 && !isMorningCompleted();
-}
-
-function isFocusActive(): boolean {
-  const hour = new Date().getHours();
-  return hour >= 14 && hour < 18;
-}
-
-function isFocusCompleted(): boolean {
-  // 检查下午是否有足够的任务完成
-  const afternoonTasks = taskStore.tasks.filter((t: any) => {
-    if (t.task_date !== todayStr || t.status !== 'done') return false;
-    const taskHour = new Date(`${todayStr}T${t.start_time || '15:00'}`).getHours();
-    return taskHour >= 14 && taskHour < 18;
-  });
-  return afternoonTasks.length >= 2;
-}
-
-function isFocusOverdue(): boolean {
-  const hour = new Date().getHours();
-  return hour >= 18 && !isFocusCompleted();
-}
-
-function isReviewActive(): boolean {
-  const hour = new Date().getHours();
-  return hour >= 19 && hour < 22;
-}
-
-function isReviewCompleted(): boolean {
-  // 检查晚上是否完成复盘相关任务
-  const eveningTasks = taskStore.tasks.filter((t: any) => {
-    if (t.task_date !== todayStr || t.status !== 'done') return false;
-    const taskHour = new Date(`${todayStr}T${t.start_time || '20:00'}`).getHours();
-    return taskHour >= 19 && taskHour < 22;
-  });
-  return eveningTasks.some(t => t.title.includes('复盘') || t.title.includes('总结'));
-}
-
-function isReviewOverdue(): boolean {
-  const hour = new Date().getHours();
-  return hour >= 22 && !isReviewCompleted();
-}
+// 节奏指标相关函数已移除
 
 // 导航函数
 function goToCreatePlan() {
@@ -235,14 +143,16 @@ function goToCalendar() {
   router.push('/calendar');
 }
 
-function refreshData() {
-  // 刷新数据
-  taskStore.loadTasks();
-  scheduleStore.load(todayStr);
-}
+// 刷新数据功能已移除
+// function refreshData() {
+//   taskStore.loadTasks();
+//   scheduleStore.load(todayStr);
+// }
 
 onMounted(() => {
-  refreshData();
+  // 数据初始化
+  taskStore.loadTasks();
+  scheduleStore.load(todayStr);
 });
 const isMobile = ref(window.innerWidth <= 768);
 
@@ -250,19 +160,15 @@ const isMobile = ref(window.innerWidth <= 768);
 window.addEventListener('resize', () => {
   isMobile.value = window.innerWidth <= 768;
 });
-
-onMounted(() => {
-  refreshData();
-});
 </script>
 
 <style scoped>
 .home-content {
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-6);
+  padding: 0;
 }
 
 /* 今日节奏条 */
@@ -272,91 +178,9 @@ onMounted(() => {
   padding: var(--space-5);
 }
 
-.rhythm-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-4);
-}
+/* 节奏标题和完成度样式已移除 */
 
-.rhythm-header h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.rhythm-score {
-  text-align: right;
-}
-
-.score-value {
-  display: block;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--ai-main);
-  font-variant-numeric: tabular-nums;
-}
-
-.score-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.rhythm-indicators {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: var(--space-4);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--bg-main);
-  border: 2px solid transparent;
-  transition: all 0.3s;
-  min-width: 100px;
-}
-
-.indicator.active {
-  border-color: var(--ai-main);
-  background: var(--ai-bg);
-  transform: scale(1.05);
-}
-
-.indicator.completed {
-  border-color: var(--success);
-  background: var(--success-bg);
-}
-
-.indicator.overdue {
-  border-color: var(--error);
-  background: var(--error-bg);
-  animation: pulse 2s infinite;
-}
-
-.indicator-icon {
-  font-size: 24px;
-}
-
-.indicator-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-main);
-  text-align: center;
-}
-
-.indicator-progress {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ai-main);
-}
+/* 节奏指标样式已移除 */
 
 .rhythm-summary {
   display: flex;
@@ -430,15 +254,7 @@ onMounted(() => {
     gap: var(--space-4);
   }
   
-  .rhythm-indicators {
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-  
-  .indicator {
-    min-width: 80px;
-    padding: var(--space-2);
-  }
+  /* 节奏指标样式已移除 */
   
   .actions-grid {
     grid-template-columns: repeat(4, 1fr);
@@ -456,36 +272,27 @@ onMounted(() => {
 
 /* 移动端优化 */
 @media (max-width: 768px) {
+  .home-content {
+    padding: 0 var(--space-4); /* 移动端适当减少padding */
+  }
   .rhythm-bar {
     padding: var(--space-4);
   }
   
-  .rhythm-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-  }
+  /* 节奏标题和完成度样式已移除 */
   
-  .rhythm-score {
-    text-align: left;
-  }
-  
-  .rhythm-indicators {
-    justify-content: space-between;
-  }
-  
-  .indicator {
-    min-width: 70px;
-    padding: var(--space-2);
-  }
-  
-  .indicator-label {
-    font-size: 12px;
-  }
+  /* 节奏指标样式已移除 */
   
   .rhythm-summary {
-    flex-direction: column;
-    gap: var(--space-2);
+    flex-direction: row; /* 保持横向排列 */
+    justify-content: space-around;
+    gap: var(--space-3);
+    flex-wrap: wrap; /* 允许换行以适应小屏幕 */
+  }
+  
+  .summary-item {
+    flex: 1;
+    min-width: 80px; /* 确保最小宽度 */
   }
   
   /* 移动端布局调整 */
@@ -502,29 +309,46 @@ onMounted(() => {
     padding: var(--space-3);
   }
   
-  /* 移动端CTA按钮 */
+  /* 移动端双按钮布局 */
   .desktop-actions {
     display: none !important;
   }
   
   .mobile-cta {
-    display: flex !important;
-    gap: var(--space-2);
+    display: none !important;
+  }
+  
+  .mobile-double-buttons {
+    position: sticky;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: var(--space-3);
+    z-index: var(--z-fixed);
+  }
+  
+  .btn-with-text,
+  .btn-with-icon {
+    display: flex;
     align-items: center;
-  }
-  
-  .cta-main {
-    flex: 1;
     justify-content: center;
+    min-width: 120px;
+    padding: var(--space-3) var(--space-4);
   }
   
-  .cta-icon {
+  .btn-with-text {
+    flex: 1;
+  }
+  
+  .btn-icon {
     font-size: 18px;
-    margin-right: var(--space-1);
+    margin-right: var(--space-2);
   }
   
-  .cta-text {
+  .btn-text {
     font-size: 14px;
+    font-weight: 500;
   }
   
   .cta-toggle {
@@ -548,8 +372,49 @@ onMounted(() => {
 
 /* 极小屏优化 */
 @media (max-width: 480px) {
-  .cta-text {
-    display: none; /* 隐藏文字只留图标 */
+  .btn-text {
+    display: inline; /* 保留主按钮文字 */
+  }
+  
+  /* 节奏统计在极小屏的优化 - 只显示数字 */
+  .rhythm-summary {
+    gap: var(--space-1);
+    padding: 0 var(--space-1);
+    justify-content: space-between;
+  }
+  
+  .summary-item {
+    min-width: auto;
+    flex: 1;
+    padding: var(--space-1) 0;
+    align-items: center;
+  }
+  
+  .summary-label {
+    display: none; /* 隐藏文字标签 */
+  }
+  
+  .summary-value {
+    font-size: 18px; /* 稍微增大数字字体 */
+    font-weight: 700;
+  }
+  
+  .summary-value.success {
+    color: var(--success);
+  }
+  
+  .summary-value.warning {
+    color: var(--warning);
+  }
+  
+  .mobile-double-buttons {
+    gap: var(--space-2);
+  }
+  
+  .btn-with-text,
+  .btn-with-icon {
+    min-width: 100px;
+    padding: var(--space-2) var(--space-3);
   }
   
   .indicator {
@@ -561,8 +426,6 @@ onMounted(() => {
     font-size: 11px;
   }
   
-  .score-value {
-    font-size: 20px;
-  }
+  /* 完成度样式已移除 */
 }
 </style>

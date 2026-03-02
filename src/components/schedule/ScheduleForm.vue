@@ -1,146 +1,145 @@
 <template>
-  <form class="schedule-form" @submit.prevent="handleSubmit">
+  <a-form :model="form" @submit.prevent="handleSubmit" layout="vertical">
     <!-- 日程标题 -->
-    <div class="form-section title-section">
-      <input
+    <a-form-item field="title" hide-label>
+      <a-input
         v-model="form.title"
-        type="text"
-        class="input-title"
         placeholder="项目评审会议、团队聚餐、健身打卡..."
-        required
+        size="large"
+        allow-clear
       />
-    </div>
+    </a-form-item>
 
-    <div class="divider"></div>
+    <a-divider />
 
     <!-- 时间设置 -->
-    <div class="form-section time-section">
+    <div class="form-section">
       <h3 class="section-label">📅 时间</h3>
 
       <!-- 快捷日期选择 -->
-      <div class="quick-dates">
-        <button
-          type="button"
+      <a-space wrap :size="8" style="margin-bottom: 16px">
+        <a-button
           v-for="quick in quickDates"
           :key="quick.value"
-          :class="['quick-btn', { active: form.date === quick.value }]"
+          :type="form.date === quick.value ? 'primary' : 'outline'"
+          size="small"
           @click="form.date = quick.value"
         >
           {{ quick.label }}
-        </button>
-        <input type="date" v-model="form.date" class="date-picker" required />
-      </div>
+        </a-button>
+        <a-date-picker
+          v-model="form.date"
+          style="width: 140px"
+        />
+      </a-space>
 
       <!-- 时间段 -->
-      <div class="time-range">
-        <div class="time-input-group">
-          <label class="time-label">🕒 开始</label>
-          <input
-            type="time"
-            v-model="form.start_time"
-            class="time-input"
-            placeholder="14:00"
-          />
-        </div>
-        <span class="time-separator">–</span>
-        <div class="time-input-group">
-          <label class="time-label">结束</label>
-          <input
-            type="time"
-            v-model="form.end_time"
-            class="time-input"
-            placeholder="15:00"
-          />
-        </div>
-      </div>
+      <a-row :gutter="12" style="margin-bottom: 12px">
+        <a-col :span="11">
+          <a-form-item label="🕒 开始" hide-label>
+            <a-time-picker
+              v-model="form.start_time"
+              format="HH:mm"
+              placeholder="开始时间"
+              style="width: 100%"
+            />
+          </a-form-item>
+        </a-col>
+        <a-col :span="2" style="display: flex; align-items: center; justify-content: center">
+          <span style="color: var(--text-muted)">–</span>
+        </a-col>
+        <a-col :span="11">
+          <a-form-item label="结束" hide-label>
+            <a-time-picker
+              v-model="form.end_time"
+              format="HH:mm"
+              placeholder="结束时间"
+              style="width: 100%"
+            />
+          </a-form-item>
+        </a-col>
+      </a-row>
 
       <!-- 全天事件 -->
-      <label class="checkbox-label">
-        <input
-          type="checkbox"
-          v-model="isAllDay"
-          @change="handleAllDayToggle"
-        />
-        <span>全天事件</span>
-      </label>
+      <a-checkbox v-model="isAllDay" @change="handleAllDayToggle">
+        全天事件
+      </a-checkbox>
     </div>
 
-    <div class="divider"></div>
+    <a-divider />
 
     <!-- 提醒方式 -->
-    <div class="form-section reminder-section">
+    <div class="form-section">
       <h3 class="section-label">🔔 提醒</h3>
-      <div class="reminder-options">
-        <label
+      <a-radio-group v-model="form.reminder" direction="vertical">
+        <a-radio
           v-for="option in reminderOptions"
           :key="option.value"
-          class="radio-label"
+          :value="option.value"
         >
-          <input
-            type="radio"
-            v-model="form.reminder"
-            :value="option.value"
-            name="reminder"
-          />
-          <span class="radio-text">{{ option.label }}</span>
-        </label>
-      </div>
-      <p class="hint-text">💡 提示：大多数人习惯在事件前 10 分钟设置提醒</p>
+          {{ option.label }}
+        </a-radio>
+      </a-radio-group>
+      <a-alert type="info" style="margin-top: 12px">
+        💡 提示：大多数人习惯在事件前 10 分钟设置提醒
+      </a-alert>
     </div>
 
-    <div class="divider"></div>
+    <a-divider />
 
-    <!-- 可选信息 -->
-    <details class="form-section optional-section" open>
-      <summary class="section-toggle">更多选项</summary>
+    <!-- 可选信息（可折叠） -->
+    <a-collapse :default-active-key="['optional']" :bordered="false">
+      <a-collapse-item header="更多选项" key="optional">
+        <!-- 重复规则 -->
+        <a-form-item label="🔁 重复">
+          <a-select v-model="form.repeat" style="width: 100%">
+            <a-option value="none">不重复</a-option>
+            <a-option value="daily">每天</a-option>
+            <a-option value="weekly">每周</a-option>
+            <a-option value="monthly">每月</a-option>
+          </a-select>
+        </a-form-item>
 
-      <!-- 重复规则 -->
-      <div class="field-group">
-        <label class="field-label">🔁 重复</label>
-        <select v-model="form.repeat" class="select-input">
-          <option value="none">不重复</option>
-          <option value="daily">每天</option>
-          <option value="weekly">每周</option>
-          <option value="monthly">每月</option>
-        </select>
-      </div>
+        <!-- 地点 -->
+        <a-form-item label="📍 地点">
+          <a-input
+            v-model="form.location"
+            placeholder="会议室 301、腾讯会议、咖啡厅..."
+            allow-clear
+          />
+        </a-form-item>
 
-      <!-- 地点 -->
-      <div class="field-group">
-        <label class="field-label">📍 地点</label>
-        <input
-          v-model="form.location"
-          type="text"
-          class="text-input"
-          placeholder="会议室 301、腾讯会议、咖啡厅..."
-        />
-      </div>
-
-      <!-- 备注 -->
-      <div class="field-group">
-        <label class="field-label">📝 备注</label>
-        <textarea
-          v-model="form.description"
-          class="textarea-input"
-          rows="2"
-          maxlength="100"
-          placeholder="可选，一句话就好"
-        ></textarea>
-        <small class="char-count">{{ form.description.length }}/100</small>
-      </div>
-    </details>
+        <!-- 备注 -->
+        <a-form-item label="📝 备注">
+          <a-textarea
+            v-model="form.description"
+            :max-length="100"
+            show-word-limit
+            :auto-size="{ minRows: 2, maxRows: 4 }"
+            placeholder="可选，一句话就好"
+          />
+        </a-form-item>
+      </a-collapse-item>
+    </a-collapse>
 
     <!-- 主按钮 -->
     <div class="form-actions">
-      <button type="submit" class="btn-primary" :disabled="submitting">
+      <a-button
+        type="primary"
+        long
+        size="large"
+        html-type="submit"
+        :loading="submitting"
+      >
         {{ submitting ? "创建中..." : "创建日程" }}
-      </button>
+      </a-button>
     </div>
-  </form>
+  </a-form>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed } from "vue";
+import { reactive, ref } from "vue";
+import { Message } from "@arco-design/web-vue";
 import { useScheduleStore } from "@/store/schedules";
 import { useUserStore } from "@/store/user";
 
@@ -187,23 +186,78 @@ function handleAllDayToggle() {
   }
 }
 
+// 辅助函数：将日期值转换为字符串格式
+function formatDateValue(value: any): string {
+  if (!value) return "";
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && typeof value.format === 'function') {
+    return value.format('YYYY-MM-DD');
+  }
+  return String(value);
+}
+
+// 辅助函数：将时间值转换为字符串格式
+function formatTimeValue(value: any): string | undefined {
+  if (!value) return undefined;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && typeof value.format === 'function') {
+    return value.format('HH:mm');
+  }
+  return String(value);
+}
+
+// 表单校验 - 带有友好的必填提醒
+function validate(): boolean {
+  const missingFields: string[] = [];
+
+  // 标题验证
+  if (!form.title || form.title.trim().length === 0) {
+    missingFields.push("日程标题");
+  }
+
+  // 日期验证
+  const dateValue = formatDateValue(form.date);
+  if (!dateValue) {
+    missingFields.push("日期");
+  }
+
+  // 显示必填项提醒
+  if (missingFields.length > 0) {
+    const fieldNames = missingFields.join("、");
+    Message.warning(`⚠️ 请完善必填信息：${fieldNames}`);
+    return false;
+  }
+
+  return true;
+}
+
 async function handleSubmit() {
+  // 表单校验
+  if (!validate()) return;
+
+  // 检查用户登录状态
   if (!userStore.user?.id) {
-    alert("请先登录");
+    Message.warning("⚠️ 请先登录");
     return;
   }
 
   submitting.value = true;
   try {
+    // 处理日期和时间格式（Arco Design 的 date-picker/time-picker 返回 Dayjs 对象）
+    const dateValue = formatDateValue(form.date);
+    const startTimeValue = formatTimeValue(form.start_time);
+    const endTimeValue = formatTimeValue(form.end_time);
+
     await scheduleStore.create({
       user_id: userStore.user.id,
       title: form.title.trim(),
-      date: form.date,
-      start_time: form.start_time || undefined,
-      end_time: form.end_time || undefined,
+      date: dateValue,
+      start_time: startTimeValue,
+      end_time: endTimeValue,
       description: form.description || undefined,
     });
 
+    Message.success("✅ 日程创建成功！");
     emit("created");
 
     // 重置表单
@@ -217,7 +271,7 @@ async function handleSubmit() {
     form.description = "";
     isAllDay.value = false;
   } catch (e: any) {
-    alert(e?.message || "创建失败，请重试");
+    Message.error(e?.message || "创建失败，请重试");
   } finally {
     submitting.value = false;
   }
@@ -225,330 +279,32 @@ async function handleSubmit() {
 </script>
 
 <style scoped>
-.schedule-form {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-
-/* 表单区块 */
 .form-section {
-  padding: 1.5rem;
+  padding: 0 4px;
 }
 
-/* 分割线 */
-.divider {
-  height: 1px;
-  background: var(--border-subtle);
-  margin: 0;
-}
-
-/* 标题输入 */
-.title-section {
-  padding: 2rem 1.5rem 1.5rem;
-}
-
-.input-title {
-  width: 100%;
-  font-size: 18px;
-  font-weight: 500;
-  border: none;
-  background: transparent;
-  color: var(--text-main);
-  padding: 0;
-  outline: none;
-}
-
-.input-title::placeholder {
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-/* 区块标签 */
 .section-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
-  margin: 0 0 1rem 0;
+  margin: 0 0 12px 0;
 }
 
-/* 时间设置 */
-.quick-dates {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.quick-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.quick-btn:hover {
-  background: var(--bg-main);
-  color: var(--text-main);
-}
-
-.quick-btn.active {
-  background: var(--ai-main);
-  color: white;
-  border-color: var(--ai-main);
-}
-
-.date-picker {
-  padding: 0.5rem;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  background: var(--bg-input);
-  color: var(--text-main);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.time-range {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.time-input-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.time-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.time-input {
-  padding: 0.75rem;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  background: var(--bg-input);
-  color: var(--text-main);
-  font-size: 14px;
-}
-
-.time-separator {
-  color: var(--text-muted);
-  font-size: 16px;
-  margin-top: 1.5rem;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-/* 提醒方式 */
-.reminder-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.radio-label:hover {
-  background: var(--bg-main);
-  border-color: var(--ai-main);
-}
-
-.radio-label input[type="radio"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.radio-label input[type="radio"]:checked + .radio-text {
-  color: var(--ai-main);
-  font-weight: 500;
-}
-
-.radio-text {
-  font-size: 14px;
-  color: var(--text-main);
-}
-
-.hint-text {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  background: var(--ai-bg);
-  border-radius: 6px;
-}
-
-/* 可选信息 */
-.optional-section {
-  border: none;
-}
-
-.section-toggle {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  list-style: none;
-  padding: 0.5rem 0;
-  user-select: none;
-}
-
-.section-toggle::-webkit-details-marker {
-  display: none;
-}
-
-.section-toggle::before {
-  content: "›";
-  display: inline-block;
-  margin-right: 0.5rem;
-  transition: transform 0.2s;
-}
-
-details[open] .section-toggle::before {
-  transform: rotate(90deg);
-}
-
-.field-group {
-  margin-top: 1rem;
-}
-
-.field-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-}
-
-.select-input,
-.text-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  background: var(--bg-input);
-  color: var(--text-main);
-  font-size: 14px;
-}
-
-.textarea-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  background: var(--bg-input);
-  color: var(--text-main);
-  font-size: 14px;
-  resize: vertical;
-  max-height: 100px;
-  font-family: inherit;
-}
-
-.char-count {
-  display: block;
-  text-align: right;
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
-}
-
-/* 主按钮 */
 .form-actions {
-  padding: 1.5rem;
+  padding: 16px 0;
   background: var(--bg-main);
 }
 
-.btn-primary {
-  width: 100%;
-  padding: 1rem;
-  background: var(--ai-main);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  letter-spacing: 0.02em;
+/* 自定义 Arco 样式 */
+:deep(.arco-form-item) {
+  margin-bottom: 16px;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--ai-light);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+:deep(.arco-divider) {
+  margin: 12px 0;
 }
 
-.btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* 响应式 */
-@media (max-width: 640px) {
-  .form-section {
-    padding: 1.25rem 1rem;
-  }
-
-  .title-section {
-    padding: 1.5rem 1rem 1.25rem;
-  }
-
-  .time-range {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
-  .time-separator {
-    margin-top: 0;
-    text-align: center;
-  }
-
-  .quick-dates {
-    flex-wrap: wrap;
-  }
-
-  .quick-btn {
-    flex: 1 1 auto;
-    min-width: 70px;
-  }
+:deep(.arco-collapse-item-content) {
+  padding: 12px 0;
 }
 </style>

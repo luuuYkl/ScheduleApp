@@ -1,3 +1,9 @@
+/* ========================================
+   ⚠️ DEPRECATED - 此文件已废弃
+   请使用 src/styles/tokens.css 和 src/styles/components.css
+   此文件仅保留用于向后兼容，将在未来版本中移除
+   ======================================== */
+
 /* ====== 全局 Reset & 基础设置 ====== */
 * {
   margin: 0;
@@ -5,46 +11,19 @@
   box-sizing: border-box;
 }
 
-html, body, #app {
-  height: 100%;
+html, body {
+  min-height: 100vh;
   font-family: "Inter", "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   background-color: var(--bg-main, #0E1117);
   color: var(--text-main, #E5E7EB);
   line-height: 1.6;
+  /* 允许横向隐藏，纵向滚动 */
+  overflow-x: hidden;
 }
 
-/* ====== 通用颜色变量（与 style.css 保持一致）====== */
+/* ====== 通用颜色变量（已在 tokens.css 中定义，此处仅保留布局变量）====== */
 :root {
-  /* 背景层级 - 蓝灰黑 */
-  --bg-main: #0E1117;
-  --bg-card: #161B22;
-  --bg-elevated: #21262D;
-  
-  /* AI 色 */
-  --ai-main: #6366F1;
-  --ai-light: #818CF8;
-  --ai-soft: #C7D2FE;
-  --ai-bg: rgba(99, 102, 241, 0.12);
-  
-  /* 状态色 */
-  --success: #22C55E;
-  --success-bg: rgba(34, 197, 94, 0.12);
-  --warning: #F59E0B;
-  --warning-bg: rgba(245, 158, 11, 0.12);
-  --error: #EF4444;
-  --error-bg: rgba(239, 68, 68, 0.12);
-  
-  /* 文字 - 永不纯白 */
-  --text-main: #E5E7EB;
-  --text-secondary: #9CA3AF;
-  --text-muted: #6B7280;
-  --text-emphasis: #F3F4F6;
-  
-  /* 软边界 */
-  --border-main: rgba(255, 255, 255, 0.06);
-  --border-subtle: rgba(255, 255, 255, 0.03);
-  --border-emphasis: rgba(255, 255, 255, 0.12);
-  
+  /* 布局相关变量 */
   --radius: 12px;
   --radius-sm: 8px;
   --spacing-section: 32px;

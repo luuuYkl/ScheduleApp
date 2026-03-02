@@ -12,6 +12,9 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "types": ["node"],
+    
+    /* 跳过库文件类型检查 */
+    "skipLibCheck": true,
 
     /* 路径解析 */
     "baseUrl": ".",

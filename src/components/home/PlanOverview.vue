@@ -2,18 +2,15 @@
 <template>
   <div class="plan-overview-section">
     <div class="section-header">
-      <h2 class="section-title">📈 我的计划</h2>
-      <button class="btn-new-plan" @click="goCreate">
-        <span class="icon">➕</span>
-        <span class="text">新建</span>
-      </button>
+      <h2 class="section-title">我的计划</h2>
+      <!-- 创建计划按钮已移除，使用悬浮按钮替代 -->
     </div>
 
     <!-- 空状态 -->
     <div v-if="sortedPlans.length === 0" class="empty-state">
       <p class="empty-icon">📋</p>
       <p class="empty-text">暂无长期计划</p>
-      <p class="empty-hint">点击右上角创建你的第一个计划吧</p>
+      <p class="empty-hint">使用悬浮按钮创建你的第一个计划吧</p>
     </div>
 
     <!-- 计划卡片列表 -->
@@ -22,27 +19,16 @@
         <div :class="['plans-grid', { 'show-all': showAll }]">
           <div v-for="plan in displayedPlans" :key="plan.id" class="plan-card">
             <!-- 1. 计划名称 -->
-            <h3 class="plan-title">🎯 {{ plan.title }}</h3>
+            <h3 class="plan-title">{{ plan.title }}</h3>
 
             <!-- 2. 进度表达 -->
             <div class="plan-progress">
-              <div class="progress-visual">
-                <div class="progress-segments">
-                  <span
-                    v-for="i in 5"
-                    :key="i"
-                    :class="[
-                      'segment',
-                      { filled: i <= Math.ceil(progressFor(plan.id) / 20) },
-                    ]"
-                  >
-                    {{ i <= Math.ceil(progressFor(plan.id) / 20) ? "█" : "▒" }}
-                  </span>
-                </div>
-                <span class="progress-percent"
-                  >{{ progressFor(plan.id) }}%</span
-                >
-              </div>
+              <a-progress
+                :percent="progressFor(plan.id) / 100"
+                :show-text="false"
+                size="small"
+              />
+              <span class="progress-percent">{{ progressFor(plan.id) }}%</span>
             </div>
 
             <!-- 3. 当前状态 -->
@@ -53,41 +39,49 @@
 
             <!-- 4. AI 洞察（可选） -->
             <details class="ai-insight" v-if="getAIInsight(plan)">
-              <summary>🤖 AI 洞察</summary>
+              <summary>AI 洞察</summary>
               <p>{{ getAIInsight(plan) }}</p>
             </details>
 
             <!-- 操作按钮 -->
             <div class="plan-actions">
-              <button
-                class="btn-action btn-manage"
+              <a-button
+                size="small"
+                type="outline"
                 @click="goPlanTasks(plan.id)"
               >
                 管理任务
-              </button>
-              <button class="btn-action btn-edit" @click="editPlan(plan.id)">
+              </a-button>
+              <a-button
+                size="small"
+                type="outline"
+                @click="editPlan(plan.id)"
+              >
                 修改
-              </button>
-              <button
-                class="btn-action btn-delete"
+              </a-button>
+              <a-button
+                size="small"
+                type="outline"
+                status="danger"
                 @click="removePlan(plan.id)"
                 :disabled="loading"
               >
                 删除
-              </button>
+              </a-button>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 查看全部按钮 -->
-      <button
+      <a-button
         v-if="sortedPlans.length > 6"
-        class="btn-show-all"
+        long
+        type="dashed"
         @click="showAll = !showAll"
       >
         {{ showAll ? "收起" : `查看全部 (${sortedPlans.length})` }}
-      </button>
+      </a-button>
     </div>
   </div>
 </template>
@@ -246,29 +240,7 @@ function goPlanTasks(id: number | string) {
   margin: 0;
 }
 
-.btn-new-plan {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: var(--ai-main);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-new-plan:hover {
-  background: var(--ai-light);
-  transform: translateY(-1px);
-}
-
-.btn-new-plan .icon {
-  font-size: 14px;
-}
+/* 创建计划按钮样式已移除 */
 
 /* 空状态 */
 .empty-state {
@@ -551,10 +523,7 @@ function goPlanTasks(id: number | string) {
     font-size: 16px;
   }
 
-  .btn-new-plan {
-    padding: 0.4rem 0.75rem;
-    font-size: 12px;
-  }
+  /* 创建计划按钮样式已移除 */
 
   .plan-card {
     padding: 1rem;

@@ -13,7 +13,7 @@
 
 /* 🎯 根元素设置 */
 :root {
-  /* 字体系统 */
+  /* 字体系统 - 固定 16px，由 scale() 统一缩放 */
   font-family: "Inter", "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.6;
@@ -29,12 +29,8 @@
   color-scheme: dark;
 }
 
-/* 📱 响应式字体大小 */
-@media (max-width: 768px) {
-  :root {
-    font-size: 15px;
-  }
-}
+/* 📱 PC端自适应缩放由 CSS transform: scale() 实现 */
+/* responsive.ts 动态计算并应用缩放 */
 
 /* 🎨 Body 基础样式 */
 body {
@@ -306,3 +302,8 @@ input, button, a, select, textarea {
     background-color var(--dur-normal) var(--ease-standard),
     color var(--dur-normal) var(--ease-standard);
 }
+
+/* ========================================
+   🎯 统一布局 - 所有尺寸使用相同布局
+   通过 zoom 缩放适配不同屏幕
+   ======================================== */

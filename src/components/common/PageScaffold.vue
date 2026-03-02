@@ -1,8 +1,9 @@
 <template>
   <section class="page" role="main" aria-labelledby="page-title">
-    <header class="page__header">
-      <div class="page__title-wrapper">
+    <header v-if="title || subtitle || $slots.actions" class="page__header">
+      <div v-if="title || subtitle" class="page__title-wrapper">
         <h1
+          v-if="title"
           id="page-title"
           class="page__title"
           :aria-describedby="subtitle ? 'page-subtitle' : undefined"

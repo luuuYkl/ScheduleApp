@@ -168,7 +168,7 @@ onUnmounted(() => {
 
 <style scoped>
 .fab-container {
-  position: fixed;
+  position: absolute;
   bottom: calc(var(--bottom-nav-height, 64px) + 16px);
   right: 16px;
   z-index: var(--z-fixed);
