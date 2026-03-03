@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    /* 基础设置 */
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "jsx": "preserve",
+    "isolatedModules": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
+    
+    /* 跳过库文件类型检查 */
+    "skipLibCheck": true,
+
+    /* 路径解析 */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
+    /* 输出与类型支持 */
+    "resolveJsonModule": true,
+    "lib": ["ESNext", "DOM"]
+  },
+  "include": ["src/**/*", "env.d.ts"],
+  "exclude": ["node_modules"]
+}
