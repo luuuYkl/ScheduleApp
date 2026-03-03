@@ -1,0 +1,29 @@
+/* ========================================
+   🎨 ScheduleApp 样式入口文件
+   按照设计系统分层引入
+   ======================================== */
+
+/* 1. Design Tokens - 设计变量系统 */
+@import './styles/tokens.css';
+
+/* 2. Base Styles - 基础样式重置 */
+@import './styles/base.css';
+
+/* 3. Components - 组件样式 */
+@import './styles/components.css';
+
+/* 4. 应用特定样式可以在这里添加 */
+
+/* ========================================
+   🎯 应用特定样式（如有需要）
+   ======================================== */
+
+/* 应用根容器样式 - 不限制高度，让 zoom 缩放自然生效 */
+#app {
+  min-height: 100vh;
+  background: var(--bg-main);
+  color: var(--text-main);
+  transition: 
+    background-color var(--dur-normal) var(--ease-standard),
+    color var(--dur-normal) var(--ease-standard);
+}

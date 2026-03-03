@@ -1,0 +1,406 @@
+/* ========================================
+   ⚠️ DEPRECATED - 此文件已废弃
+   请使用 src/styles/tokens.css 和 src/styles/components.css
+   此文件仅保留用于向后兼容，将在未来版本中移除
+   ======================================== */
+
+/* ====== 全局 Reset & 基础设置 ====== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  min-height: 100vh;
+  font-family: "Inter", "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background-color: var(--bg-main, #0E1117);
+  color: var(--text-main, #E5E7EB);
+  line-height: 1.6;
+  /* 允许横向隐藏，纵向滚动 */
+  overflow-x: hidden;
+}
+
+/* ====== 通用颜色变量（已在 tokens.css 中定义，此处仅保留布局变量）====== */
+:root {
+  /* 布局相关变量 */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --spacing-section: 32px;
+}
+
+/* ====== 通用布局类 ====== */
+.flex {
+  display: flex;
+}
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.grid {
+  display: grid;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ====== 按钮样式（使用新配色）====== */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s ease, opacity 0.2s ease;
+  font-family: inherit;
+}
+button.primary {
+  background-color: var(--ai-main);
+  color: #fff;
+}
+button.primary:hover {
+  background-color: var(--ai-light);
+}
+button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button.secondary {
+  background-color: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-main);
+}
+button.secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+button.danger {
+  background-color: var(--error);
+  color: #fff;
+}
+button.danger:hover {
+  background-color: #DC2626;
+}
+
+/* ====== 卡片组件基础样式（微玻璃态软边界）====== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+/* ====== 表单元素（暗色风格）====== */
+input, select, textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg-main);
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--ai-main);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ====== 标题和文字（避免纯白并列）====== */
+h1, h2, h3, h4, h5 {
+  font-weight: 600;
+  color: var(--text-main);    /* 柔和白 */
+  letter-spacing: -0.01em;
+  line-height: 1.3;           /* 紧凑标题 */
+}
+h1 {
+  font-size: 24px;
+  color: var(--text-emphasis); /* 仅一级标题强调 */
+}
+h2 {
+  font-size: 20px;
+}
+h3 {
+  font-size: 18px;
+}
+p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);  /* 次级灰 */
+  line-height: 1.7;              /* 舒适正文 */
+}
+
+/* ====== 辅助工具类 ====== */
+.text-center {
+  text-align: center;
+}
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* ====== 响应式增强 & 全局布局 ====== */
+/* 响应式断点 */
+:root{
+  --break-sm: 480px;
+  --break-md: 768px;
+  --break-lg: 1024px;
+  --max-content-width: 1200px;
+}
+
+/* 页面容器：居中并限制最大宽度，自动响应内边距 */
+.app-container {
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+/* 通用页面区域，自动上下间距 */
+.page {
+  padding: 1rem;
+  padding-top: calc(var(--header-height, 64px) + 1rem);
+}
+
+/* 顶部 header 布局 */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+}
+@media (max-width: var(--break-md)) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* 主内容区域自动适配底部导航（移动端固定底部时避免被遮挡） */
+.main {
+  min-height: calc(100vh - 120px); /* header + footer 预留 */
+  padding-bottom: 1.5rem;
+}
+@media (max-width: 640px) {
+  .main { padding-bottom: 84px; } /* 与移动底部导航配合 */
+}
+
+/* 卡片内边距自适应 */
+.card {
+  padding: 1rem;
+}
+@media (max-width: var(--break-sm)) {
+  .card { padding: 0.75rem; }
+}
+
+/* 自适应栅格：自动填充，最小列宽 240px */
+.grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+/* 两栏布局（桌面），单列（移动） */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1rem;
+}
+@media (max-width: var(--break-lg)) {
+  .grid-2 { grid-template-columns: 1fr 320px; }
+}
+@media (max-width: var(--break-md)) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* 表单响应式：在窄屏下垂直堆叠 */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 0.75rem;
+}
+@media (max-width: var(--break-md)) {
+  .form-row { grid-template-columns: 1fr; }
+}
+
+/* 按钮组在窄屏时换行并拉伸 */
+.btn-group {
+  display: flex;
+  gap: 0.5rem;
+}
+@media (max-width: var(--break-sm)) {
+  .btn-group { flex-direction: column; }
+  .btn-group > button { width: 100%; }
+}
+
+/* 底部导航：移动端固定，桌面内联显示 */
+.bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border-top: 1px solid var(--border-main);
+  background: var(--bg-card);
+}
+@media (max-width: 640px) {
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    box-shadow: 0 -4px 18px rgba(16,24,40,0.06);
+  }
+}
+
+/* 响应式文字缩放 */
+h1 { font-size: 1.5rem; }
+@media (min-width: var(--break-lg)) { h1 { font-size: 1.75rem; } }
+h2 { font-size: 1.25rem; }
+@media (min-width: var(--break-lg)) { h2 { font-size: 1.5rem; } }
+
+/* 小组件与列表自适应 */
+.task-list {
+  display: grid;
+  gap: 0.5rem;
+}
+.task-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+@media (max-width: var(--break-sm)) {
+  .task-row { gap: 0.5rem; }
+}
+
+/* 图片与媒体自适应 */
+.responsive-media { max-width: 100%; height: auto; display: block; }
+
+/* 实用类：在移动端隐藏 / 显示 */
+.hide-sm { display: block; }
+.show-sm { display: none; }
+@media (max-width: var(--break-sm)) {
+  .hide-sm { display: none !important; }
+  .show-sm { display: block !important; }
+}
+
+/* 表格与日历横向滚动支持（避免溢出） */
+.table-responsive, .calendar {
+  width: 100%;
+  overflow: auto;
+}
+
+/* 可点击项扩大 touch 区 */
+.touch-target {
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* 微交互：卡片在 hover 时轻微提升（桌面） */
+@media (hover: hover) {
+  .card:hover { transform: translateY(-3px); transition: transform .18s ease; box-shadow: 0 6px 18px rgba(16,24,40,0.08); }
+}
+
+/* ====== 兼容性小调整 ====== */
+/* 保证小屏下 input/textarea 不超宽 */
+input, textarea, select { max-width: 100%; }
+
+/* ========================================
+   🎨 Arco Design 组件暗色模式最高优先级覆盖
+   此文件最后加载，确保覆盖所有之前的样式
+   ======================================== */
+
+/* 下拉面板 - 暗色背景强制覆盖 */
+.arco-select-popup,
+.arco-select-popup-content,
+.arco-select-popup-inner,
+.arco-trigger-popup,
+.arco-trigger-popup-content,
+.arco-trigger-position-bottom,
+.arco-popup-content,
+.arco-popover-content,
+.arco-dropdown-menu,
+div[class*="arco-select-popup"],
+div[class*="arco-trigger-popup"] {
+  background: #111827 !important;
+  background-color: #111827 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 下拉选项 */
+.arco-select-option {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #F9FAFB !important;
+}
+
+.arco-select-option-content {
+  color: #F9FAFB !important;
+}
+
+.arco-select-option:hover,
+.arco-select-option-focused {
+  background: #1F2937 !important;
+  background-color: #1F2937 !important;
+}
+
+.arco-select-option-selected {
+  background: rgba(37, 99, 235, 0.15) !important;
+  background-color: rgba(37, 99, 235, 0.15) !important;
+}
+
+.arco-select-option-selected .arco-select-option-content {
+  color: #2563EB !important;
+}
+
+/* Select 输入框 */
+.arco-select-view,
+.arco-select-view-arco {
+  background: #1F2937 !important;
+  background-color: #1F2937 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.arco-select-view:hover {
+  border-color: #2563EB !important;
+}
+
+.arco-select-view-value,
+.arco-select-view-value-text,
+.arco-select-view .arco-select-view-value {
+  color: #F9FAFB !important;
+}
+
+.arco-select-view-icon,
+.arco-select-view-suffix .arco-icon-down {
+  color: #9CA3AF !important;
+}
+
+/* 空状态提示 */
+.arco-select-popup .arco-empty {
+  background: transparent !important;
+}
+
+.arco-empty-description {
+  color: #6B7280 !important;
+}
