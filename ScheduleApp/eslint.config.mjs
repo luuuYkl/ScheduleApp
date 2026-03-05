@@ -26,7 +26,9 @@ export default tseslint.config(
         parser: '@typescript-eslint/parser',
         extraFileExtensions: ['.vue'],
         ecmaVersion: 2020,
-        sourceType: 'module'
+        sourceType: 'module',
+        project: './tsconfig.json',
+        tsconfigRootDir: import.meta.dirname
       }
     }
   },
