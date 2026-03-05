@@ -1,7 +1,7 @@
 /**
  * PC端全屏自适应缩放工具
- * 基于 1920px 设计稿，使用 CSS zoom 实现等比例缩放
- * 所有尺寸使用统一布局，通过 zoom 缩放适配
+ * 基于 1920px 设计稿，使用 CSS transform: scale() 实现等比例缩放
+ * 所有尺寸使用统一布局，通过 scale 缩放适配
  */
 
 /**
@@ -10,8 +10,10 @@
 export const RESPONSIVE_CONFIG = {
   /** 设计稿基准宽度 */
   BASE_WIDTH: 1920,
-  /** 最小缩放比例 */
-  MIN_SCALE: 0.5,
+  /** 设计稿基准高度 */
+  BASE_HEIGHT: 1080,
+  /** 最小缩放比例（支持到 1024px）*/
+  MIN_SCALE: 0.53,
   /** 防抖延迟 (ms) */
   RESIZE_DEBOUNCE: 100,
   /** 缩放容器类名 */
@@ -78,10 +80,12 @@ export function getResponsiveState(): ResponsiveState {
 }
 
 /**
- * 更新缩放容器的 zoom
+ * 更新缩放容器的 transform: scale()
+ * 同时更新包装器高度以适配缩放后的实际占用空间
  */
 function updateScaleTransform(): void {
   const container = document.querySelector(`.${RESPONSIVE_CONFIG.CONTAINER_CLASS}`) as HTMLElement | null
+  const wrapper = document.querySelector(`.${RESPONSIVE_CONFIG.WRAPPER_CLASS}`) as HTMLElement | null
   
   if (!container) {
     if (import.meta.env.DEV) {
@@ -93,9 +97,17 @@ function updateScaleTransform(): void {
   const state = getResponsiveState()
   currentState = state
   
-  // 使用 zoom 缩放
-  // zoom 会同时缩放视觉和布局空间，不需要手动计算高度
-  container.style.zoom = String(state.scale)
+  // 使用 transform: scale() 缩放
+  container.style.transform = `scale(${state.scale})`
+  container.style.transformOrigin = 'left top'
+  
+  // 更新包装器高度以适配缩放后的实际占用空间
+  // scale() 不改变布局空间，需要手动设置高度
+  if (wrapper) {
+    const scaledHeight = RESPONSIVE_CONFIG.BASE_HEIGHT * state.scale
+    wrapper.style.height = `${scaledHeight}px`
+    wrapper.style.minHeight = `${scaledHeight}px`
+  }
   
   // 通知所有监听器
   notifyListeners(state)
@@ -103,7 +115,7 @@ function updateScaleTransform(): void {
   // 调试信息
   if (import.meta.env.DEV) {
     console.log(
-      `[Responsive] Screen: ${state.screenWidth}px, Zoom: ${state.scale.toFixed(3)}`
+      `[Responsive] Screen: ${state.screenWidth}x${state.screenHeight}px, Scale: ${state.scale.toFixed(3)}`
     )
   }
 }

@@ -361,3 +361,221 @@ function parseSimpleFormat(content: string): {
     suggestions: [],
   };
 }
+
+// ============ AI 复盘定时任务服务 ============
+
+/** 缓存的复盘结果 */
+let cachedReview: AIReview | null = null;
+let lastReviewDate: string | null = null;
+
+/** 定时器ID */
+let scheduledTimerId: ReturnType<typeof setTimeout> | null = null;
+
+/** 回调函数类型 */
+export type AIReviewCallback = (review: AIReview) => void;
+
+/** 复盘完成回调 */
+let onReviewComplete: AIReviewCallback | null = null;
+
+/**
+ * 设置复盘完成回调
+ */
+export function setAIReviewCallback(callback: AIReviewCallback): void {
+  onReviewComplete = callback;
+}
+
+/**
+ * 获取缓存的复盘结果
+ */
+export function getCachedAIReview(): AIReview | null {
+  // 检查缓存是否过期（超过1天）
+  if (lastReviewDate) {
+    const lastDate = new Date(lastReviewDate);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+    if (hoursDiff > 24) {
+      cachedReview = null;
+      lastReviewDate = null;
+    }
+  }
+  return cachedReview;
+}
+
+/**
+ * 计算距离下一个凌晨1点的毫秒数
+ */
+function getTimeUntilNext1AM(): number {
+  const now = new Date();
+  const next1AM = new Date(now);
+  
+  // 设置为凌晨1点
+  next1AM.setHours(1, 0, 0, 0);
+  
+  // 如果已经过了今天的1点，设置为明天1点
+  if (now >= next1AM) {
+    next1AM.setDate(next1AM.getDate() + 1);
+  }
+  
+  return next1AM.getTime() - now.getTime();
+}
+
+/**
+ * 执行每日AI复盘
+ */
+async function executeDailyAIReview(): Promise<void> {
+  console.log("[AI Review Scheduler] 开始执行每日AI复盘...");
+  
+  try {
+    // 从localStorage获取用户数据
+    const userId = Number(localStorage.getItem("user_id")) || 1;
+    const tasksData = localStorage.getItem("tasks");
+    const schedulesData = localStorage.getItem("schedules");
+    
+    let tasks: Task[] = [];
+    let schedules: ScheduleItem[] = [];
+    
+    if (tasksData) {
+      try {
+        tasks = JSON.parse(tasksData);
+      } catch (e) {
+        console.error("[AI Review Scheduler] 解析任务数据失败:", e);
+      }
+    }
+    
+    if (schedulesData) {
+      try {
+        schedules = JSON.parse(schedulesData);
+      } catch (e) {
+        console.error("[AI Review Scheduler] 解析日程数据失败:", e);
+      }
+    }
+    
+    // 生成复盘
+    const review = await generateAIReview({
+      userId,
+      period: "today",
+      tasks,
+      schedules,
+    });
+    
+    // 缓存结果
+    cachedReview = review;
+    lastReviewDate = new Date().toISOString();
+    
+    // 存储到localStorage
+    localStorage.setItem("ai_daily_review", JSON.stringify(review));
+    localStorage.setItem("ai_review_date", lastReviewDate);
+    
+    console.log("[AI Review Scheduler] AI复盘完成:", review.summary);
+    
+    // 调用回调
+    if (onReviewComplete) {
+      onReviewComplete(review);
+    }
+    
+  } catch (error) {
+    console.error("[AI Review Scheduler] 执行每日复盘失败:", error);
+  }
+}
+
+/**
+ * 调度下一次复盘任务
+ */
+function scheduleNextReview(): void {
+  // 清除现有的定时器
+  if (scheduledTimerId) {
+    clearTimeout(scheduledTimerId);
+  }
+  
+  const timeUntilNext = getTimeUntilNext1AM();
+  
+  console.log(`[AI Review Scheduler] 下次复盘将在 ${Math.round(timeUntilNext / 1000 / 60)} 分钟后执行`);
+  
+  scheduledTimerId = setTimeout(() => {
+    executeDailyAIReview();
+    // 递归调度下一次
+    scheduleNextReview();
+  }, timeUntilNext);
+}
+
+/**
+ * 初始化AI复盘定时任务
+ * - 检查是否有今日的复盘缓存
+ * - 设置每日凌晨1点的定时任务
+ */
+export function initAIReviewScheduler(): void {
+  console.log("[AI Review Scheduler] 初始化AI复盘定时任务...");
+  
+  // 检查缓存
+  const cachedDate = localStorage.getItem("ai_review_date");
+  const cachedData = localStorage.getItem("ai_daily_review");
+  
+  if (cachedDate && cachedData) {
+    const lastDate = new Date(cachedDate);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+    
+    // 如果缓存未超过24小时，使用缓存
+    if (hoursDiff < 24) {
+      try {
+        cachedReview = JSON.parse(cachedData);
+        lastReviewDate = cachedDate;
+        console.log("[AI Review Scheduler] 使用缓存的复盘数据");
+      } catch (e) {
+        console.error("[AI Review Scheduler] 解析缓存失败:", e);
+      }
+    }
+  }
+  
+  // 如果没有有效缓存且当前时间已过今天1点，立即执行一次
+  if (!cachedReview) {
+    const now = new Date();
+    const today1AM = new Date(now);
+    today1AM.setHours(1, 0, 0, 0);
+    
+    if (now > today1AM) {
+      console.log("[AI Review Scheduler] 无缓存，立即执行复盘");
+      executeDailyAIReview();
+    }
+  }
+  
+  // 设置定时任务
+  scheduleNextReview();
+}
+
+/**
+ * 停止AI复盘定时任务
+ */
+export function stopAIReviewScheduler(): void {
+  if (scheduledTimerId) {
+    clearTimeout(scheduledTimerId);
+    scheduledTimerId = null;
+    console.log("[AI Review Scheduler] 定时任务已停止");
+  }
+}
+
+/**
+ * 手动触发复盘（用于测试或用户主动请求）
+ */
+export async function triggerManualReview(
+  tasks: Task[],
+  schedules: ScheduleItem[],
+  period: "today" | "week" | "month" = "today"
+): Promise<AIReview> {
+  const userId = Number(localStorage.getItem("user_id")) || 1;
+  
+  const review = await generateAIReview({
+    userId,
+    period,
+    tasks,
+    schedules,
+  });
+  
+  // 更新缓存
+  cachedReview = review;
+  lastReviewDate = new Date().toISOString();
+  localStorage.setItem("ai_daily_review", JSON.stringify(review));
+  localStorage.setItem("ai_review_date", lastReviewDate);
+  
+  return review;
+}

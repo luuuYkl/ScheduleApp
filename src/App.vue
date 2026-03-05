@@ -202,10 +202,21 @@ function handleLogout() {
   router.push("/login");
 }
 
-// 应用启动时初始化主题
-onMounted(() => {
+// 应用启动时初始化主题和恢复用户状态
+onMounted(async () => {
   userStore.initTheme();
-  window.addEventListener("resize", handleResize);
+  
+  // 尝试恢复用户登录状态
+  try {
+    console.log("[App] 尝试恢复用户登录状态...");
+    const user = await userStore.restore();
+    console.log("[App] 用户状态恢复结果:", user);
+  } catch (e) {
+    console.warn("[App] 用户状态恢复失败:", e);
+  }
+  
+  // 注意：不再监听 resize 事件来改变 isDesktop
+  // 因为 transform: scale() 方案下，内部始终是 1920px 布局，应保持桌面模式
 
   // 路由变化时聚焦到主内容区域
   router.afterEach(() => {

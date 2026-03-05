@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomePage from "@/pages/Home/HomePage.vue";
-import HomePageNew from "@/pages/Home/HomePageNew.vue";
 import PlanCreatePage from "@/pages/Plan/PlanCreatePage.vue";
 import PlanOverviewPage from "@/pages/Plan/PlanOverviewPage.vue";
 import DynamicCalendarPage from "@/pages/Calendar/DynamicCalendarPage.vue";
@@ -8,20 +7,16 @@ import PlanTasksPage from "@/pages/Plan/PlanTasksPage.vue";
 import PlanCalendarPage from "@/pages/Plan/PlanCalendarPage.vue";
 import LogPage from "@/pages/Log/LogPage.vue";
 import TaskDetailPage from "@/pages/Task/TaskDetailPage.vue";
+import TaskCreatePage from "@/pages/Task/TaskCreatePage.vue";
 import LoginPage from "@/components/auth/LoginPage.vue";
 import RegisterPage from "@/components/auth/RegisterPage.vue";
 import SchedulePage from "@/pages/Schedule/SchedulePage.vue";
-
 import ProfilePage from "@/pages/User/ProfilePage.vue";
-import UIDemoPage from "@/pages/UIDemoPage.vue";
-import TestPage from "@/pages/Test/TestPage.vue";
-import ColorTestPage from "@/pages/ColorTestPage.vue";
 import { useUserStore } from "@/store/user";
 
 const routes = [
   { path: "/", redirect: "/home" },
   { path: "/home", component: HomePage, meta: { requiresAuth: true } },
-  { path: "/home-new", component: HomePageNew, meta: { requiresAuth: true } },
   { path: "/plan", component: PlanOverviewPage, meta: { requiresAuth: true } },
   {
     path: "/plan/create",
@@ -47,6 +42,11 @@ const routes = [
   },
   { path: "/log", component: LogPage, meta: { requiresAuth: true } },
   {
+    path: "/task/create",
+    component: TaskCreatePage,
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/task/:id",
     component: TaskDetailPage,
     props: true,
@@ -58,9 +58,6 @@ const routes = [
     meta: { requiresAuth: true },
   },
   { path: "/schedule", component: SchedulePage, meta: { requiresAuth: true } },
-  { path: "/ui-demo", component: UIDemoPage, meta: { requiresAuth: true } },
-  { path: "/test", component: TestPage, meta: { requiresAuth: true } },
-  { path: "/color-test", component: ColorTestPage, meta: { requiresAuth: true } },
   { path: "/login", component: LoginPage, meta: { showBottomNav: false } },
   {
     path: "/register",
@@ -68,7 +65,6 @@ const routes = [
     meta: { showBottomNav: false },
   },
 ];
-
 const router = createRouter({
   history: createWebHistory(),
   routes,

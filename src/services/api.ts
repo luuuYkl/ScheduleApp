@@ -293,7 +293,7 @@ const mockAPI: APIInterface = {
 
 /** Axios 实例配置 */
 const realAPI = axios.create({
-  baseURL: APP_CONFIG.BASE_URL,
+  baseURL: APP_CONFIG.API_BASE_URL,
   timeout: 8000,
 });
 
@@ -422,7 +422,7 @@ const backendAPI: APIInterface = {
  * - 开发/测试：USE_MOCK_API = true，使用内存数据
  * - 生产环境：USE_MOCK_API = false，调用真实后端
  */
-export const API: APIInterface = APP_CONFIG.USE_MOCK_API ? mockAPI : backendAPI;
+export const API: APIInterface = APP_CONFIG.USE_MOCK ? mockAPI : backendAPI;
 
 // ================================
 // 便捷认证工具函数
