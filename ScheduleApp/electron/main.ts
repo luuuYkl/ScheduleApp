@@ -1,10 +1,11 @@
 /**
  * Electron 主进程入口
- * 负责创建窗口、管理应用生命周期
+ * 负责创建窗口、管理应用生命周期、后台定时任务
  */
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { schedulerService } from './scheduler';
 
 // 判断是否为开发模式
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -91,11 +92,17 @@ function createWindow() {
 
 // 应用准备就绪
 app.whenReady().then(() => {
-  createWindow();
+  const mainWindow = createWindow();
+  
+  // 初始化定时任务服务
+  schedulerService.setMainWindow(mainWindow);
+  schedulerService.startAll();
+  console.log('[Main] 定时任务服务已启动');
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      const newWindow = createWindow();
+      schedulerService.setMainWindow(newWindow);
     }
   });
 });
@@ -144,6 +151,46 @@ ipcMain.handle('secure-storage:set', async (_event, key: string, value: string) 
     fs.writeFileSync(storagePath, JSON.stringify(data), 'utf-8');
     return true;
   } catch {
+    return false;
+  }
+});
+
+// IPC 处理 - 定时任务相关
+// 获取缓存的AI复盘结果
+ipcMain.handle('scheduler:get-cached-review', async () => {
+  return schedulerService.getCachedReview();
+});
+
+// 手动触发AI复盘
+ipcMain.handle('scheduler:trigger-review', async () => {
+  return schedulerService.triggerReview();
+});
+
+// 获取定时任务列表
+ipcMain.handle('scheduler:get-tasks', async () => {
+  return schedulerService.getTasks();
+});
+
+// 更新定时任务
+ipcMain.handle('scheduler:update-task', async (_event, taskId: string, updates: any) => {
+  return schedulerService.updateTask(taskId, updates);
+});
+
+// 更新服务器配置
+ipcMain.handle('scheduler:update-config', async (_event, config: any) => {
+  schedulerService.updateConfig(config);
+  return true;
+});
+
+// 保存用户数据（供定时任务读取）
+ipcMain.handle('scheduler:save-user-data', async (_event, data: { tasks: any[]; schedules: any[]; userId: number }) => {
+  const store = app.getPath('userData');
+  const dataPath = path.join(store, 'user-data.json');
+  try {
+    fs.writeFileSync(dataPath, JSON.stringify(data, null, 2), 'utf-8');
+    return true;
+  } catch (error) {
+    console.error('[Main] 保存用户数据失败:', error);
     return false;
   }
 });

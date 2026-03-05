@@ -10,15 +10,30 @@
           type="primary"
           @click="refreshLogs"
           :disabled="loading"
+          class="action-btn-refresh"
         >
-          <template #icon>🔄</template>
+          <template #icon>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </template>
           {{ loading ? "加载中..." : "刷新" }}
         </a-button>
         <a-button
           type="outline"
           @click="generateReport"
+          class="action-btn-report"
         >
-          <template #icon>📊</template>
+          <template #icon>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </template>
           生成报告
         </a-button>
       </div>
@@ -38,27 +53,45 @@
       <!-- Context Layer: 顶部筛选器 -->
       <div class="filters-section card layer-context priority-high">
         <div class="filters-header">
-          <h3>🔍 筛选条件</h3>
+          <div class="filters-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <h3>筛选条件</h3>
+          </div>
         </div>
         <div class="filters-content">
           <!-- 时间筛选 -->
           <div class="filter-group">
             <label class="filter-label">时间范围</label>
-            <a-radio-group v-model="currentTimeRange" type="button" size="small">
-              <a-radio v-for="range in timeRanges" :key="range.key" :value="range.key">
+            <div class="filter-options">
+              <button 
+                v-for="range in timeRanges" 
+                :key="range.key" 
+                class="filter-btn"
+                :class="{ active: currentTimeRange === range.key }"
+                @click="currentTimeRange = range.key"
+              >
                 {{ range.label }}
-              </a-radio>
-            </a-radio-group>
+              </button>
+            </div>
           </div>
           
           <!-- 偏差类型筛选 -->
           <div class="filter-group">
             <label class="filter-label">偏差类型</label>
-            <a-radio-group v-model="currentDeviationType" type="button" size="small">
-              <a-radio v-for="type in deviationTypes" :key="type.key" :value="type.key">
+            <div class="filter-options">
+              <button 
+                v-for="type in deviationTypes" 
+                :key="type.key" 
+                class="filter-btn"
+                :class="{ active: currentDeviationType === type.key }"
+                @click="currentDeviationType = type.key"
+              >
                 {{ type.label }}
-              </a-radio>
-            </a-radio-group>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -234,23 +267,40 @@
       </main>
     </div>
     </PullToRefresh>
+    
+    <!-- 任务修改对比弹窗 -->
+    <TaskModificationModal
+      v-model:visible="showModificationModal"
+      :modifications="currentModifications"
+      :loading="modificationLoading"
+      @confirm="handleModificationConfirm"
+      @cancel="handleModificationCancel"
+    />
   </PageScaffold>
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, ref } from "vue";
+import { onMounted, computed, ref, watch } from "vue";
 import { useLogStore } from "@/store/log";
 import { useUserStore } from "@/store/user";
+import { useTaskStore } from "@/store/tasks";
+import { useScheduleStore } from "@/store/schedules";
 import type { LogEntry } from "@/services/generate-log";
-import AIReviewPanel from "@/components/log/AIReviewPanel.vue";
+import { generateAIReview, generateActionableSuggestions, type AIReview } from "@/services/ai-review";
+import type { AIActionSuggestion, TaskModification } from "@/services/api.types";
+import TaskModificationModal from "@/components/log/TaskModificationModal.vue";
 import PageScaffold from "@/components/common/PageScaffold.vue";
 import PullToRefresh from "@/components/common/PullToRefresh.vue";
 
 const logStore = useLogStore();
 const userStore = useUserStore();
+const taskStore = useTaskStore();
+const scheduleStore = useScheduleStore();
 
 const logs = computed(() => logStore.logs);
 const loading = ref(false);
+const aiLoading = ref(false);
+const aiReview = ref<AIReview | null>(null);
 const showAiPanel = ref(false);
 const isMobile = ref(window.innerWidth < 768);
 
@@ -359,35 +409,129 @@ const weeklyLogGroups = computed(() => {
   return groups.sort((a, b) => b.week.localeCompare(a.week));
 });
 
-// AI 动作建议
-const aiActionSuggestions = ref([
-  {
-    id: 1,
-    title: '明日任务优化',
-    description: '根据今日表现，建议明天减少2项非紧急任务，集中精力处理核心事项',
-    action: 'reduce_tasks'
-  },
-  {
-    id: 2,
-    title: '时间分配调整',
-    description: '检测到上午效率较高，建议将困难任务安排在9:00-11:00时段',
-    action: 'reschedule_tasks'
-  },
-  {
-    id: 3,
-    title: '休息提醒优化',
-    description: '连续3天未按时休息，建议设置强制休息提醒每2小时一次',
-    action: 'add_reminders'
-  }
-]);
+// AI 动作建议 - 从AI服务获取（带可执行修改）
+const aiActionSuggestions = ref<AIActionSuggestion[]>([]);
 
-// 获取完成度样式类
-function getCompletionClass(log: LogEntry): string {
-  const completion = Math.round((log.tasks_done / log.tasks_total) * 100);
-  if (completion >= 80) return "high";
-  if (completion >= 50) return "medium";
-  return "low";
+// 任务修改弹窗状态
+const showModificationModal = ref(false);
+const currentModifications = ref<TaskModification[]>([]);
+const modificationLoading = ref(false);
+
+// 将时间范围转换为AI复盘服务的period格式
+function getTimeRangePeriod(): 'today' | 'week' | 'month' {
+  switch (currentTimeRange.value) {
+    case '7d':
+      return 'week';
+    case '30d':
+      return 'month';
+    case '90d':
+      return 'month';
+    default:
+      return 'week';
+  }
 }
+
+// 加载AI复盘建议
+async function loadAIReview() {
+  aiLoading.value = true;
+  try {
+    const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+    const period = getTimeRangePeriod();
+    
+    // 获取任务和日程数据
+    const tasks = taskStore.tasks || [];
+    const schedules = scheduleStore.schedules || [];
+    
+    const review = await generateAIReview({
+      userId,
+      period,
+      tasks,
+      schedules,
+      context: userStore.user?.name ? `用户: ${userStore.user.name}` : undefined
+    });
+    
+    aiReview.value = review;
+    
+    // 生成可执行的任务修改建议
+    const actionSuggestions = generateActionableSuggestions(tasks, review.metrics);
+    
+    // 如果有建议，使用它们
+    if (actionSuggestions.length > 0) {
+      aiActionSuggestions.value = actionSuggestions;
+    } else {
+      // 否则使用默认建议
+      aiActionSuggestions.value = getDefaultSuggestions(review);
+    }
+  } catch (error) {
+    console.error("加载AI复盘失败:", error);
+    // 使用默认建议
+    aiActionSuggestions.value = getDefaultSuggestions();
+  } finally {
+    aiLoading.value = false;
+  }
+}
+
+// 获取默认建议（带空的modifications）
+function getDefaultSuggestions(review?: AIReview): AIActionSuggestion[] {
+  const suggestions: AIActionSuggestion[] = [];
+  
+  if (review?.metrics) {
+    // 基于指标生成建议
+    if (review.metrics.completion_rate < 70) {
+      suggestions.push({
+        id: 1,
+        title: '提升完成率',
+        description: `当前完成率为${review.metrics.completion_rate}%，建议减少任务数量，专注核心事项`,
+        action: 'reduce_tasks',
+        modifications: []
+      });
+    }
+    
+    if (review.metrics.consistency_score < 60) {
+      suggestions.push({
+        id: 2,
+        title: '提高坚持度',
+        description: `坚持度评分为${review.metrics.consistency_score}分，建议设置每日提醒保持习惯`,
+        action: 'add_reminders',
+        modifications: []
+      });
+    }
+  }
+  
+  // 添加默认建议
+  if (suggestions.length === 0) {
+    suggestions.push(
+      {
+        id: 1,
+        title: '明日任务优化',
+        description: '根据近期表现，建议减少非紧急任务，集中精力处理核心事项',
+        action: 'reduce_tasks',
+        modifications: []
+      },
+      {
+        id: 2,
+        title: '时间分配调整',
+        description: '建议将困难任务安排在上午9:00-11:00时段，提高效率',
+        action: 'reschedule_tasks',
+        modifications: []
+      },
+      {
+        id: 3,
+        title: '休息提醒优化',
+        description: '建议设置强制休息提醒，每工作2小时休息10分钟',
+        action: 'add_reminders',
+        modifications: []
+      }
+    );
+  }
+  
+  return suggestions;
+}
+
+// 监听时间范围变化，重新加载AI复盘
+watch(currentTimeRange, () => {
+  loadAIReview();
+});
 
 // 判断是否为关键拐点日
 function isCriticalDay(dateStr: string): boolean {
@@ -397,37 +541,80 @@ function isCriticalDay(dateStr: string): boolean {
 }
 
 // 执行AI建议动作
-function executeAction(action: any) {
-  switch (action.action) {
-    case 'reduce_tasks':
-      alert('已为您减少明日非紧急任务数量');
-      break;
-    case 'reschedule_tasks':
-      alert('已重新安排任务时间到高效时段');
-      break;
-    case 'add_reminders':
-      alert('已添加强制休息提醒');
-      break;
-    default:
-      alert('功能开发中...');
+function executeAction(action: AIActionSuggestion) {
+  // 如果有具体的任务修改建议，打开弹窗
+  if (action.modifications && action.modifications.length > 0) {
+    currentModifications.value = action.modifications;
+    showModificationModal.value = true;
+  } else {
+    // 否则显示提示
+    switch (action.action) {
+      case 'reduce_tasks':
+        alert('已为您减少明日非紧急任务数量');
+        break;
+      case 'reschedule_tasks':
+        alert('已重新安排任务时间到高效时段');
+        break;
+      case 'add_reminders':
+        alert('已添加强制休息提醒');
+        break;
+      default:
+        alert('功能开发中...');
+    }
   }
 }
 
-// 移除手动生成与刷新操作，保留自动加载
-
-function refreshLogs() {
-  onMounted(async () => {
-    loading.value = true;
-    try {
-      const userId =
-        userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
-      await logStore.loadLogs(userId);
-    } catch (e) {
-      console.error("加载日志失败:", e);
-    } finally {
-      loading.value = false;
+// 确认任务修改
+async function handleModificationConfirm() {
+  modificationLoading.value = true;
+  try {
+    // 执行每个任务修改
+    for (const mod of currentModifications.value) {
+      if (mod.type === 'delete' && mod.original) {
+        // 删除任务
+        await taskStore.deleteTask(mod.original.id);
+      } else if (mod.original) {
+        // 更新现有任务
+        await taskStore.updateTask(mod.original.id, mod.modified);
+      }
     }
-  });
+    
+    // 关闭弹窗
+    showModificationModal.value = false;
+    currentModifications.value = [];
+    
+    // 显示成功提示
+    alert('任务修改已执行成功！');
+    
+    // 重新加载AI复盘
+    await loadAIReview();
+  } catch (error) {
+    console.error('执行任务修改失败:', error);
+    alert('执行修改时发生错误，请重试');
+  } finally {
+    modificationLoading.value = false;
+  }
+}
+
+// 取消修改
+function handleModificationCancel() {
+  showModificationModal.value = false;
+  currentModifications.value = [];
+}
+
+// 刷新日志
+async function refreshLogs() {
+  loading.value = true;
+  try {
+    const userId =
+      userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+    await logStore.loadLogs(userId);
+    await loadAIReview();
+  } catch (e) {
+    console.error("刷新日志失败:", e);
+  } finally {
+    loading.value = false;
+  }
 }
 
 function generateReport() {
@@ -448,6 +635,8 @@ onMounted(async () => {
     const userId =
       userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
     await logStore.loadLogs(userId);
+    // 加载AI复盘建议
+    await loadAIReview();
   } catch (e) {
     console.error("加载日志失败:", e);
   } finally {
@@ -745,17 +934,28 @@ onMounted(async () => {
 .filters-section {
   background: var(--bg-card);
   border: 1px solid var(--border-main);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .filters-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
-.filters-header h3 {
+.filters-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filters-title svg {
+  color: var(--color-primary);
+}
+
+.filters-title h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-main);
 }
@@ -789,31 +989,35 @@ onMounted(async () => {
   border: 1px solid var(--border-main);
   background: var(--bg-main);
   color: var(--text-secondary);
-  border-radius: var(--radius-md);
+  border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .filter-btn:hover {
   background: var(--bg-card-hover);
   color: var(--text-main);
+  border-color: var(--color-primary);
 }
 
 .filter-btn.active {
-  background: var(--ai-main);
+  background: var(--color-brand-500, #2563EB);
   color: white;
-  border-color: var(--ai-main);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 /* ============ AI 复盘面板 ============ */
 .ai-review-section {
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.03) 0%, rgba(37, 99, 235, 0.06) 100%);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
   transition: all var(--dur-normal) var(--ease-standard);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.08);
 }
 
 .section-header {
@@ -821,9 +1025,9 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  margin-bottom: var(--space-3);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid rgba(37, 99, 235, 0.1);
 }
 
 .expand-toggle {
@@ -844,43 +1048,62 @@ onMounted(async () => {
 
 .mobile-collapsed .section-header {
   margin-bottom: 0;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
   padding-bottom: var(--space-3);
 }
 
 .ai-actions {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 0.875rem;
 }
 
 .action-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: var(--ai-bg);
-  border-radius: var(--radius-md);
-  border-left: 3px solid var(--ai-main);
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--color-brand-500, #2563EB);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.action-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
 }
 
 .action-content {
   flex: 1;
+  padding-right: 1rem;
 }
 
 .action-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 16px;
+  margin: 0 0 0.375rem 0;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.action-title::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--color-brand-500, #2563EB);
+  border-radius: 50%;
 }
 
 .action-description {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .action-btn {
@@ -894,26 +1117,28 @@ onMounted(async () => {
 }
 
 .action-btn.primary {
-  background: var(--ai-main);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .action-btn.primary:hover {
-  background: var(--ai-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 18px;
+  gap: 0.625rem;
+  font-size: 17px;
   font-weight: 600;
-  color: var(--text-main);
-  margin: 0 0 1.25rem 0;
+  color: var(--color-brand-500, #2563EB);
+  margin: 0;
 }
 
 .section-title svg {
-  color: var(--ai-main);
+  color: var(--color-brand-500, #2563EB);
 }
 
 /* ============ 加载状态 ============ */
@@ -938,41 +1163,52 @@ onMounted(async () => {
 /* ============ 空状态 ============ */
 .empty-state {
   text-align: center;
-  padding: var(--space-12);
-  background: white;
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  min-height: 60vh;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  min-height: 50vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  border: 1px dashed var(--border-main);
 }
 
 .empty-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
-  background: var(--color-gray-100);
-  border-radius: var(--radius-full);
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-radius: 50%;
   margin-bottom: var(--space-6);
-  color: var(--color-text-muted);
+  color: #94a3b8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.empty-icon svg {
+  width: 48px;
+  height: 48px;
+  stroke-width: 1.5;
 }
 
 .empty-state h3 {
-  color: var(--color-gray-900);
-  margin: 0 0 var(--space-3) 0;
-  font-size: 1.5rem;
+  color: var(--text-main);
+  margin: 0 0 var(--space-2) 0;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .empty-state p {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   margin: 0 0 var(--space-6) 0;
   max-width: 400px;
   margin-left: auto;
   margin-right: auto;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 /* ============ 按钮动画 ============ */

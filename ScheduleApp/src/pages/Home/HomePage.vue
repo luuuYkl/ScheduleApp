@@ -21,38 +21,16 @@
     </template>
 
     <div class="home-content layout-template-l">
-      <!-- Context Layer: 今日节奏条 -->
-      <div class="rhythm-bar card layer-context priority-high">
-        <!-- 标题和完成度已移除 -->
-        
-        <!-- 节奏指标已移除 -->
-        
-        <div class="rhythm-summary">
-          <div class="summary-item">
-            <span class="summary-label">今日任务</span>
-            <span class="summary-value">{{ todayStats.totalTasks }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">已完成</span>
-            <span class="summary-value success">{{ todayStats.completedTasks }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">待处理</span>
-            <span class="summary-value warning">{{ todayStats.pendingTasks }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Primary Layer: 双卡布局 -->
       <div class="home-primary layer-primary priority-high">
-        <!-- 战略层：长期计划概览 -->
-        <div class="plan-section desktop-strategy">
-          <PlanOverview />
-        </div>
-        
-        <!-- 执行层：今日任务时间轴 -->
+        <!-- 执行层：今日任务时间轴（左侧） -->
         <div class="task-section desktop-execution">
           <TimelineView />
+        </div>
+        
+        <!-- 战略层：长期计划概览（右侧） -->
+        <div class="plan-section desktop-strategy">
+          <PlanOverview />
         </div>
       </div>
       
@@ -104,28 +82,6 @@ const scheduleStore = useScheduleStore();
 
 const todayStr = new Date().toISOString().slice(0, 10);
 
-// 节奏指标已移除
-
-// 今日统计数据
-const todayStats = computed(() => {
-  const todayTasks = taskStore.tasks.filter((t: any) => t.task_date === todayStr);
-  const completedTasks = todayTasks.filter((t: any) => t.status === 'done').length;
-  
-  return {
-    totalTasks: todayTasks.length,
-    completedTasks,
-    pendingTasks: todayTasks.length - completedTasks
-  };
-});
-
-// 节奏分数计算（基于任务完成率）
-const rhythmScore = computed(() => {
-  if (todayStats.value.totalTasks === 0) return 100;
-  return Math.round((todayStats.value.completedTasks / todayStats.value.totalTasks) * 100);
-});
-
-// 节奏指标相关函数已移除
-
 // 导航函数
 function goToCreatePlan() {
   router.push('/plan/create');
@@ -169,50 +125,6 @@ window.addEventListener('resize', () => {
   display: grid;
   gap: var(--space-6);
   padding: 0;
-}
-
-/* 今日节奏条 */
-.rhythm-bar {
-  background: linear-gradient(135deg, var(--ai-bg) 0%, var(--bg-card) 100%);
-  border-left: 4px solid var(--ai-main);
-  padding: var(--space-5);
-}
-
-/* 节奏标题和完成度样式已移除 */
-
-/* 节奏指标样式已移除 */
-
-.rhythm-summary {
-  display: flex;
-  justify-content: space-around;
-  gap: var(--space-4);
-}
-
-.summary-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.summary-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.summary-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-main);
-  font-variant-numeric: tabular-nums;
-}
-
-.summary-value.success {
-  color: var(--success);
-}
-
-.summary-value.warning {
-  color: var(--warning);
 }
 
 /* 4层结构布局 */

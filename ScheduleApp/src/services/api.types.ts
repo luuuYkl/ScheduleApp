@@ -96,6 +96,55 @@ export interface AIOptimizePlanResponse {
   reasoning?: string; // AI 的推理过程说明
 }
 
+/** 任务修改类型 */
+export type TaskModificationType = 
+  | 'reschedule'      // 重新安排时间
+  | 'reduce_priority' // 降低优先级
+  | 'split'           // 拆分任务
+  | 'delete'          // 删除任务
+  | 'modify';         // 修改任务内容
+
+/** 任务修改建议 */
+export interface TaskModification {
+  taskId: number;                    // 要修改的任务ID（-1表示新任务）
+  type: TaskModificationType;        // 修改类型
+  reason: string;                    // AI建议原因
+  original: Task | null;             // 原任务数据（null表示新增）
+  modified: Partial<Task> & { title: string }; // 修改后的字段
+}
+
+/** AI建议动作（可执行的） */
+export interface AIActionSuggestion {
+  id: number;
+  title: string;
+  description: string;
+  action: string;                    // 动作类型标识
+  modifications: TaskModification[]; // 具体的任务修改列表
+}
+
+/** 任务对比弹窗Props */
+export interface TaskModificationModalProps {
+  visible: boolean;
+  modifications: TaskModification[];
+  loading?: boolean;
+}
+
+/** 任务对比项（用于展示） */
+export interface TaskComparisonItem {
+  taskId: number;
+  type: TaskModificationType;
+  reason: string;
+  original: Task | null;
+  modified: Partial<Task>;
+  fieldChanges: {
+    field: string;
+    fieldLabel: string;
+    originalValue: string;
+    modifiedValue: string;
+    changed: boolean;
+  }[];
+}
+
 /** 创建日程请求 */
 export interface CreateSchedulePayload {
   user_id: number;

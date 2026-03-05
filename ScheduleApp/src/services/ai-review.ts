@@ -3,6 +3,9 @@
 
 import type { Task, ScheduleItem } from "./api.types";
 import { APP_CONFIG } from "@/config";
+import { useNotification, NotificationOptions } from "./notification";
+
+import type { TaskModification, AIActionSuggestion } from "./api.types";
 
 /** AI 复盘内容 */
 export interface AIReview {
@@ -16,6 +19,8 @@ export interface AIReview {
     consistency_score: number; // 坚持度评分 (0-100)
   };
   generated_at: string; // 生成时间
+  /** 可执行的任务修改建议 */
+  actionSuggestions?: AIActionSuggestion[];
 }
 
 /** 复盘请求参数 */
@@ -360,4 +365,444 @@ function parseSimpleFormat(content: string): {
     insights: [],
     suggestions: [],
   };
+}
+
+// ============ AI 复盘定时任务服务 ============
+
+/** 缓存的复盘结果 */
+let cachedReview: AIReview | null = null;
+let lastReviewDate: string | null = null;
+
+/** 定时器ID */
+let scheduledTimerId: ReturnType<typeof setTimeout> | null = null;
+
+/** 回调函数类型 */
+export type AIReviewCallback = (review: AIReview) => void;
+
+/** 复盘完成回调 */
+let onReviewComplete: AIReviewCallback | null = null;
+
+/**
+ * 设置复盘完成回调
+ */
+export function setAIReviewCallback(callback: AIReviewCallback): void {
+  onReviewComplete = callback;
+}
+
+/**
+ * 获取缓存的复盘结果
+ */
+export function getCachedAIReview(): AIReview | null {
+  // 检查缓存是否过期（超过1天）
+  if (lastReviewDate) {
+    const lastDate = new Date(lastReviewDate);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+    if (hoursDiff > 24) {
+      cachedReview = null;
+      lastReviewDate = null;
+    }
+  }
+  return cachedReview;
+}
+
+/**
+ * 计算距离下一个凌晨1点的毫秒数
+ */
+function getTimeUntilNext1AM(): number {
+  const now = new Date();
+  const next1AM = new Date(now);
+  
+  // 设置为凌晨1点
+  next1AM.setHours(1, 0, 0, 0);
+  
+  // 如果已经过了今天的1点，设置为明天1点
+  if (now >= next1AM) {
+    next1AM.setDate(next1AM.getDate() + 1);
+  }
+  
+  return next1AM.getTime() - now.getTime();
+}
+
+/**
+ * 执行每日AI复盘
+ */
+async function executeDailyAIReview(): Promise<void> {
+  console.log("[AI Review Scheduler] 开始执行每日AI复盘...");
+  
+  try {
+    // 从localStorage获取用户数据
+    const userId = Number(localStorage.getItem("user_id")) || 1;
+    const tasksData = localStorage.getItem("tasks");
+    const schedulesData = localStorage.getItem("schedules");
+    
+    let tasks: Task[] = [];
+    let schedules: ScheduleItem[] = [];
+    
+    if (tasksData) {
+      try {
+        tasks = JSON.parse(tasksData);
+      } catch (e) {
+        console.error("[AI Review Scheduler] 解析任务数据失败:", e);
+      }
+    }
+    
+    if (schedulesData) {
+      try {
+        schedules = JSON.parse(schedulesData);
+      } catch (e) {
+        console.error("[AI Review Scheduler] 解析日程数据失败:", e);
+      }
+    }
+    
+    // 生成复盘
+    const review = await generateAIReview({
+      userId,
+      period: "today",
+      tasks,
+      schedules,
+    });
+    
+    // 缓存结果
+    cachedReview = review;
+    lastReviewDate = new Date().toISOString();
+    
+    // 存储到localStorage
+    localStorage.setItem("ai_daily_review", JSON.stringify(review));
+    localStorage.setItem("ai_review_date", lastReviewDate);
+    
+    console.log("[AI Review Scheduler] AI复盘完成:", review.summary);
+    
+    // 调用回调
+    if (onReviewComplete) {
+      onReviewComplete(review);
+    }
+    
+    // 发送通知
+    const notificationService = useNotification();
+    notificationService.showNotification({
+      title: "📊 每日复盘已完成",
+      body: review.summary,
+      tag: "ai_daily_review",
+    });
+    
+  } catch (error) {
+    console.error("[AI Review Scheduler] 执行每日复盘失败:", error);
+  }
+}
+
+/**
+ * 调度下一次复盘任务
+ */
+function scheduleNextReview(): void {
+  // 清除现有的定时器
+  if (scheduledTimerId) {
+    clearTimeout(scheduledTimerId);
+  }
+  
+  const timeUntilNext = getTimeUntilNext1AM();
+  
+  console.log(`[AI Review Scheduler] 下次复盘将在 ${Math.round(timeUntilNext / 1000 / 60)} 分钟后执行`);
+  
+  scheduledTimerId = setTimeout(() => {
+    executeDailyAIReview();
+    // 递归调度下一次
+    scheduleNextReview();
+  }, timeUntilNext);
+}
+
+/**
+ * 初始化AI复盘定时任务
+ * - 检查是否有今日的复盘缓存
+ * - 设置每日凌晨1点的定时任务
+ */
+export function initAIReviewScheduler(): void {
+  console.log("[AI Review Scheduler] 初始化AI复盘定时任务...");
+  
+  // 检查缓存
+  const cachedDate = localStorage.getItem("ai_review_date");
+  const cachedData = localStorage.getItem("ai_daily_review");
+  
+  if (cachedDate && cachedData) {
+    const lastDate = new Date(cachedDate);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+    
+    // 如果缓存未超过24小时，使用缓存
+    if (hoursDiff < 24) {
+      try {
+        cachedReview = JSON.parse(cachedData);
+        lastReviewDate = cachedDate;
+        console.log("[AI Review Scheduler] 使用缓存的复盘数据");
+      } catch (e) {
+        console.error("[AI Review Scheduler] 解析缓存失败:", e);
+      }
+    }
+  }
+  
+  // 如果没有有效缓存且当前时间已过今天1点，立即执行一次
+  if (!cachedReview) {
+    const now = new Date();
+    const today1AM = new Date(now);
+    today1AM.setHours(1, 0, 0, 0);
+    
+    if (now > today1AM) {
+      console.log("[AI Review Scheduler] 无缓存，立即执行复盘");
+      executeDailyAIReview();
+    }
+  }
+  
+  // 设置定时任务
+  scheduleNextReview();
+}
+
+/**
+ * 停止AI复盘定时任务
+ */
+export function stopAIReviewScheduler(): void {
+  if (scheduledTimerId) {
+    clearTimeout(scheduledTimerId);
+    scheduledTimerId = null;
+    console.log("[AI Review Scheduler] 定时任务已停止");
+  }
+}
+
+/**
+ * 手动触发复盘（用于测试或用户主动请求）
+ */
+export async function triggerManualReview(
+  tasks: Task[],
+  schedules: ScheduleItem[],
+  period: "today" | "week" | "month" = "today"
+): Promise<AIReview> {
+  const userId = Number(localStorage.getItem("user_id")) || 1;
+  
+  const review = await generateAIReview({
+    userId,
+    period,
+    tasks,
+    schedules,
+  });
+  
+  // 更新缓存
+  cachedReview = review;
+  lastReviewDate = new Date().toISOString();
+  localStorage.setItem("ai_daily_review", JSON.stringify(review));
+  localStorage.setItem("ai_review_date", lastReviewDate);
+  
+  return review;
+}
+
+/**
+ * 根据任务和指标生成可执行的任务修改建议
+ * @param tasks 当前任务列表
+ * @param metrics 复盘指标
+ * @returns AI建议动作列表
+ */
+export function generateActionableSuggestions(
+  tasks: Task[],
+  metrics: AIReview["metrics"]
+): AIActionSuggestion[] {
+  const suggestions: AIActionSuggestion[] = [];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  
+  // 获取未完成的任务
+  const pendingTasks = tasks.filter(t => t.status === 'pending');
+  // 获取今天的任务
+  const todayTasks = tasks.filter(t => {
+    const today = new Date().toISOString().slice(0, 10);
+    return t.task_date === today;
+  });
+  
+  // 建议1: 如果完成率低于70%，建议减少任务
+  if (metrics.completion_rate < 70 && pendingTasks.length > 3) {
+    const tasksToReschedule = pendingTasks.slice(0, Math.ceil(pendingTasks.length * 0.3));
+    
+    if (tasksToReschedule.length > 0) {
+      suggestions.push({
+        id: 1,
+        title: '优化任务安排',
+        description: `当前完成率为${metrics.completion_rate}%，建议将${tasksToReschedule.length}个非紧急任务推迟到明天`,
+        action: 'reduce_tasks',
+        modifications: tasksToReschedule.map(task => ({
+          taskId: task.id,
+          type: 'reschedule' as const,
+          reason: '降低当日任务负担，提高完成率',
+          original: task,
+          modified: {
+            title: task.title,
+            task_date: tomorrowStr,
+            start_time: task.start_time,
+            end_time: task.end_time,
+            note: task.note
+          }
+        }))
+      });
+    }
+  }
+  
+  // 建议2: 如果有多个任务时间冲突，建议重新安排
+  const tasksWithTime = pendingTasks.filter(t => t.start_time);
+  if (tasksWithTime.length >= 2) {
+    // 检查时间重叠
+    const overlappingTasks = findOverlappingTasks(tasksWithTime);
+    if (overlappingTasks.length > 0) {
+      suggestions.push({
+        id: suggestions.length + 1,
+        title: '解决时间冲突',
+        description: `发现${overlappingTasks.length}个任务存在时间重叠，建议调整时间`,
+        action: 'reschedule_tasks',
+        modifications: overlappingTasks.map((item, index) => ({
+          taskId: item.task.id,
+          type: 'reschedule' as const,
+          reason: '避免时间冲突，提高执行效率',
+          original: item.task,
+          modified: {
+            title: item.task.title,
+            task_date: item.task.task_date,
+            start_time: item.suggestedStart,
+            end_time: item.suggestedEnd,
+            note: item.task.note
+          }
+        }))
+      });
+    }
+  }
+  
+  // 建议3: 如果坚持度低，建议将大任务拆分
+  if (metrics.consistency_score < 60 && pendingTasks.length > 0) {
+    const longTasks = pendingTasks.filter(t => {
+      if (!t.start_time || !t.end_time) return false;
+      const duration = calculateTaskDuration(t.start_time, t.end_time);
+      return duration > 120; // 超过2小时的任务
+    });
+    
+    if (longTasks.length > 0) {
+      const task = longTasks[0];
+      suggestions.push({
+        id: suggestions.length + 1,
+        title: '拆分长任务',
+        description: `任务"${task.title}"时间较长，建议拆分为多个小任务提高完成率`,
+        action: 'split_task',
+        modifications: [
+          {
+            taskId: task.id,
+            type: 'modify' as const,
+            reason: '缩短单个任务时长，提高完成可能性',
+            original: task,
+            modified: {
+              title: task.title + ' (第1部分)',
+              task_date: task.task_date,
+              start_time: task.start_time || '09:00',
+              end_time: task.start_time ? addHours(task.start_time, 1) : '10:00',
+              note: task.note
+            }
+          }
+        ]
+      });
+    }
+  }
+  
+  // 如果没有生成任何建议，添加默认建议
+  if (suggestions.length === 0) {
+    // 找一个今天的任务，建议调整时间
+    if (todayTasks.length > 0) {
+      const task = todayTasks[0];
+      suggestions.push({
+        id: 1,
+        title: '优化任务时间',
+        description: '建议将重要任务安排在上午高效时段',
+        action: 'reschedule_tasks',
+        modifications: [{
+          taskId: task.id,
+          type: 'reschedule' as const,
+          reason: '上午9:00-11:00是高效时段，适合处理重要任务',
+          original: task,
+          modified: {
+            title: task.title,
+            task_date: task.task_date,
+            start_time: '09:00',
+            end_time: '10:00',
+            note: task.note
+          }
+        }]
+      });
+    }
+  }
+  
+  return suggestions;
+}
+
+/**
+ * 查找时间重叠的任务
+ */
+function findOverlappingTasks(tasks: Task[]): Array<{
+  task: Task;
+  suggestedStart: string;
+  suggestedEnd: string;
+}> {
+  const result: Array<{
+    task: Task;
+    suggestedStart: string;
+    suggestedEnd: string;
+  }> = [];
+  
+  // 按开始时间排序
+  const sorted = [...tasks].sort((a, b) => 
+    (a.start_time || '').localeCompare(b.start_time || '')
+  );
+  
+  let lastEndTime = '00:00';
+  
+  for (const task of sorted) {
+    if (task.start_time && task.end_time) {
+      // 如果任务开始时间早于上一个任务的结束时间，说明有重叠
+      if (task.start_time < lastEndTime) {
+        // 建议调整到上一个任务结束后
+        const newStart = lastEndTime;
+        const duration = calculateTaskDuration(task.start_time, task.end_time);
+        const newEnd = addMinutes(newStart, duration);
+        
+        result.push({
+          task,
+          suggestedStart: newStart,
+          suggestedEnd: newEnd
+        });
+      }
+      lastEndTime = task.end_time;
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * 计算任务时长（分钟）
+ */
+function calculateTaskDuration(startTime: string, endTime: string): number {
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  return (endH * 60 + endM) - (startH * 60 + startM);
+}
+
+/**
+ * 给时间添加小时
+ */
+function addHours(time: string, hours: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const newH = (h + hours) % 24;
+  return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * 给时间添加分钟
+ */
+function addMinutes(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const totalMinutes = h * 60 + m + minutes;
+  const newH = Math.floor(totalMinutes / 60) % 24;
+  const newM = totalMinutes % 60;
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
 }

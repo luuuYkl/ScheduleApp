@@ -46,9 +46,9 @@ export const APP_CONFIG = {
    * 用于日程优化建议功能
    */
   AI_ENABLED: true, // 启用 AI 功能
-  AI_API_KEY: "", // OpenAI API Key，通过 .env.local 配置
-  AI_API_BASE_URL: "https://api.deepseek.com/v1", // DeepSeek API 基础地址
-  AI_MODEL: "deepseek-chat", // DeepSeek 模型名称
+  AI_API_KEY: "", // API Key，通过 .env.local 配置
+  AI_API_BASE_URL: "https://open.bigmodel.cn/api/paas/v4", // 智谱 AI API 基础地址
+  AI_MODEL: "glm-4-flash", // 智谱 AI 模型名称
 };
 
 // 在运行时从环境变量加载配置

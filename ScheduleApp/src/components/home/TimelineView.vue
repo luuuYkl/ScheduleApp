@@ -1,8 +1,20 @@
 <template>
   <div class="timeline-container card">
     <div class="header">
-      <h2>今日日程</h2>
-      <span class="date-label">{{ formatDateLabel(todayStr) }}</span>
+      <div class="header-left">
+        <h2 class="weekday-title">{{ weekdayText }}</h2>
+        <span class="date-label">{{ formatDateLabel(todayStr) }}</span>
+      </div>
+      <div class="weather-info" v-if="weather">
+        <div class="weather-main">
+          <span class="weather-icon">{{ weatherIcon }}</span>
+          <span class="weather-temp">{{ weather.temp }}°</span>
+        </div>
+        <div class="weather-details">
+          <span class="weather-desc">{{ weather.description }}</span>
+          <span class="weather-location" v-if="weather.location">{{ weather.location }}</span>
+        </div>
+      </div>
     </div>
 
     <div class="timeline-wrapper">
@@ -86,6 +98,306 @@ const hours = Array.from({ length: 19 }, (_, i) => i + 5); // 5:00 - 23:00
 const currentMinute = ref(new Date().getHours() * 60 + new Date().getMinutes());
 let timeUpdateInterval: number | null = null;
 
+// 星期文字
+const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+const weekdayText = computed(() => {
+  const today = new Date();
+  return weekdays[today.getDay()];
+});
+
+// 天气相关
+interface WeatherData {
+  temp: number;
+  description: string;
+  icon: string;
+  humidity?: number;
+  windSpeed?: number;
+  location?: string;
+}
+
+const weather = ref<WeatherData | null>(null);
+const weatherLoading = ref(true);
+
+// 天气代码到图标的映射 (基于 wttr.in weatherCode)
+const weatherCodeToIcon: Record<string, string> = {
+  // 晴天
+  '113': '☀️',  // Sunny
+  '116': '⛅',  // Partly cloudy
+  '119': '🌤️', // Cloudy  
+  '122': '☁️',  // Overcast
+  
+  // 雾
+  '143': '🌫️', // Mist
+  '248': '🌫️', // Fog
+  '260': '🌫️', // Freezing fog
+  
+  // 雨
+  '176': '🌦️', // Patchy rain
+  '179': '🌨️', // Patchy snow
+  '182': '🌧️', // Patchy sleet
+  '185': '🌧️', // Patchy freezing drizzle
+  '200': '⛈️', // Thunder
+  '227': '❄️', // Blowing snow
+  '230': '❄️', // Blizzard
+  '263': '🌦️', // Patchy light drizzle
+  '266': '🌦️', // Light drizzle
+  '281': '🌧️', // Freezing drizzle
+  '284': '🌧️', // Heavy freezing drizzle
+  '293': '🌦️', // Patchy light rain
+  '296': '🌧️', // Light rain
+  '299': '🌧️', // Moderate rain
+  '302': '🌧️', // Heavy rain
+  '305': '🌧️', // Heavy rain
+  '308': '🌧️', // Heavy rain
+  '311': '🌧️', // Freezing rain
+  '314': '🌧️', // Heavy freezing rain
+  '317': '🌨️', // Sleet
+  '320': '🌨️', // Heavy sleet
+  '323': '🌨️', // Patchy snow
+  '326': '🌨️', // Light snow
+  '329': '❄️', // Moderate snow
+  '332': '❄️', // Heavy snow
+  '335': '❄️', // Heavy snow
+  '338': '❄️', // Heavy snow
+  '350': '🌨️', // Ice pellets
+  '353': '🌦️', // Rain shower
+  '356': '🌧️', // Heavy rain shower
+  '359': '🌧️', // Torrential rain
+  '362': '🌨️', // Sleet showers
+  '365': '🌨️', // Heavy sleet showers
+  '368': '🌨️', // Snow showers
+  '371': '❄️', // Heavy snow showers
+  '374': '🌨️', // Ice pellets
+  '377': '🌨️', // Heavy ice pellets
+  '386': '⛈️', // Thunder with rain
+  '389': '⛈️', // Thunder with heavy rain
+  '392': '⛈️', // Thunder with snow
+  '395': '⛈️', // Heavy thunder snow
+};
+
+// 天气描述到图标的映射
+const weatherDescToIcon: Record<string, string> = {
+  '晴': '☀️',
+  '晴天': '☀️',
+  'Sunny': '☀️',
+  'Clear': '☀️',
+  '多云': '⛅',
+  'Partly cloudy': '⛅',
+  'Cloudy': '🌤️',
+  '阴': '☁️',
+  '阴天': '☁️',
+  'Overcast': '☁️',
+  '小雨': '🌦️',
+  '中雨': '🌧️',
+  '大雨': '🌧️',
+  '暴雨': '⛈️',
+  'Rain': '🌧️',
+  'Light rain': '🌦️',
+  'Heavy rain': '🌧️',
+  '雷阵雨': '⛈️',
+  'Thunderstorm': '⛈️',
+  '小雪': '🌨️',
+  '中雪': '❄️',
+  '大雪': '❄️',
+  'Snow': '❄️',
+  '雾': '🌫️',
+  '霾': '🌫️',
+  'Fog': '🌫️',
+  'Mist': '🌫️',
+  'Haze': '🌫️',
+};
+
+const weatherIcon = computed(() => {
+  if (!weather.value) return '🌤️';
+  
+  // 优先使用天气代码匹配
+  const code = weather.value.icon;
+  if (code && weatherCodeToIcon[code]) {
+    return weatherCodeToIcon[code];
+  }
+  
+  // 然后尝试描述匹配
+  const desc = weather.value.description;
+  if (desc) {
+    // 精确匹配
+    if (weatherDescToIcon[desc]) {
+      return weatherDescToIcon[desc];
+    }
+    // 模糊匹配
+    for (const [key, icon] of Object.entries(weatherDescToIcon)) {
+      if (desc.toLowerCase().includes(key.toLowerCase()) || 
+          key.toLowerCase().includes(desc.toLowerCase())) {
+        return icon;
+      }
+    }
+  }
+  
+  return '🌤️';
+});
+
+// 获取天气数据 - 多数据源方案
+async function fetchWeather() {
+  weatherLoading.value = true;
+  
+  // 尝试从缓存读取（1小时有效期）
+  const cacheKey = 'weather_cache';
+  const cachedData = localStorage.getItem(cacheKey);
+  
+  if (cachedData) {
+    try {
+      const cache = JSON.parse(cachedData);
+      const cacheTime = cache.timestamp || 0;
+      const now = Date.now();
+      
+      // 缓存1小时内有效
+      if (now - cacheTime < 60 * 60 * 1000) {
+        weather.value = cache.data;
+        weatherLoading.value = false;
+        return;
+      }
+    } catch (e) {
+      // 缓存解析失败，继续获取新数据
+    }
+  }
+  
+  // 尝试获取用户位置
+  let location = '';
+  try {
+    // 尝试通过IP定位
+    const ipResponse = await fetch('https://ipapi.co/json/', { 
+      signal: AbortSignal.timeout(3000) 
+    });
+    if (ipResponse.ok) {
+      const ipData = await ipResponse.json();
+      location = ipData.city || '';
+    }
+  } catch (e) {
+    console.log('IP定位失败，使用默认位置');
+  }
+  
+  // 主要数据源: wttr.in
+  try {
+    const weatherUrl = location 
+      ? `https://wttr.in/${encodeURIComponent(location)}?format=j1&lang=zh`
+      : 'https://wttr.in/?format=j1&lang=zh';
+      
+    const response = await fetch(weatherUrl, {
+      signal: AbortSignal.timeout(5000)
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const currentCondition = data.current_condition?.[0];
+      const area = data.nearest_area?.[0];
+      
+      if (currentCondition) {
+        // 优先使用中文描述
+        let description = currentCondition.lang_zh?.[0]?.value || '';
+        if (!description) {
+          description = currentCondition.weatherDesc?.[0]?.value || '';
+          // 尝试翻译常见英文描述
+          const translations: Record<string, string> = {
+            'Sunny': '晴',
+            'Clear': '晴',
+            'Partly cloudy': '多云',
+            'Cloudy': '多云',
+            'Overcast': '阴',
+            'Mist': '薄雾',
+            'Fog': '雾',
+            'Light rain': '小雨',
+            'Rain': '雨',
+            'Heavy rain': '大雨',
+            'Light snow': '小雪',
+            'Snow': '雪',
+            'Heavy snow': '大雪',
+            'Thunderstorm': '雷阵雨',
+          };
+          description = translations[description] || description;
+        }
+        
+        const weatherData: WeatherData = {
+          temp: parseInt(currentCondition.temp_C) || 0,
+          description: description || '晴',
+          icon: currentCondition.weatherCode || '113',
+          humidity: parseInt(currentCondition.humidity) || 0,
+          windSpeed: parseInt(currentCondition.windspeedKmph) || 0,
+          location: area?.areaName?.[0]?.value || area?.region?.[0]?.value || ''
+        };
+        
+        // 缓存天气数据
+        localStorage.setItem(cacheKey, JSON.stringify({
+          timestamp: Date.now(),
+          data: weatherData
+        }));
+        
+        weather.value = weatherData;
+        weatherLoading.value = false;
+        return;
+      }
+    }
+  } catch (error) {
+    console.log('wttr.in 获取失败，尝试备用源');
+  }
+  
+  // 备用数据源: Open-Meteo (完全免费，无需API Key)
+  try {
+    // 使用北京作为默认位置
+    const lat = 39.9042;
+    const lon = 116.4074;
+    
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Asia/Shanghai`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    
+    if (response.ok) {
+      const data = await response.json();
+      const current = data.current;
+      
+      if (current) {
+        // Open-Meteo 天气代码映射
+        const wmoCodeToDesc: Record<number, string> = {
+          0: '晴', 1: '晴', 2: '多云', 3: '阴',
+          45: '雾', 48: '雾',
+          51: '小雨', 53: '小雨', 55: '中雨',
+          61: '小雨', 63: '中雨', 65: '大雨',
+          71: '小雪', 73: '中雪', 75: '大雪',
+          80: '阵雨', 81: '阵雨', 82: '暴雨',
+          95: '雷阵雨', 96: '雷阵雨', 99: '雷阵雨'
+        };
+        
+        const weatherData: WeatherData = {
+          temp: Math.round(current.temperature_2m) || 0,
+          description: wmoCodeToDesc[current.weather_code] || '晴',
+          icon: String(current.weather_code) || '0'
+        };
+        
+        // 缓存天气数据
+        localStorage.setItem(cacheKey, JSON.stringify({
+          timestamp: Date.now(),
+          data: weatherData
+        }));
+        
+        weather.value = weatherData;
+        weatherLoading.value = false;
+        return;
+      }
+    }
+  } catch (error) {
+    console.log('Open-Meteo 获取失败');
+  }
+  
+  // 所有数据源都失败，使用默认值
+  weather.value = {
+    temp: 20,
+    description: '晴',
+    icon: '113',
+    humidity: 50,
+    windSpeed: 10
+  };
+  weatherLoading.value = false;
+}
+
 // 时间轴配置
 const START_HOUR = 5;
 const END_HOUR = 23;
@@ -113,26 +425,47 @@ const sortedEvents = computed<TimelineEvent[]>(() => {
       });
     });
 
-  // 处理任务
+  // 处理任务 - 显示所有今日任务
   const todayTasks = taskStore.tasks.filter(
     t => t.task_date === todayStr && (!props.planId || t.plan_id === props.planId)
   );
   
-  todayTasks.forEach(t => {
-    const startHour = parseTimeToHour(t.start_time);
-    const endHour = parseTimeToHour(t.end_time);
+  // 用于跟踪已占用的时间槽，避免重叠
+  const occupiedSlots: number[] = [];
+  
+  todayTasks.forEach((t, index) => {
+    let startHour = parseTimeToHour(t.start_time);
+    let endHour = parseTimeToHour(t.end_time);
     
-    if (startHour > 0 || endHour > 0) {
-      events.push({
-        id: 't-' + t.id,
-        title: t.title,
-        type: getTaskType(t),
-        startHour: Math.max(START_HOUR, startHour),
-        endHour: Math.min(END_HOUR, Math.max(startHour + 1, endHour)),
-        completed: t.status === 'done',
-        originalData: t
-      });
+    // 如果任务没有时间信息，给它分配一个默认位置
+    if (startHour === 0 && endHour === 0) {
+      // 从9点开始，找一个未占用的1小时槽位
+      let defaultHour = 9;
+      while (occupiedSlots.includes(defaultHour) && defaultHour < END_HOUR) {
+        defaultHour++;
+      }
+      startHour = defaultHour;
+      endHour = defaultHour + 1;
+      occupiedSlots.push(defaultHour);
+    } else {
+      // 确保时间有效
+      startHour = Math.max(START_HOUR, startHour);
+      endHour = Math.min(END_HOUR, Math.max(startHour + 1, endHour));
+      // 标记占用的槽位
+      for (let h = Math.floor(startHour); h < Math.floor(endHour); h++) {
+        occupiedSlots.push(h);
+      }
     }
+    
+    events.push({
+      id: 't-' + t.id,
+      title: t.title,
+      type: getTaskType(t),
+      startHour,
+      endHour,
+      completed: t.status === 'done',
+      originalData: t
+    });
   });
 
   // 按开始时间排序
@@ -232,6 +565,9 @@ onMounted(async () => {
   await taskStore.loadTasks(props.planId);
   await scheduleStore.load(todayStr);
   
+  // 获取天气
+  fetchWeather();
+  
   // 每分钟更新当前时间
   timeUpdateInterval = window.setInterval(updateCurrentTime, 60000);
 });
@@ -251,21 +587,80 @@ onUnmounted(() => {
 
 .header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: var(--space-4);
+  gap: var(--space-3);
 }
 
-.header h2 {
-  font-size: 16px;
-  font-weight: 600;
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.weekday-title {
+  font-size: 20px;
+  font-weight: 700;
   color: var(--text-main);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .date-label {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.weather-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+}
+
+.weather-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.weather-icon {
+  font-size: 20px;
+}
+
+.weather-temp {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.weather-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weather-location {
+  font-size: 10px;
+  color: var(--text-muted);
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .timeline-wrapper {
@@ -461,6 +856,33 @@ onUnmounted(() => {
 
 /* 响应式 */
 @media (max-width: 768px) {
+  .header {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .weekday-title {
+    font-size: 18px;
+  }
+  
+  .weather-info {
+    padding: var(--space-1) var(--space-2);
+    gap: var(--space-1);
+  }
+  
+  .weather-icon {
+    font-size: 16px;
+  }
+  
+  .weather-temp {
+    font-size: 14px;
+  }
+  
+  .weather-desc {
+    font-size: 11px;
+    max-width: 40px;
+  }
+  
   .timeline-wrapper {
     min-height: 350px;
   }
@@ -489,6 +911,20 @@ onUnmounted(() => {
   
   .event-time {
     font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .weather-details {
+    display: none;
+  }
+  
+  .weather-info {
+    padding: var(--space-1) var(--space-2);
+  }
+  
+  .weather-location {
+    display: none;
   }
 }
 </style>

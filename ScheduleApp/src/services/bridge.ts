@@ -346,3 +346,187 @@ export function resetBridgeRuntimeMetrics() {
   runtimeMetrics.internalErrorCalls = 0;
   runtimeMetrics.unsupportedCalls = 0;
 }
+
+// ============ Electron 定时任务 API ============
+
+// 扩展 Window 接口
+declare global {
+  interface Window {
+    electronAPI?: {
+      platform: string;
+      secureStorage: {
+        get: (key: string) => Promise<string | null>;
+        set: (key: string, value: string) => Promise<boolean>;
+      };
+      scheduler: {
+        getCachedReview: () => Promise<any>;
+        triggerReview: () => Promise<any>;
+        getTasks: () => Promise<any[]>;
+        updateTask: (taskId: string, updates: any) => Promise<boolean>;
+        updateConfig: (config: any) => Promise<boolean>;
+        saveUserData: (data: { tasks: any[]; schedules: any[]; userId: number }) => Promise<boolean>;
+        onAIReviewComplete: (callback: (review: any) => void) => () => void;
+      };
+      system: {
+        isElectron: boolean;
+        isDev: boolean;
+      };
+    };
+  }
+}
+
+/**
+ * 检查是否在 Electron 环境中
+ */
+export function isElectron(): boolean {
+  return !!window.electronAPI?.system?.isElectron;
+}
+
+/**
+ * 获取缓存的AI复盘结果
+ * 支持 Electron 后台任务和 Web 环境两种模式
+ */
+export async function getCachedAIReview(): Promise<any | null> {
+  // Electron 环境：从主进程获取缓存
+  if (window.electronAPI?.scheduler) {
+    return window.electronAPI.scheduler.getCachedReview();
+  }
+  
+  // Web 环境：从 localStorage 获取缓存
+  try {
+    const cachedData = localStorage.getItem("ai_daily_review");
+    const cachedDate = localStorage.getItem("ai_review_date");
+    
+    if (cachedData && cachedDate) {
+      const lastDate = new Date(cachedDate);
+      const hoursDiff = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursDiff < 24) {
+        return JSON.parse(cachedData);
+      }
+    }
+  } catch (e) {
+    console.error("[Bridge] 读取缓存失败:", e);
+  }
+  
+  return null;
+}
+
+/**
+ * 手动触发AI复盘
+ */
+export async function triggerAIReview(): Promise<any | null> {
+  // Electron 环境：调用主进程
+  if (window.electronAPI?.scheduler) {
+    return window.electronAPI.scheduler.triggerReview();
+  }
+  
+  // Web 环境：调用前端服务
+  try {
+    const { triggerManualReview } = await import("./ai-review");
+    const { useTaskStore } = await import("@/store/tasks");
+    const { useScheduleStore } = await import("@/store/schedules");
+    
+    const taskStore = useTaskStore();
+    const scheduleStore = useScheduleStore();
+    
+    return triggerManualReview(
+      taskStore.tasks || [],
+      scheduleStore.schedules || [],
+      "today"
+    );
+  } catch (e) {
+    console.error("[Bridge] 触发复盘失败:", e);
+    return null;
+  }
+}
+
+/**
+ * 获取定时任务列表
+ */
+export async function getScheduledTasks(): Promise<any[]> {
+  if (window.electronAPI?.scheduler) {
+    return window.electronAPI.scheduler.getTasks();
+  }
+  
+  // Web 环境返回模拟数据
+  return [
+    {
+      id: "ai-daily-review",
+      name: "AI每日复盘",
+      enabled: true,
+      nextRun: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
+}
+
+/**
+ * 更新定时任务配置
+ */
+export async function updateScheduledTask(
+  taskId: string,
+  updates: { enabled?: boolean }
+): Promise<boolean> {
+  if (window.electronAPI?.scheduler) {
+    return window.electronAPI.scheduler.updateTask(taskId, updates);
+  }
+  
+  // Web 环境不支持
+  console.warn("[Bridge] Web环境不支持更新定时任务");
+  return false;
+}
+
+/**
+ * 更新服务器配置（为后续服务器接入预留）
+ */
+export async function updateSchedulerConfig(config: {
+  apiBaseUrl?: string;
+  useLocalExecution?: boolean;
+}): Promise<boolean> {
+  if (window.electronAPI?.scheduler) {
+    return window.electronAPI.scheduler.updateConfig(config);
+  }
+  
+  // Web 环境保存到 localStorage
+  try {
+    localStorage.setItem("scheduler_config", JSON.stringify(config));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 保存用户数据（供后台任务读取）
+ */
+export async function saveUserDataForScheduler(data: {
+  tasks: any[];
+  schedules: any[];
+  userId: number;
+}): Promise<boolean> {
+  if (window.electronAPI?.scheduler) {
+    return window.electronAPI.scheduler.saveUserData(data);
+  }
+  
+  // Web 环境：保存到 localStorage
+  try {
+    localStorage.setItem("user_data_for_scheduler", JSON.stringify(data));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 监听AI复盘完成事件
+ */
+export function onAIReviewComplete(
+  callback: (review: any) => void
+): () => void {
+  if (window.electronAPI?.scheduler) {
+    return window.electronAPI.scheduler.onAIReviewComplete(callback);
+  }
+  
+  // Web 环境：返回空的清理函数
+  return () => {};
+}
