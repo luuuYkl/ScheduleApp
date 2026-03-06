@@ -159,8 +159,9 @@ async function register() {
       email: email.value,
       password: password.value,
     });
-
-    router.push("/home");
+    // 支持 redirect 参数，注册后跳转到原本想访问的页面
+    const redirect = router.currentRoute.value.query.redirect as string;
+    router.push(redirect || "/home");
   } catch (err: any) {
     error.value = err.message || "注册失败";
   } finally {
@@ -169,7 +170,13 @@ async function register() {
 }
 
 function goLogin() {
-  router.push("/login");
+  // 跳转登录页时保留 redirect 参数
+  const redirect = router.currentRoute.value.query.redirect;
+  if (redirect) {
+    router.push({ path: "/login", query: { redirect: redirect as string } });
+  } else {
+    router.push("/login");
+  }
 }
 </script>
 

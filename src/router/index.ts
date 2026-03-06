@@ -8,8 +8,8 @@ import PlanCalendarPage from "@/pages/Plan/PlanCalendarPage.vue";
 import LogPage from "@/pages/Log/LogPage.vue";
 import TaskDetailPage from "@/pages/Task/TaskDetailPage.vue";
 import TaskCreatePage from "@/pages/Task/TaskCreatePage.vue";
-import LoginPage from "@/components/auth/LoginPage.vue";
-import RegisterPage from "@/components/auth/RegisterPage.vue";
+import LoginPage from "@/pages/Auth/LoginPage.vue";
+import RegisterPage from "@/pages/Auth/RegisterPage.vue";
 import SchedulePage from "@/pages/Schedule/SchedulePage.vue";
 import ProfilePage from "@/pages/User/ProfilePage.vue";
 import { useUserStore } from "@/store/user";
@@ -71,38 +71,28 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from) => {
+  const store = useUserStore();
+
+  // 尝试恢复用户信息（从安全存储或后端）
   try {
-    const store = useUserStore();
-
-    // 尝试恢复用户信息（从安全存储或后端）
-    try {
-      await store.restore();
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn("[ROUTER] user restore failed:", e);
-    }
-
-    const token = store.token;
-    const user = store.user;
-
-    // 调试输出：路由目标 / token / user 状态
+    await store.restore();
+  } catch (e) {
     // eslint-disable-next-line no-console
-    console.log(
-      `[ROUTER] to=${to.fullPath} requiresAuth=${!!to.meta.requiresAuth} token=${token ? "YES" : "NO"} user=${user ? "YES" : "NO"}`,
-    );
-
-    // 临时允许所有路由访问用于调试
-    if (to.meta.requiresAuth && !token) {
-      console.warn(
-        `[ROUTER] Would redirect to login, but allowing for debugging: ${to.fullPath}`,
-      );
-      // return { path: "/login", query: { redirect: to.fullPath } };
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[ROUTER] guard error:", err);
-    return true;
+    console.warn("[ROUTER] user restore failed:", e);
   }
+
+  const token = store.token;
+
+  // 需要认证但未登录 → 跳转登录页
+  if (to.meta.requiresAuth && !token) {
+    return { path: "/login", query: { redirect: to.fullPath } };
+  }
+
+  // 已登录访问登录/注册页 → 跳转首页
+  if ((to.path === "/login" || to.path === "/register") && token) {
+    return { path: "/home" };
+  }
+
   return true;
 });
 

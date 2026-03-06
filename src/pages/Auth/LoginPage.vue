@@ -140,7 +140,9 @@ async function login() {
   error.value = "";
   try {
     await userStore.login(username.value, password.value);
-    router.push("/home");
+    // 支持 redirect 参数，登录后跳转到原本想访问的页面
+    const redirect = router.currentRoute.value.query.redirect as string;
+    router.push(redirect || "/home");
   } catch (err: any) {
     error.value = err.message || "登录失败";
   } finally {
@@ -149,7 +151,13 @@ async function login() {
 }
 
 function goRegister() {
-  router.push("/register");
+  // 跳转注册页时保留 redirect 参数
+  const redirect = router.currentRoute.value.query.redirect;
+  if (redirect) {
+    router.push({ path: "/register", query: { redirect: redirect as string } });
+  } else {
+    router.push("/register");
+  }
 }
 </script>
 
