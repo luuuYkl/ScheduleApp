@@ -58,11 +58,11 @@ const routes = [
     meta: { requiresAuth: true },
   },
   { path: "/schedule", component: SchedulePage, meta: { requiresAuth: true } },
-  { path: "/login", component: LoginPage, meta: { showBottomNav: false } },
+  { path: "/login", component: LoginPage, meta: { hideNav: true } },
   {
     path: "/register",
     component: RegisterPage,
-    meta: { showBottomNav: false },
+    meta: { hideNav: true },
   },
 ];
 const router = createRouter({

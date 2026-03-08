@@ -168,34 +168,18 @@ function goRegister() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 2rem 1rem;
 }
 
 .auth-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  max-width: 960px;
+  grid-template-columns: 400px 1fr;
+  max-width: 1000px;
   width: 100%;
   background: white;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-/* 桌面端双列布局 */
-@media (min-width: 769px) {
-  .auth-container {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .auth-visual {
-    /* 左侧：品牌视觉 */
-  }
-  
-  .auth-form {
-    /* 右侧：登录表单 */
-    align-self: center;
-  }
 }
 
 /* 左侧视觉区域 */
@@ -262,12 +246,12 @@ function goRegister() {
   padding: 3rem;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .form-wrapper {
   width: 100%;
   max-width: 360px;
-  margin: 0 auto;
 }
 
 .form-header {
@@ -483,13 +467,11 @@ function goRegister() {
   .auth-container {
     grid-template-columns: 1fr;
     max-width: 480px;
-    /* 移动端单卡布局 */
     grid-template-rows: auto 1fr;
   }
   
   .auth-visual {
     padding: 2rem;
-    /* 移动端视觉区域高度自适应 */
     min-height: 200px;
   }
   
@@ -503,7 +485,6 @@ function goRegister() {
   
   .auth-form {
     padding: 2rem;
-    /* 移动端表单区域填充剩余空间 */
   }
   
   .features-list {
@@ -517,19 +498,18 @@ function goRegister() {
     font-size: 0.9rem;
   }
   
-  /* 移动端优先级调整 */
   .auth-visual {
-    order: -1; /* 视觉区域前置 */
+    order: -1;
   }
   
   .auth-form {
-    order: 1; /* 表单区域后置 */
+    order: 1;
   }
 }
 
 @media (max-width: 480px) {
   .auth-page {
-    padding: 0.5rem;
+    padding: 1rem 0.5rem;
   }
   
   .auth-container {

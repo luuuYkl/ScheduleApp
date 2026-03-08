@@ -8,12 +8,13 @@
         :class="{
           'app-shell--desktop': isDesktop,
           'app-shell--mobile': !isDesktop,
+          'app-shell--no-nav': !showNavigation,
         }"
         role="application"
         aria-label="日程管理应用"
       >
         <!-- 响应式头部 - 使用 Arco Layout -->
-        <a-layout-header class="app-header" role="banner">
+        <a-layout-header class="app-header" role="banner" v-if="showNavigation">
           <div class="header-inner">
             <div class="header-left">
               <h1 class="app-name">{{ APP_CONFIG.APP_NAME }}</h1>
@@ -42,11 +43,11 @@
         </a-layout-header>
 
         <!-- 响应式主体布局 -->
-        <div class="app-body">
+        <div class="app-body" :class="{ 'app-body--full': !showNavigation }">
           <!-- 桌面端左侧导航 -->
           <aside
             class="app-sidebar"
-            v-if="isDesktop"
+            v-if="isDesktop && showNavigation"
             role="navigation"
             aria-label="主导航菜单"
           >
@@ -90,7 +91,7 @@
           </aside>
 
           <!-- 主内容区域 -->
-          <main class="app-main" role="main" tabindex="-1" ref="mainContent">
+          <main class="app-main" role="main" tabindex="-1" ref="mainContent" :class="{ 'app-main--full': !showNavigation }">
             <router-view />
           </main>
         </div>
@@ -98,7 +99,7 @@
         <!-- 移动端底部导航 - 使用 Arco Menu -->
         <a-layout-footer
           class="app-bottom-nav"
-          v-if="!isDesktop && showBottomNav"
+          v-if="!isDesktop && showBottomNav && showNavigation"
           role="navigation"
           aria-label="底部导航菜单"
         >
@@ -145,10 +146,15 @@ import {
   IconBarChart,
 } from "@arco-design/web-vue/es/icon";
 
-// 计算属性：判断是否显示底部导航栏
+// 路由
 const route = useRoute();
 const router = useRouter();
+
+// 计算属性：判断是否显示底部导航栏
 const showBottomNav = computed(() => route.meta.showBottomNav ?? true);
+
+// 计算属性：判断是否显示导航栏（登录/注册页隐藏）
+const showNavigation = computed(() => !route.meta.hideNav);
 
 // 响应式断点计算
 const isDesktop = ref(window.matchMedia("(min-width: 1024px)").matches);
@@ -355,6 +361,11 @@ watch(
   min-height: 0;
 }
 
+/* 无导航时全宽布局 */
+.app-body--full {
+  grid-template-columns: 1fr;
+}
+
 /* 桌面端左侧导航 */
 .app-sidebar {
   background: var(--bg-card);
@@ -434,6 +445,11 @@ watch(
   min-height: 0;
   outline: none;
   padding: var(--space-6) var(--space-8) var(--space-8);
+}
+
+/* 无导航时全宽无padding */
+.app-main--full {
+  padding: 0;
 }
 
 .app-main > * {

@@ -1,8 +1,8 @@
 <template>
   <div class="auth-page layer-context">
-    <div class="auth-container reverse layout-template-l">
-      <!-- Primary Layer: 左侧表单区域 -->
-      <div class="auth-form layer-primary priority-high">
+    <div class="auth-container">
+      <!-- 表单区域 -->
+      <div class="auth-form">
         <div class="form-wrapper">
           <div class="form-header">
             <h2 class="form-title">创建账户</h2>
@@ -95,33 +95,6 @@
           </form>
         </div>
       </div>
-
-      <!-- Context Layer: 右侧视觉区域 -->
-      <div class="auth-visual layer-context priority-essential">
-        <div class="visual-content">
-          <div class="brand-logo">🎯</div>
-          <h1 class="brand-title">加入我们</h1>
-          <p class="brand-slogan">与 thousands+ 用户一起提升效率</p>
-          <div class="benefits-list">
-            <div class="benefit-item">
-              <span class="benefit-check">✓</span>
-              <span>免费使用全部核心功能</span>
-            </div>
-            <div class="benefit-item">
-              <span class="benefit-check">✓</span>
-              <span>数据云端同步备份</span>
-            </div>
-            <div class="benefit-item">
-              <span class="benefit-check">✓</span>
-              <span>享受个性化AI建议</span>
-            </div>
-            <div class="benefit-item">
-              <span class="benefit-check">✓</span>
-              <span>参与社区分享交流</span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -191,22 +164,12 @@ function goLogin() {
 }
 
 .auth-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  max-width: 960px;
+  max-width: 480px;
   width: 100%;
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-.auth-container.reverse {
-  direction: rtl;
-}
-
-.auth-container.reverse > * {
-  direction: ltr;
 }
 
 /* 表单区域 */
@@ -269,8 +232,8 @@ function goLogin() {
 
 .form-input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-opacity-10);
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px var(--color-brand-alpha-12);
 }
 
 .password-strength {
@@ -328,7 +291,7 @@ function goLogin() {
 .checkbox-input {
   width: 16px;
   height: 16px;
-  accent-color: var(--primary);
+  accent-color: var(--color-brand-500);
   margin-top: 2px;
 }
 
@@ -337,7 +300,7 @@ function goLogin() {
 }
 
 .terms-link {
-  color: var(--primary);
+  color: var(--color-brand-500);
   text-decoration: none;
 }
 
@@ -352,7 +315,7 @@ function goLogin() {
   padding: 0.75rem;
   background: var(--error-bg);
   border-radius: 8px;
-  border: 1px solid var(--error);
+  border: 1px solid var(--error-border);
 }
 
 .submit-button {
@@ -367,10 +330,23 @@ function goLogin() {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  background: var(--color-brand-500);
+  color: white;
+}
+
+.submit-button:hover:not(:disabled) {
+  background: var(--color-brand-600);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.submit-button:active:not(:disabled) {
+  background: var(--color-brand-700);
+  transform: translateY(0);
 }
 
 .submit-button:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
@@ -401,7 +377,7 @@ function goLogin() {
 .switch-button {
   background: none;
   border: none;
-  color: var(--primary);
+  color: var(--color-brand-500);
   font-weight: 600;
   cursor: pointer;
   padding: 0;
@@ -412,110 +388,7 @@ function goLogin() {
   text-decoration: underline;
 }
 
-/* 视觉区域 */
-.auth-visual {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  padding: 3rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
-
-.visual-content {
-  text-align: center;
-  max-width: 320px;
-}
-
-.brand-logo {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
-
-.brand-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem 0;
-  letter-spacing: -0.5px;
-}
-
-.brand-slogan {
-  font-size: 1.1rem;
-  opacity: 0.9;
-  margin: 0 0 2rem 0;
-  line-height: 1.6;
-}
-
-.benefits-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.benefit-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1rem;
-  opacity: 0.9;
-  text-align: left;
-}
-
-.benefit-check {
-  font-weight: bold;
-  color: var(--success);
-}
-
 /* 响应式 */
-@media (max-width: 768px) {
-  .auth-container {
-    grid-template-columns: 1fr;
-    max-width: 480px;
-  }
-  
-  .auth-container.reverse {
-    direction: ltr;
-  }
-  
-  .auth-form {
-    order: 1;
-    padding: 2rem;
-  }
-  
-  .auth-visual {
-    order: 2;
-    padding: 2rem;
-  }
-  
-  .brand-logo {
-    font-size: 3rem;
-  }
-  
-  .brand-title {
-    font-size: 2rem;
-  }
-  
-  .benefits-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.75rem;
-  }
-  
-  .benefit-item {
-    font-size: 0.9rem;
-    flex: 1;
-    min-width: 140px;
-  }
-}
-
 @media (max-width: 480px) {
   .auth-page {
     padding: 0.5rem;
@@ -525,8 +398,8 @@ function goLogin() {
     border-radius: 16px;
   }
   
-  .auth-form, .auth-visual {
-    padding: 1.5rem;
+  .auth-form {
+    padding: 2rem;
   }
   
   .form-title {
