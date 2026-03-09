@@ -6,8 +6,7 @@ module.exports = {
     {
       name: 'schedule-app-api',
       script: 'npm',
-      args: 'run',
-      start',
+      args: 'run start',
       cwd: './server',
       instances: 1,
       autorestart: true,
@@ -21,9 +20,8 @@ module.exports = {
     {
       name: 'schedule-app-frontend',
       script: 'npx',
-      args: 'run',
-      serve',
-      cwd: './dist',
+      args: 'serve -s dist -l 80',
+      cwd: './',
       instances: 1,
       autorestart: true,
       watch: false,
