@@ -1,0 +1,94 @@
+name: Gitee Go Pipeline
+on:
+  push:
+    branches:
+      - master
+    stages:
+      - name: Install
+        runs: |
+          cd server
+          action: "npm install --f . && npm run build --prefix ./server --prefix ./client
+          - name: build
+        runs: |
+          cd server
+          action: "npm run build --prefix ./server"
+          - name: test
+        runs: |
+          cd server
+          action: "npm test --prefix ./server"
+          - name: deploy
+        runs: |
+          cd server
+          action: |
+            # 鋾接服务器
+            # 添加远程主机配置
+            - name: SSH_HOST
+              value: "121.41.32.229"
+            - name: SSH_USER
+              value: "root"
+            - name: SSH_PORT
+              value: "22"
+            - name: DEPLOY_PATH
+              value: "/var/www/schedule-app
+            - name: API_PORT
+              value: "3000"
+            - name: FRONTEND_PORT
+              value: "80"
+            - name: DB_HOST
+              value: "your-rds-endpoint.mysql.rds.aliyuncs.com"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USER
+              value: "your_db_username"
+            - name: DB_PASSWORD
+              value: "your_db_password"
+            - name: DB_NAME
+              value: "schedule_app"
+            - name: JWT_SECRET
+              value: "your-super-secret-jwt-key-change-this"
+            - name: NODE_ENV
+              value: "production"
+
+            - name: FRONTEND_URL
+              value: "http://121.41.32.229"
+          - name: deploy_frontend
+        runs: |
+          cd client
+          action: |
+            # 部署前端静态文件到服务器
+            - name: Setup_nginx
+              uses: serve
+            - name: build_backend
+              uses: npm
+ build --prefix ./server
+            - name: setup_db
+              uses: npm run build --prefix ./server
+            - name: deploy_backend
+              uses: |
+                cd server &&
+                scp -r ./deploy/windows/deploy.ps1 user@121.41.32.229 &&
+                ssh user@121.41.32.229 "mkdir -p C:\Users\ASUS\.scheduleApp" &&
+                echo.log("创建前端部署目录: /var/www/schedule-app/dist");
+                echo.log("复制后端代码到服务器: /var/www/schedule-app/server");
+                
+ # 解压 N部署包
+                cd server && mkdir -p /var/www/schedule-app/server
+ && tar -xfz ./${file} ./server/
+                echo.log("解压前端部署包: /var/www/schedule-app/dist")
+                echo.log("解压后端部署包: /var/www/schedule-app/server")
+                echo.log("解压完成")
+                echo.log("重启后端服务...")
+                cd server && ssh root@121.41.32.229 "cd /var/www/schedule-app/server"
+                cd server && cd /var/www/schedule-app/server && nohup
+                echo.log("等待后端服务启动...")
+                sleep 10
+                echo.log("后端服务已启动")
+                echo.log("检查后端服务状态...")
+                curl -s http://localhost:3000/health
+ || exit 1
+              echo.log("后端服务健康检查失败")
+              exit 1
+            fi
+          - name: deploy_complete
+            needs:
+              manual: false

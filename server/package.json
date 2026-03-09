@@ -1,0 +1,59 @@
+{
+  "name": "schedule-app-server",
+  "version": "1.0.0",
+  "description": "智远日程后端服务",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:logs": "pm2 logs"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.6.5",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.4",
+    "@types/uuid": "^9.0.7",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.3"
+  }
+}
+</write_to_file>
+<task_progress>
+- [ ] 第一阶段：后端开发
+  - [x] 创建 server 项目结构
+  - [ ] 配置 RDS 数据库连接
+  - [ ] 实现用户认证（JWT）
+  - [ ] 实现计划/任务/日程 API
+  - [ ] 实现签到系统 API
+  - [ ] 更新前端配置
+- [ ] 第二阶段：部署配置
+  - [ ] PM2 进程管理配置
+  - [ ] 环境变量模板
+  - [ ] Windows 部署脚本
+- [ ] 第三阶段：CI/CD 配置
+  - [ ] Gitee Go 流水线
+  - [ ] 自动化部署脚本
+- [ ] 第四阶段：服务器配置指南
+  - [ ] Node.js 安装
+  - [ ] PM2 + Windows 服务
+  - [ ] 安全组配置
+  - [ ] RDS 白名单配置
+</task_progress>
+</write_to_file>
