@@ -86,7 +86,12 @@
       </div>
 
       <!-- 事件区域 -->
-      <div class="events-area">
+      <div 
+        class="events-area" 
+        ref="eventsAreaRef"
+        @dragover="handleDragOver"
+        @drop="handleDragEnd"
+      >
         <!-- 当前时间指示器 -->
         <div 
           class="current-time-indicator" 
@@ -101,8 +106,13 @@
           v-for="event in sortedEvents" 
           :key="event.id"
           class="event-block"
-          :class="[event.type, { completed: event.completed }]"
+          :class="[
+            event.type, 
+            { completed: event.completed, dragging: draggedEvent?.id === event.id }
+          ]"
           :style="getEventStyle(event)"
+          draggable="true"
+          @dragstart="handleDragStart($event, event)"
           @click="handleEventClick(event)"
         >
           <div class="event-icon">{{ getEventIcon(event) }}</div>
@@ -110,6 +120,12 @@
             <span class="event-title">{{ event.title }}</span>
             <span class="event-time">{{ formatEventTime(event) }}</span>
           </div>
+          <!-- 调整大小手柄 -->
+          <div 
+            class="resize-handle" 
+            @mousedown.stop="startResize($event, event)"
+            @click.stop
+          ></div>
         </div>
 
         <!-- 空状态 -->
@@ -145,11 +161,20 @@ const scheduleStore = useScheduleStore();
 const router = useRouter();
 
 const todayStr = new Date().toISOString().slice(0, 10);
-const hours = Array.from({ length: 19 }, (_, i) => i + 5); // 5:00 - 23:00
+const hours = Array.from({ length: 25 }, (_, i) => i); // 0:00 - 24:00
 
 // 当前时间相关
 const currentMinute = ref(new Date().getHours() * 60 + new Date().getMinutes());
 let timeUpdateInterval: number | null = null;
+
+// 拖拽状态
+const draggedEvent = ref<TimelineEvent | null>(null);
+const dragDeltaHour = ref(0);
+const eventsAreaRef = ref<HTMLElement | null>(null);
+
+// 调整大小状态
+const resizingEvent = ref<TimelineEvent | null>(null);
+const resizeDeltaHour = ref(0);
 
 // 星期文字
 const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -452,8 +477,8 @@ async function fetchWeather() {
 }
 
 // 时间轴配置
-const START_HOUR = 5;
-const END_HOUR = 23;
+const START_HOUR = 0;
+const END_HOUR = 24;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 
 // 合并任务和日程为时间轴事件
@@ -572,7 +597,13 @@ function getEventIcon(event: TimelineEvent): string {
 
 function getEventStyle(event: TimelineEvent): Record<string, string> {
   const top = ((event.startHour - START_HOUR) / TOTAL_HOURS) * 100;
-  const height = ((event.endHour - event.startHour) / TOTAL_HOURS) * 100;
+  let height = ((event.endHour - event.startHour) / TOTAL_HOURS) * 100;
+  
+  // 如果正在调整这个事件的大小，动态更新高度
+  if (resizingEvent.value?.id === event.id && resizeDeltaHour.value !== 0) {
+    const newEndHour = event.endHour + resizeDeltaHour.value;
+    height = ((newEndHour - event.startHour) / TOTAL_HOURS) * 100;
+  }
   
   return {
     top: `${top}%`,
@@ -608,6 +639,165 @@ function handleEventClick(event: TimelineEvent) {
   }
 }
 
+// ========== 拖拽功能 ==========
+function handleDragStart(event: DragEvent, timelineEvent: TimelineEvent) {
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(timelineEvent.id));
+  }
+  draggedEvent.value = timelineEvent;
+  dragDeltaHour.value = 0;
+}
+
+function handleDragOver(event: DragEvent) {
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+  
+  if (!draggedEvent.value || !eventsAreaRef.value) return;
+  
+  // 计算拖拽位置对应的时间
+  const rect = eventsAreaRef.value.getBoundingClientRect();
+  const y = event.clientY - rect.top;
+  const percentage = y / rect.height;
+  const newStartHour = START_HOUR + percentage * TOTAL_HOURS;
+  
+  // 计算时间偏移量（四舍五入到半小时）
+  const delta = newStartHour - draggedEvent.value.startHour;
+  dragDeltaHour.value = Math.round(delta * 2) / 2; // 四舍五入到0.5小时
+}
+
+function handleDragEnd() {
+  if (draggedEvent.value && dragDeltaHour.value !== 0) {
+    // 更新事件时间
+    updateEventTime(draggedEvent.value, dragDeltaHour.value);
+  }
+  draggedEvent.value = null;
+  dragDeltaHour.value = 0;
+}
+
+async function updateEventTime(event: TimelineEvent, deltaHour: number) {
+  const newStartHour = event.startHour + deltaHour;
+  const newEndHour = event.endHour + deltaHour;
+  
+  // 确保时间在有效范围内
+  if (newStartHour < START_HOUR || newEndHour > END_HOUR) {
+    return;
+  }
+  
+  const formatHourToTime = (hour: number) => {
+    const h = Math.floor(hour);
+    const m = Math.round((hour - h) * 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+  
+  const newStartTime = formatHourToTime(newStartHour);
+  const newEndTime = formatHourToTime(newEndHour);
+  
+  try {
+    if (event.id.toString().startsWith('s-')) {
+      // 更新日程
+      await scheduleStore.update(event.originalData.id, {
+        start_time: newStartTime,
+        end_time: newEndTime
+      });
+      await scheduleStore.load(todayStr);
+    } else if (event.id.toString().startsWith('t-')) {
+      // 更新任务
+      await taskStore.updateTask(event.originalData.id, {
+        start_time: newStartTime,
+        end_time: newEndTime
+      });
+      await taskStore.loadTasks();
+    }
+  } catch (error) {
+    console.error('更新时间失败:', error);
+  }
+}
+
+// ========== 调整大小功能 ==========
+function startResize(event: MouseEvent, timelineEvent: TimelineEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  resizingEvent.value = timelineEvent;
+  resizeDeltaHour.value = 0;
+  
+  // 添加全局鼠标事件
+  document.addEventListener('mousemove', handleResize);
+  document.addEventListener('mouseup', endResize);
+}
+
+function handleResize(event: MouseEvent) {
+  if (!resizingEvent.value || !eventsAreaRef.value) return;
+  
+  const rect = eventsAreaRef.value.getBoundingClientRect();
+  const y = event.clientY - rect.top;
+  const percentage = Math.max(0, Math.min(1, y / rect.height));
+  const targetHour = START_HOUR + percentage * TOTAL_HOURS;
+  
+  // 计算新的结束时间（四舍五入到半小时）
+  const newEndHour = Math.round(targetHour * 2) / 2;
+  const delta = newEndHour - resizingEvent.value.endHour;
+  
+  // 确保最小时长为0.5小时，且不超过结束时间
+  if (newEndHour > resizingEvent.value.startHour + 0.5 && newEndHour <= END_HOUR) {
+    resizeDeltaHour.value = delta;
+  }
+}
+
+function endResize() {
+  if (resizingEvent.value && resizeDeltaHour.value !== 0) {
+    updateEventDuration(resizingEvent.value, resizeDeltaHour.value);
+  }
+  
+  resizingEvent.value = null;
+  resizeDeltaHour.value = 0;
+  
+  // 移除全局鼠标事件
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', endResize);
+}
+
+async function updateEventDuration(event: TimelineEvent, deltaHour: number) {
+  const newEndHour = event.endHour + deltaHour;
+  
+  // 确保时间有效
+  if (newEndHour <= event.startHour || newEndHour > END_HOUR) {
+    return;
+  }
+  
+  const formatHourToTime = (hour: number) => {
+    const h = Math.floor(hour);
+    const m = Math.round((hour - h) * 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+  
+  const newEndTime = formatHourToTime(newEndHour);
+  const startTime = formatHourToTime(event.startHour);
+  
+  try {
+    if (event.id.toString().startsWith('s-')) {
+      // 更新日程
+      await scheduleStore.update(event.originalData.id, {
+        start_time: startTime,
+        end_time: newEndTime
+      });
+      await scheduleStore.load(todayStr);
+    } else if (event.id.toString().startsWith('t-')) {
+      // 更新任务
+      await taskStore.updateTask(event.originalData.id, {
+        start_time: startTime,
+        end_time: newEndTime
+      });
+      await taskStore.loadTasks();
+    }
+  } catch (error) {
+    console.error('更新时长失败:', error);
+  }
+}
+
 // 更新当前时间
 function updateCurrentTime() {
   const now = new Date();
@@ -634,8 +824,12 @@ onUnmounted(() => {
 
 <style scoped>
 .timeline-container {
-  padding: var(--space-4);
+  padding: var(--space-5);
   overflow: hidden;
+  min-width: 380px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -719,7 +913,9 @@ onUnmounted(() => {
 .timeline-wrapper {
   display: flex;
   position: relative;
-  min-height: 400px;
+  flex: 1;
+  min-height: 650px;
+  padding: var(--space-2);
 }
 
 /* 时间轴刻度 */
@@ -768,14 +964,16 @@ onUnmounted(() => {
   margin-left: var(--space-2);
   background: var(--bg-card);
   border-radius: var(--radius-sm);
-  min-height: 400px;
+  min-height: 100%;
+  height: 100%;
+  padding: var(--space-2);
 }
 
 /* 当前时间指示器 */
 .current-time-indicator {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: var(--space-3);
+  right: var(--space-3);
   display: flex;
   align-items: center;
   z-index: 10;
@@ -849,6 +1047,52 @@ onUnmounted(() => {
 
 .event-block.completed .event-title {
   text-decoration: line-through;
+}
+
+/* 拖拽状态 */
+.event-block.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  cursor: grabbing;
+}
+
+.event-block:active {
+  cursor: grabbing;
+}
+
+/* 调整大小手柄 */
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.resize-handle:hover {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.1), transparent);
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.resize-handle:hover::after {
+  opacity: 1;
 }
 
 .event-icon {

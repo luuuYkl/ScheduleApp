@@ -70,7 +70,7 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach(async (to, from) => {
+router.beforeEach(async (to, _from) => {
   const store = useUserStore();
 
   // 尝试恢复用户信息（从安全存储或后端）

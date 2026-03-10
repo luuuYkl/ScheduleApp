@@ -132,18 +132,48 @@ onMounted(() => {
 <style scoped>
 .home-content {
   width: 100%;
-  margin: 0 auto;
-  display: grid;
-  gap: var(--space-6);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   padding: 0;
+  gap: var(--space-4);
 }
 
-/* 4层结构布局 */
+/* 双卡布局容器 */
 .home-primary {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr;
   gap: var(--space-5);
-  margin-bottom: var(--space-4);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+/* 大屏幕优化 */
+@media (min-width: 1400px) {
+  .home-primary {
+    grid-template-columns: 1.4fr 1fr;
+    gap: var(--space-6);
+  }
+}
+
+/* 中等屏幕适配 */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .home-primary {
+    grid-template-columns: 1.5fr 1fr;
+  }
+}
+
+/* 平板和小屏幕 - 垂直堆叠 */
+@media (max-width: 1023px) {
+  .home-content {
+    padding: 0 var(--space-2);
+  }
+  
+  .home-primary {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
 }
 
 .plan-section,

@@ -40,10 +40,11 @@ defineProps<Props>();
 
 <style scoped>
 .page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-4);
   width: 100%;
+  height: 100%;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
 }
 
 .page__header {

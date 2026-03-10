@@ -67,58 +67,45 @@
       <!-- 滚动容器 (移动端支持横向滑动) -->
       <div class="plans-scroll-wrapper">
         <div :class="['plans-grid', { 'show-all': showAll }]">
-          <!-- 单个计划卡片 -->
+          <!-- 单个计划卡片 - 横向布局 -->
           <div v-for="plan in displayedPlans" :key="plan.id" class="plan-card">
-            <!-- 1. 计划标题 -->
-            <h3 class="plan-title">{{ plan.title }}</h3>
+            <!-- 第一行：标题 + 操作按钮 -->
+            <div class="card-header">
+              <h3 class="plan-title">{{ plan.title }}</h3>
+              <div class="card-actions">
+                <button class="action-btn" @click="goPlanTasks(plan.id)" title="管理任务">
+                  <span class="action-icon">📋</span>
+                </button>
+                <button class="action-btn" @click="editPlan(plan.id)" title="修改">
+                  <span class="action-icon">✏️</span>
+                </button>
+                <button class="action-btn action-danger" @click="removePlan(plan.id)" :disabled="loading" title="删除">
+                  <span class="action-icon">🗑️</span>
+                </button>
+              </div>
+            </div>
 
-            <!-- 2. 进度条 (基于任务完成率计算) -->
+            <!-- 第二行：进度条 -->
             <div class="plan-progress">
-              <a-progress
-                :percent="progressFor(plan.id) / 100"
-                :show-text="false"
-                size="small"
-              />
+              <div class="progress-bar">
+                <a-progress
+                  :percent="progressFor(plan.id) / 100"
+                  :show-text="false"
+                  size="small"
+                />
+              </div>
               <span class="progress-percent">{{ progressFor(plan.id) }}%</span>
             </div>
 
-            <!-- 3. 当前阶段状态 -->
-            <div class="plan-status">
-              <span class="status-label">当前阶段：</span>
-              <span class="status-text">{{ getStageText(plan) }}</span>
-            </div>
-
-            <!-- 4. AI 洞察建议 (可折叠，根据进度和活跃度生成) -->
-            <details class="ai-insight" v-if="getAIInsight(plan)">
-              <summary>AI 洞察</summary>
-              <p>{{ getAIInsight(plan) }}</p>
-            </details>
-
-            <!-- 5. 操作按钮组 -->
-            <div class="plan-actions">
-              <a-button
-                size="small"
-                type="outline"
-                @click="goPlanTasks(plan.id)"
-              >
-                管理任务
-              </a-button>
-              <a-button
-                size="small"
-                type="outline"
-                @click="editPlan(plan.id)"
-              >
-                修改
-              </a-button>
-              <a-button
-                size="small"
-                type="outline"
-                status="danger"
-                @click="removePlan(plan.id)"
-                :disabled="loading"
-              >
-                删除
-              </a-button>
+            <!-- 第三行：状态 + AI洞察 -->
+            <div class="card-footer">
+              <span class="plan-status">
+                <span class="status-dot" :class="getStatusClass(plan)"></span>
+                {{ getStageText(plan) }}
+              </span>
+              <span class="ai-hint" v-if="getAIInsight(plan)" :title="getAIInsight(plan)">
+                💡 {{ getAIInsight(plan).slice(0, 15) }}...
+              </span>
             </div>
           </div>
         </div>
@@ -266,14 +253,32 @@ function goPlanTasks(id: number | string) {
     router.push(`/plan/${id}/tasks`);
   }
 }
+
+// 获取状态样式类
+function getStatusClass(plan: any): string {
+  const progress = progressFor(plan.id);
+  const today = new Date().toISOString().slice(0, 10);
+  
+  if (plan.start_date > today) return "status-pending";
+  if (plan.end_date < today) return "status-ended";
+  if (progress >= 70) return "status-success";
+  if (progress >= 30) return "status-progress";
+  return "status-early";
+}
 </script>
 
 <style scoped>
 .plan-overview-section {
   background: var(--bg-card);
   border-radius: var(--radius);
-  padding: 1.5rem;
+  padding: var(--space-5);
   border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 650px;
+  overflow: hidden;
+  width: 100%;
 }
 
 /* 区块标题 */
@@ -318,14 +323,19 @@ function goPlanTasks(id: number | string) {
 /* 计划容器 */
 .plans-container {
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* 滚动包装器（移动端） */
 .plans-scroll-wrapper {
+  flex: 1;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  scrollbar-width: thin;
   -ms-overflow-style: none;
 }
 
@@ -371,22 +381,23 @@ function goPlanTasks(id: number | string) {
   }
 }
 
-/* 单个计划卡片 */
+/* 单个计划卡片 - 紧凑横向布局 */
 .plan-card {
   background: var(--bg-elevated);
-  border-radius: 16px;
-  padding: 1.25rem;
+  border-radius: 12px;
+  padding: 1rem;
   border: 1px solid var(--border-main);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   transition: all 0.2s;
-  min-height: 240px;
+  min-height: auto;
+  flex: 1;
 }
 
 @media (max-width: 767px) {
   .plan-card {
-    min-width: 280px;
+    min-width: 260px;
     flex-shrink: 0;
   }
 
@@ -400,144 +411,136 @@ function goPlanTasks(id: number | string) {
   box-shadow: var(--shadow-md);
 }
 
-/* 1. 计划名称 */
+/* 卡片头部：标题 + 操作按钮 */
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .plan-title {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-main);
   margin: 0;
   line-height: 1.4;
+  flex: 1;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: 2.8em;
 }
 
-/* 2. 进度表达 */
-.plan-progress {
-  opacity: 0.9;
+/* 操作按钮组 */
+.card-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
-.progress-visual {
+.action-btn {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.action-btn:hover {
+  background: var(--bg-card-hover);
+}
+
+.action-btn .action-icon {
+  font-size: 14px;
+}
+
+.action-btn.action-danger:hover {
+  background: var(--error-bg);
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 进度条区域 */
+.plan-progress {
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
 }
 
-.progress-segments {
-  display: flex;
-  gap: 0.25rem;
-  font-size: 16px;
-  line-height: 1;
-  letter-spacing: 0.1em;
-}
-
-.segment {
-  color: var(--text-muted);
-  transition: color 0.3s;
-}
-
-.segment.filled {
-  color: var(--ai-main);
+.progress-bar {
+  flex: 1;
 }
 
 .progress-percent {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ai-main);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
+  min-width: 36px;
+  text-align: right;
 }
 
-/* 3. 当前状态 */
-.plan-status {
-  font-size: 12px;
-  color: var(--text-secondary);
-  padding: 0.5rem 0;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.status-label {
-  opacity: 0.7;
-}
-
-.status-text {
-  font-weight: 500;
-}
-
-/* 4. AI 洞察 */
-.ai-insight {
-  font-size: 11px;
-  background: var(--ai-bg);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--ai-border);
-  margin-top: auto;
-}
-
-.ai-insight summary {
-  cursor: pointer;
-  user-select: none;
-  font-weight: 500;
-  color: var(--ai-main);
-  list-style: none;
-}
-
-.ai-insight summary::-webkit-details-marker {
-  display: none;
-}
-
-.ai-insight p {
-  margin: 0.5rem 0 0 0;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-/* 操作按钮 */
-.plan-actions {
+/* 卡片底部：状态 + AI提示 */
+.card-footer {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  font-size: 11px;
 }
 
-.btn-action {
-  flex: 1;
-  min-width: 70px;
-  padding: 0.5rem 0.75rem;
-  font-size: 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border-main);
-  background: transparent;
+.plan-status {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
 }
 
-.btn-action:hover:not(:disabled) {
-  background: var(--bg-card-hover);
-  border-color: var(--border-emphasis);
-  color: var(--text-main);
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
 }
 
-.btn-manage:hover {
-  border-color: var(--ai-main);
-  color: var(--ai-main);
+.status-dot.status-pending {
+  background: var(--text-muted);
 }
 
-.btn-delete:hover:not(:disabled) {
-  border-color: var(--error);
-  color: var(--error);
-  background: var(--error-bg);
+.status-dot.status-ended {
+  background: var(--error);
 }
 
-.btn-action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.status-dot.status-early {
+  background: var(--warning);
+}
+
+.status-dot.status-progress {
+  background: var(--ai-main);
+}
+
+.status-dot.status-success {
+  background: var(--success);
+}
+
+.ai-hint {
+  color: var(--text-muted);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
 }
 
 /* 查看全部按钮 */

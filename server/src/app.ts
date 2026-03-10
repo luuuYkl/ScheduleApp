@@ -1,4 +1,5 @@
 // Express 应用配置
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -112,7 +113,7 @@ async function startServer() {
     process.on('SIGTERM', () => {
       console.log('\n⏹️ 正在关闭服务器...');
       process.exit(0);
-    }
+    });
   } catch (error) {
     console.error('❌ 启动服务器失败:', error);
     process.exit(1);
