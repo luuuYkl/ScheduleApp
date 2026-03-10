@@ -1,12 +1,42 @@
+<!--
+  ═══════════════════════════════════════════════════════════════
+  今日页面 (HomePage.vue)
+  ═══════════════════════════════════════════════════════════════
+  
+  【页面定位】
+  应用的核心入口页，展示用户今日的任务安排和长期计划概览。
+  
+  【核心功能】
+  1. 时间轴视图 - 展示今日任务的时间分布，支持点击跳转详情
+  2. 计划概览 - 展示长期计划列表及其进度状态
+  
+  【布局结构】
+  ┌─────────────────────────────────────────────────────────┐
+  │  顶栏: [返回] 标题           [添加任务按钮]              │
+  ├─────────────────────────────────────────────────────────┤
+  │  ┌──────────────────┐  ┌──────────────────┐            │
+  │  │   时间轴视图      │  │   计划概览        │            │
+  │  │   TimelineView   │  │   PlanOverview   │            │
+  │  └──────────────────┘  └──────────────────┘            │
+  ├─────────────────────────────────────────────────────────┤
+  │  [浮动按钮-FAB]                                         │
+  └─────────────────────────────────────────────────────────┘
+  
+  【关联组件】
+  - TimelineView: 时间轴组件，显示今日任务
+  - PlanOverview: 计划概览组件，显示长期计划
+  - FloatingActionButton: 浮动操作按钮
+  - PageScaffold: 页面脚手架，提供统一布局框架
+-->
 <template>
   <PageScaffold 
     title=""
     show-back-button={false}
     class="layer-context"
   >
+    <!-- ========== 顶栏操作区 ========== -->
     <template #actions>
-      <!-- 刷新按钮已移除 -->
-      <div class="mobile-cta priority-essential">
+      <div class="desktop-cta priority-essential">
         <Button 
           variant="primary" 
           size="small" 
@@ -16,105 +46,86 @@
           <span class="cta-icon">+</span>
           <span class="cta-text">添加任务</span>
         </Button>
-
       </div>
     </template>
 
+    <!-- ========== 主内容区 ========== -->
     <div class="home-content layout-template-l">
-      <!-- Primary Layer: 双卡布局 -->
+      <!-- 双卡布局容器 -->
       <div class="home-primary layer-primary priority-high">
-        <!-- 执行层：今日任务时间轴（左侧） -->
+        <!-- 左侧: 时间轴视图 - 展示今日任务的时间分布 -->
         <div class="task-section desktop-execution">
           <TimelineView />
         </div>
         
-        <!-- 战略层：长期计划概览（右侧） -->
+        <!-- 右侧: 计划概览 - 展示长期计划及进度 -->
         <div class="plan-section desktop-strategy">
           <PlanOverview />
         </div>
       </div>
-      
-
     </div>
     
-    <!-- 浮动操作按钮 - 桌面端显示 -->
+    <!-- ========== 浮动操作区 ========== -->
     <div class="desktop-fab priority-low">
       <FloatingActionButton />
-    </div>
-    
-    <!-- 移动端双按钮 - 保留文本 -->
-    <div v-if="isMobile" class="mobile-double-buttons priority-essential">
-      <Button 
-        variant="primary" 
-        size="small" 
-        @click="goToCreateTask"
-        class="btn-with-text"
-      >
-        <span class="btn-icon">+</span>
-        <span class="btn-text">添加任务</span>
-      </Button>
-      <Button 
-        variant="outline" 
-        size="small" 
-        @click="goToCalendar"
-        class="btn-with-icon"
-      >
-        <span class="btn-icon">📅</span>
-      </Button>
     </div>
   </PageScaffold>
 </template>
 
 <script setup lang="ts">
+// ═══════════════════════════════════════════════════════════════
+// 依赖导入
+// ═══════════════════════════════════════════════════════════════
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useTaskStore } from "@/store/tasks";
-import { useScheduleStore } from "@/store/schedules";
-import PlanOverview from "@/components/home/PlanOverview.vue";
-import TimelineView from "@/components/home/TimelineView.vue";
-import PageScaffold from "@/components/common/PageScaffold.vue";
-import Button from "@/components/common/Button.vue";
-import FloatingActionButton from "@/components/common/FloatingActionButton.vue";
 
+// 状态管理
+import { useTaskStore } from "@/store/tasks";       // 任务数据仓库
+import { useScheduleStore } from "@/store/schedules"; // 日程数据仓库
+
+// 子组件
+import PlanOverview from "@/components/home/PlanOverview.vue";         // 计划概览组件
+import TimelineView from "@/components/home/TimelineView.vue";         // 时间轴组件
+import PageScaffold from "@/components/common/PageScaffold.vue";       // 页面脚手架
+import Button from "@/components/common/Button.vue";                   // 通用按钮
+import FloatingActionButton from "@/components/common/FloatingActionButton.vue"; // 浮动操作按钮
+
+// ═══════════════════════════════════════════════════════════════
+// 初始化
+// ═══════════════════════════════════════════════════════════════
 const router = useRouter();
 const taskStore = useTaskStore();
 const scheduleStore = useScheduleStore();
 
+// 今日日期字符串 (YYYY-MM-DD格式)
 const todayStr = new Date().toISOString().slice(0, 10);
 
-// 导航函数
+// ═══════════════════════════════════════════════════════════════
+// 导航函数 - 路由跳转
+// ═══════════════════════════════════════════════════════════════
 function goToCreatePlan() {
-  router.push('/plan/create');
+  router.push('/plan/create');  // 跳转至计划创建页
 }
 
 function goToCreateTask() {
-  router.push('/task/create');
+  router.push('/task/create');  // 跳转至任务创建页
 }
 
 function goToCreateSchedule() {
-  router.push('/schedule');
+  router.push('/schedule');     // 跳转至日程页
 }
 
 function goToCalendar() {
-  router.push('/calendar');
+  router.push('/calendar');     // 跳转至日历页
 }
 
-// 刷新数据功能已移除
-// function refreshData() {
-//   taskStore.loadTasks();
-//   scheduleStore.load(todayStr);
-// }
-
+// ═══════════════════════════════════════════════════════════════
+// 生命周期 - 数据初始化
+// ═══════════════════════════════════════════════════════════════
 onMounted(() => {
-  // 数据初始化
+  // 页面加载时获取任务和日程数据
   taskStore.loadTasks();
   scheduleStore.load(todayStr);
-});
-const isMobile = ref(window.innerWidth <= 768);
-
-// 监听窗口大小变化
-window.addEventListener('resize', () => {
-  isMobile.value = window.innerWidth <= 768;
 });
 </script>
 
@@ -149,195 +160,40 @@ window.addEventListener('resize', () => {
   /* 右侧：执行层 */
 }
 
+/* 浮动操作按钮区域 */
+.desktop-fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: var(--z-fixed);
+}
 
+/* 顶栏按钮 */
+.desktop-cta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cta-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cta-icon {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cta-text {
+  font-size: 14px;
+  font-weight: 500;
+}
 
 @keyframes pulse {
   0% { opacity: 1; }
   50% { opacity: 0.7; }
   100% { opacity: 1; }
-}
-
-/* 响应式设计 */
-
-/* 平板端优化 */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .home-primary {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
-  }
-  
-  /* 节奏指标样式已移除 */
-  
-  .actions-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  
-  /* 桌面操作按钮显示 */
-  .desktop-actions {
-    display: flex !important;
-  }
-  
-  .mobile-cta {
-    display: none !important;
-  }
-}
-
-/* 移动端优化 */
-@media (max-width: 768px) {
-  .home-content {
-    padding: 0 var(--space-4); /* 移动端适当减少padding */
-  }
-  .rhythm-bar {
-    padding: var(--space-4);
-  }
-  
-  /* 节奏标题和完成度样式已移除 */
-  
-  /* 节奏指标样式已移除 */
-  
-  .rhythm-summary {
-    flex-direction: row; /* 保持横向排列 */
-    justify-content: space-around;
-    gap: var(--space-3);
-    flex-wrap: wrap; /* 允许换行以适应小屏幕 */
-  }
-  
-  .summary-item {
-    flex: 1;
-    min-width: 80px; /* 确保最小宽度 */
-  }
-  
-  /* 移动端布局调整 */
-  .home-primary {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
-  }
-  
-  .actions-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .action-btn {
-    padding: var(--space-3);
-  }
-  
-  /* 移动端双按钮布局 */
-  .desktop-actions {
-    display: none !important;
-  }
-  
-  .mobile-cta {
-    display: none !important;
-  }
-  
-  .mobile-double-buttons {
-    position: sticky;
-    bottom: 1.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: var(--space-3);
-    z-index: var(--z-fixed);
-  }
-  
-  .btn-with-text,
-  .btn-with-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 120px;
-    padding: var(--space-3) var(--space-4);
-  }
-  
-  .btn-with-text {
-    flex: 1;
-  }
-  
-  .btn-icon {
-    font-size: 18px;
-    margin-right: var(--space-2);
-  }
-  
-  .btn-text {
-    font-size: 14px;
-    font-weight: 500;
-  }
-  
-  .cta-toggle {
-    min-width: 40px;
-    padding: 0;
-  }
-  
-  /* 移动端快捷操作模态框 */
-  .mobile-expanded {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90vw;
-    max-width: 400px;
-    z-index: var(--z-modal);
-    box-shadow: var(--shadow-xl);
-    border: 1px solid var(--border-main);
-  }
-}
-
-/* 极小屏优化 */
-@media (max-width: 480px) {
-  .btn-text {
-    display: inline; /* 保留主按钮文字 */
-  }
-  
-  /* 节奏统计在极小屏的优化 - 只显示数字 */
-  .rhythm-summary {
-    gap: var(--space-1);
-    padding: 0 var(--space-1);
-    justify-content: space-between;
-  }
-  
-  .summary-item {
-    min-width: auto;
-    flex: 1;
-    padding: var(--space-1) 0;
-    align-items: center;
-  }
-  
-  .summary-label {
-    display: none; /* 隐藏文字标签 */
-  }
-  
-  .summary-value {
-    font-size: 18px; /* 稍微增大数字字体 */
-    font-weight: 700;
-  }
-  
-  .summary-value.success {
-    color: var(--success);
-  }
-  
-  .summary-value.warning {
-    color: var(--warning);
-  }
-  
-  .mobile-double-buttons {
-    gap: var(--space-2);
-  }
-  
-  .btn-with-text,
-  .btn-with-icon {
-    min-width: 100px;
-    padding: var(--space-2) var(--space-3);
-  }
-  
-  .indicator {
-    min-width: 60px;
-    padding: var(--space-1);
-  }
-  
-  .indicator-label {
-    font-size: 11px;
-  }
-  
-  /* 完成度样式已移除 */
 }
 </style>

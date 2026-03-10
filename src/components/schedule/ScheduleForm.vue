@@ -1,5 +1,5 @@
 <template>
-  <a-form :model="form" @submit.prevent="handleSubmit" layout="vertical">
+  <a-form :model="form" @submit="handleSubmit" layout="vertical">
     <!-- 日程标题 -->
     <a-form-item field="title" hide-label>
       <a-input
@@ -138,12 +138,28 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, watch, computed } from "vue";
 import { Message } from "@arco-design/web-vue";
 import { useScheduleStore } from "@/store/schedules";
 import { useUserStore } from "@/store/user";
 
-const emit = defineEmits<{ (e: "created"): void }>();
+const emit = defineEmits<{ 
+  (e: "created"): void;
+  (e: "formChange", form: FormState): void;
+}>();
+
+interface FormState {
+  title: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  reminder: string;
+  repeat: string;
+  location: string;
+  description: string;
+  isAllDay: boolean;
+}
+
 const scheduleStore = useScheduleStore();
 const userStore = useUserStore();
 const submitting = ref(false);
@@ -177,6 +193,44 @@ const form = reactive({
   repeat: "none",
   location: "",
   description: "",
+});
+
+// 监听表单变化，向父组件发送表单数据
+watch(
+  () => ({ ...form, isAllDay: isAllDay.value }),
+  (newForm) => {
+    emit("formChange", {
+      ...newForm,
+      date: formatDateValue(newForm.date),
+      start_time: formatTimeValue(newForm.start_time) || "",
+      end_time: formatTimeValue(newForm.end_time) || "",
+    });
+  },
+  { deep: true, immediate: true }
+);
+
+// 暴露清空表单方法给父组件
+function resetForm() {
+  form.title = "";
+  form.date = today;
+  form.start_time = "";
+  form.end_time = "";
+  form.reminder = "before_10min";
+  form.repeat = "none";
+  form.location = "";
+  form.description = "";
+  isAllDay.value = false;
+}
+
+defineExpose({
+  resetForm,
+  getFormData: () => ({
+    ...form,
+    date: formatDateValue(form.date),
+    start_time: formatTimeValue(form.start_time) || "",
+    end_time: formatTimeValue(form.end_time) || "",
+    isAllDay: isAllDay.value,
+  }),
 });
 
 function handleAllDayToggle() {

@@ -12,33 +12,12 @@
           {{ selectedPlanTitle || "选择计划" }}
         </Button>
       </div>
-      <div class="mobile-calendar-actions priority-essential">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          @click="showPlanSelector = true"
-          class="plan-select-btn"
-        >
-          {{ selectedPlanTitleShort || "计划" }}
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          @click="goToToday"
-          class="today-btn"
-        >
-          今天
-        </Button>
-      </div>
     </template>
   </PageScaffold>
   
   <div class="calendar-container">
-    <!-- Context Layer: 顶部吸附工具栏 - 移动端分行显示 -->
-    <div 
-      class="sticky-toolbar layer-context priority-high"
-      :class="{ 'mobile-split': isMobile }"
-    >
+    <!-- Context Layer: 顶部吸附工具栏 -->
+    <div class="sticky-toolbar layer-context priority-high">
       <!-- 时间导航 -->
       <div class="toolbar-section nav-controls priority-essential">
         <Button
@@ -61,18 +40,6 @@
           :disabled="!canNavigateNext"
         >
           →
-        </Button>
-      </div>
-      
-      <!-- 今天按钮 - 移动端独立一行 -->
-      <div v-if="isMobile" class="toolbar-section today-controls priority-medium">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          @click="goToToday"
-          class="today-btn-mobile"
-        >
-          今天
         </Button>
       </div>
       
@@ -214,15 +181,11 @@
             </div>
           </div>
           
-          <!-- Secondary Layer: 当日详情抽屉 (桌面端右侧/移动端底部) -->
+          <!-- Secondary Layer: 当日详情抽屉 -->
           <div 
             v-if="showDayDrawer && selectedDateEvents.length > 0"
             class="day-drawer layer-secondary priority-medium"
-            :class="{ 
-              'drawer-open': isDrawerOpen,
-              'desktop-drawer': !isMobile,
-              'mobile-drawer': isMobile 
-            }"
+            :class="{ 'drawer-open': isDrawerOpen }"
           >
             <div class="drawer-header">
               <h3>{{ selectedDateDisplay }}</h3>
@@ -253,18 +216,6 @@
       @select="handlePlanSelect"
       @close="showPlanSelector = false"
     />
-    
-    <!-- Utility Layer: 移动端浮动操作按钮 -->
-    <div v-if="isMobile" class="mobile-fab layer-utility priority-low">
-      <Button 
-        variant="primary" 
-        size="lg" 
-        circle
-        @click="toggleDayDrawer"
-      >
-        📅
-      </Button>
-    </div>
   </div>
 </template>
 
@@ -301,7 +252,6 @@ const selectedPlanId = ref<string | null>(null);
 const showPlanSelector = ref(false);
 const showDayDrawer = ref(false);
 const isDrawerOpen = ref(false);
-const isMobile = ref(window.innerWidth < 768);
 
 const calendarViews = [
   { key: "month" as const, label: "月" },
@@ -316,12 +266,6 @@ const selectedPlanTitle = computed(() => {
   if (!selectedPlanId.value) return null;
   const plan = planStore.plans.find((p: any) => p.id === selectedPlanId.value);
   return plan?.title || null;
-});
-
-const selectedPlanTitleShort = computed(() => {
-  const fullTitle = selectedPlanTitle.value;
-  if (!fullTitle) return null;
-  return fullTitle.length > 6 ? fullTitle.substring(0, 6) + '...' : fullTitle;
 });
 
 const periodDisplay = computed(() => {
@@ -349,15 +293,12 @@ const calendarDays = computed(() => {
   const year = currentDate.value.getFullYear();
   const month = currentDate.value.getMonth();
 
-  // 获取当月第一天和最后一天
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
 
-  // 获取需要显示的第一天（上个月的最后一周）
   const startDay = new Date(firstDay);
   startDay.setDate(firstDay.getDate() - firstDay.getDay());
 
-  // 获取需要显示的最后一天（下个月的第一周）
   const endDay = new Date(lastDay);
   endDay.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
 
@@ -477,21 +418,15 @@ function selectDate(dateInfo: any) {
   if (currentView.value !== "day") {
     currentView.value = "day";
   }
-  // 显示当日详情
   showDayDrawer.value = true;
   isDrawerOpen.value = true;
-}
-
-function toggleDayDrawer() {
-  isDrawerOpen.value = !isDrawerOpen.value;
-  showDayDrawer.value = isDrawerOpen.value;
 }
 
 function closeDayDrawer() {
   isDrawerOpen.value = false;
   setTimeout(() => {
     showDayDrawer.value = false;
-  }, 300); // 等待动画完成
+  }, 300);
 }
 
 function getEventsForDate(date: Date): CalendarEvent[] {
@@ -500,7 +435,6 @@ function getEventsForDate(date: Date): CalendarEvent[] {
   const dateStr = date.toISOString().split("T")[0];
   const events: CalendarEvent[] = [];
 
-  // 从计划中获取任务事件
   const plan: any = planStore.plans.find(
     (p: any) => p.id === selectedPlanId.value,
   );
@@ -535,29 +469,15 @@ function goBack() {
 onMounted(() => {
   planStore.loadPlans();
 
-  // 如果URL中有计划ID，使用它
   const planIdFromRoute = router.currentRoute.value.query.planId as string;
   if (planIdFromRoute) {
     selectedPlanId.value = planIdFromRoute;
   }
-  
-  // 监听窗口大小变化
-  const handleResize = () => {
-    isMobile.value = window.innerWidth < 768;
-  };
-  
-  window.addEventListener('resize', handleResize);
-  
-  // 组件卸载时清理
-  // onUnmounted(() => {
-  //   window.removeEventListener('resize', handleResize);
-  // });
 });
 
 // 监听计划选择变化
 watch(selectedPlanId, (newPlanId) => {
   if (newPlanId) {
-    // 更新URL参数
     router.replace({
       query: { ...router.currentRoute.value.query, planId: newPlanId },
     });
@@ -573,7 +493,7 @@ watch(selectedPlanId, (newPlanId) => {
   display: flex;
   flex-direction: column;
   height: calc(100vh - var(--header-height, 64px));
-  padding: 0 var(--space-5);
+  padding: 0 var(--space-6);
 }
 
 /* 顶部吸附工具栏 */
@@ -581,49 +501,16 @@ watch(selectedPlanId, (newPlanId) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4);
+  padding: var(--space-5);
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  margin: var(--space-4) 0;
+  margin: var(--space-5) 0;
   position: sticky;
   top: calc(var(--header-height, 64px) + var(--space-4));
   z-index: var(--z-sticky);
   box-shadow: var(--shadow-md);
   transition: all var(--dur-normal) var(--ease-standard);
   border: 1px solid var(--border-subtle);
-}
-
-/* 移动端工具栏分行显示 - 优化布局 */
-.mobile-split {
-  flex-direction: column;
-  gap: var(--space-2);
-  align-items: stretch;
-}
-
-.mobile-split .toolbar-section {
-  width: 100%;
-  justify-content: center;
-}
-
-/* 导航控制区：左右箭头同行 */
-.mobile-split .nav-controls {
-  order: -1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 var(--space-4);
-}
-
-/* 今天按钮独立一行 */
-.mobile-split .today-controls {
-  order: 0;
-  display: flex;
-  justify-content: center;
-  padding: var(--space-2) 0;
-}
-
-.mobile-split .view-controls {
-  order: 1;
 }
 
 .toolbar-section {
@@ -668,11 +555,11 @@ watch(selectedPlanId, (newPlanId) => {
 
 .view-btn {
   flex: 1;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: none;
   background: transparent;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
@@ -708,16 +595,16 @@ watch(selectedPlanId, (newPlanId) => {
 .calendar-view {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-5);
+  padding: var(--space-6);
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
-  min-height: 70vh; /* 确保内容区有足够的视觉占位 */
+  min-height: 80vh;
 }
 
 /* 月视图 */
 .month-view {
-  padding: var(--space-5);
+  padding: var(--space-6);
 }
 
 .weekdays {
@@ -741,7 +628,7 @@ watch(selectedPlanId, (newPlanId) => {
 }
 
 .calendar-day {
-  min-height: 140px; /* 桌面端提升一档 */
+  min-height: 140px;
   padding: var(--space-3);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -749,7 +636,7 @@ watch(selectedPlanId, (newPlanId) => {
   border: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  aspect-ratio: 1/1; /* 保持正方形单元格 */
+  aspect-ratio: 1/1;
 }
 
 .calendar-day:hover {
@@ -836,7 +723,7 @@ watch(selectedPlanId, (newPlanId) => {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: var(--space-3);
-  min-height: 600px; /* 统一高度标准 */
+  min-height: 680px;
 }
 
 .week-day-column {
@@ -885,10 +772,6 @@ watch(selectedPlanId, (newPlanId) => {
   display: flex;
   flex-direction: column;
   transition: transform var(--dur-normal) var(--ease-standard);
-}
-
-/* 桌面端右侧抽屉 */
-.desktop-drawer {
   width: 300px;
   position: sticky;
   top: calc(var(--header-height) + var(--space-8));
@@ -897,24 +780,8 @@ watch(selectedPlanId, (newPlanId) => {
   transform: translateX(100%);
 }
 
-.desktop-drawer.drawer-open {
+.day-drawer.drawer-open {
   transform: translateX(0);
-}
-
-/* 移动端底部抽屉 */
-.mobile-drawer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: 70vh;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  transform: translateY(100%);
-}
-
-.mobile-drawer.drawer-open {
-  transform: translateY(0);
 }
 
 .drawer-header {
@@ -975,14 +842,6 @@ watch(selectedPlanId, (newPlanId) => {
   line-height: 1.4;
 }
 
-/* 移动端浮动操作按钮 */
-.mobile-fab {
-  position: absolute;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  z-index: var(--z-fixed);
-}
-
 /* 日视图 */
 .day-view {
   padding: var(--space-5);
@@ -1024,9 +883,9 @@ watch(selectedPlanId, (newPlanId) => {
 
 .events-column {
   position: relative;
-  min-height: 1200px; /* 优化高度，避免大屏幕下内容溢出 */
-  max-height: 70vh; /* 限制最大高度，确保内容在视窗内 */
-  overflow-y: auto; /* 超出时可滚动 */
+  min-height: 1440px;
+  max-height: 75vh;
+  overflow-y: auto;
   background: var(--bg-main);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
@@ -1053,182 +912,8 @@ watch(selectedPlanId, (newPlanId) => {
   text-overflow: ellipsis;
 }
 
-/* 移动端优化 */
-@media (max-width: 768px) {
-  .calendar-container {
-    padding: 0 var(--space-3);
-    height: calc(100vh - var(--header-height));
-    width: 100vw;
-    max-width: none;
-  }
-  
-  .calendar-day {
-    min-height: 110px; /* 移动端提升到更可读区间 */
-    aspect-ratio: 1/1;
-  }
-  
-  .sticky-toolbar {
-    position: sticky;
-    top: var(--header-height);
-    box-shadow: var(--shadow-md);
-    padding: var(--space-3);
-    margin: var(--space-3) 0;
-  }
-  
-  .toolbar-section {
-    width: 100%;
-    justify-content: center;
-    gap: var(--space-2);
-  }
-  
-  .nav-controls {
-    order: -1;
-  }
-  
-  .view-toggle {
-    width: 100%;
-    padding: var(--space-2);
-  }
-  
-  .view-btn {
-    flex: 1;
-    text-align: center;
-    padding: var(--space-2);
-    font-size: 16px;
-  }
-
-  .main-content {
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-  
-  .calendar-view {
-    padding: var(--space-3);
-    min-height: 65vh; /* 移动端增加视口占比 */
-  }
-  
-  .drawer-header {
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  }
-
-  .period-display h3 {
-    font-size: 18px;
-  }
-
-  .calendar-day {
-    min-height: 100px; /* 提升移动端单元格高度 */
-    padding: var(--space-2);
-    aspect-ratio: 1/1;
-  }
-  
-  .day-number {
-    font-size: 16px;
-  }
-
-  .day-content {
-    grid-template-columns: 70px 1fr;
-    gap: var(--space-3);
-  }
-
-  .time-slot {
-    font-size: 12px;
-    height: 60px;
-    padding: var(--space-1) var(--space-2);
-  }
-  
-  .events-column {
-    min-height: 960px; /* 移动端优化高度 */
-    max-height: 60vh; /* 移动端最大高度限制 */
-    padding: var(--space-1);
-  }
-  
-  .week-content {
-    min-height: 550px; /* 统一移动端周视图高度 */
-  }
-  
-  /* 移动端隐藏桌面计划选择器 */
-  .desktop-plan-selector {
-    display: none !important;
-  }
-  
-  .mobile-calendar-actions {
-    display: flex !important;
-    gap: var(--space-2);
-    align-items: center;
-  }
-  
-  .plan-select-btn {
-    flex: 1;
-    text-align: center;
-    font-size: 14px;
-  }
-  
-  .today-btn {
-    min-width: 70px;
-    font-size: 14px;
-  }
-}
-
-/* 桌面端优化 */
-@media (min-width: 769px) {
-  .calendar-container {
-    padding: 0 var(--space-6);
-    width: 100%;
-    max-width: none;
-  }
-  
-  .calendar-day {
-    min-height: 160px; /* 桌面端进一步提升 */
-    aspect-ratio: 1/1;
-  }
-  
-  .sticky-toolbar {
-    padding: var(--space-5);
-    margin: var(--space-5) 0;
-  }
-  
-  .calendar-view {
-    padding: var(--space-6);
-    min-height: 80vh; /* 桌面端更大的视觉占位 */
-  }
-  
-  .month-view, .week-view, .day-view {
-    padding: var(--space-6);
-  }
-  
-  .calendar-day {
-    min-height: 140px; /* 桌面端更大单元格 */
-    aspect-ratio: 1/1;
-  }
-  
-  .week-content {
-    min-height: 680px; /* 统一桌面端高度 */
-  }
-  
-  .events-column {
-    min-height: 1440px; /* 桌面端优化高度 */
-    max-height: 75vh; /* 桌面端最大高度限制 */
-  }
-  
-  .mobile-calendar-actions {
-    display: none !important;
-  }
-  
-  .desktop-plan-selector {
-    display: block !important;
-  }
-  
-  .view-btn {
-    padding: var(--space-3) var(--space-4);
-    font-size: 15px;
-  }
-}
-
-/* 移动端浮动操作按钮 */
-.mobile-fab {
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  z-index: var(--z-fixed);
+/* 计划选择器按钮 */
+.desktop-plan-selector {
+  display: block;
 }
 </style>

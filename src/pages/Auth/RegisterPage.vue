@@ -388,22 +388,5 @@ function goLogin() {
   text-decoration: underline;
 }
 
-/* 响应式 */
-@media (max-width: 480px) {
-  .auth-page {
-    padding: 0.5rem;
-  }
-  
-  .auth-container {
-    border-radius: 16px;
-  }
-  
-  .auth-form {
-    padding: 2rem;
-  }
-  
-  .form-title {
-    font-size: 1.75rem;
-  }
-}
+/* 桌面端固定布局 - 无响应式适配 */
 </style>

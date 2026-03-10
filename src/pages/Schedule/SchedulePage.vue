@@ -81,7 +81,11 @@
         
         <!-- 日程表单 -->
         <Card class="schedule-form-card">
-          <ScheduleForm @created="handleCreated" ref="scheduleFormRef" />
+          <ScheduleForm 
+            @created="handleCreated" 
+            @formChange="handleFormChange"
+            ref="scheduleFormRef" 
+          />
         </Card>
       </div>
       
@@ -95,30 +99,56 @@
           <div class="preview-content">
             <div class="preview-item">
               <div class="preview-label">标题</div>
-              <div class="preview-value">{{ previewTitle || '未填写' }}</div>
+              <div class="preview-value" :class="{ 'preview-placeholder': !previewTitle }">
+                {{ previewTitle || '未填写' }}
+              </div>
             </div>
             
             <div class="preview-item">
               <div class="preview-label">日期</div>
-              <div class="preview-value">{{ previewDate || '未选择' }}</div>
+              <div class="preview-value" :class="{ 'preview-placeholder': !previewDate }">
+                {{ formatPreviewDate(previewDate) || '未选择' }}
+              </div>
             </div>
             
-            <div class="preview-item" v-if="previewStartTime || previewEndTime">
+            <div class="preview-item" v-if="previewIsAllDay">
               <div class="preview-label">时间</div>
               <div class="preview-value">
-                {{ previewStartTime }} - {{ previewEndTime }}
+                🌙 全天事件
+              </div>
+            </div>
+            
+            <div class="preview-item" v-else-if="previewStartTime || previewEndTime">
+              <div class="preview-label">时间</div>
+              <div class="preview-value">
+                {{ previewStartTime || '??' }} - {{ previewEndTime || '??' }}
               </div>
             </div>
             
             <div class="preview-item" v-if="previewLocation">
               <div class="preview-label">地点</div>
-              <div class="preview-value">{{ previewLocation }}</div>
+              <div class="preview-value">📍 {{ previewLocation }}</div>
             </div>
             
             <div class="preview-item" v-if="previewDescription">
               <div class="preview-label">备注</div>
               <div class="preview-value preview-description">{{ previewDescription }}</div>
             </div>
+            
+            <div class="preview-item" v-if="previewRepeat !== 'none'">
+              <div class="preview-label">重复</div>
+              <div class="preview-value">🔁 {{ getRepeatLabel(previewRepeat) }}</div>
+            </div>
+            
+            <div class="preview-item" v-if="previewReminder !== 'none'">
+              <div class="preview-label">提醒</div>
+              <div class="preview-value">🔔 {{ getReminderLabel(previewReminder) }}</div>
+            </div>
+          </div>
+          
+          <!-- 预览底部提示 -->
+          <div class="preview-footer" v-if="isFormEmpty">
+            <p>💡 填写表单后可在此预览日程详情</p>
           </div>
         </Card>
       </div>
@@ -128,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { usePlanStore } from "@/store/plans";
 import { useTaskStore } from "@/store/tasks";
@@ -144,6 +174,9 @@ const router = useRouter();
 const planStore = usePlanStore();
 const taskStore = useTaskStore();
 const scheduleStore = useScheduleStore();
+
+// 表单引用
+const scheduleFormRef = ref<any>(null);
 
 // 上下文信息
 const relatedPlan = ref<any>(null);
@@ -164,7 +197,16 @@ const taskDate = computed(() => {
 });
 
 // 冲突检测
-const conflicts = ref<any[]>([]);
+interface ConflictItem {
+  id: number;
+  title: string;
+  time: string;
+  description: string;
+  severity: 'high' | 'medium' | 'low';
+  icon: string;
+}
+
+const conflicts = ref<ConflictItem[]>([]);
 
 const hasConflicts = computed(() => {
   return conflicts.value.length > 0;
@@ -178,6 +220,14 @@ const previewStartTime = ref('');
 const previewEndTime = ref('');
 const previewLocation = ref('');
 const previewDescription = ref('');
+const previewRepeat = ref('none');
+const previewReminder = ref('before_10min');
+const previewIsAllDay = ref(false);
+
+// 表单是否为空
+const isFormEmpty = computed(() => {
+  return !previewTitle.value && !previewDate.value && !previewStartTime.value && !previewEndTime.value && !previewLocation.value && !previewDescription.value;
+});
 
 // 方法函数
 function formatDate(dateString: string): string {
@@ -185,6 +235,33 @@ function formatDate(dateString: string): string {
     month: 'short',
     day: 'numeric'
   });
+}
+
+function formatPreviewDate(dateString: string): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDate = new Date(dateString);
+  targetDate.setHours(0, 0, 0, 0);
+  
+  const diffDays = Math.round((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  
+  let relativeDay = '';
+  if (diffDays === 0) relativeDay = '今天';
+  else if (diffDays === 1) relativeDay = '明天';
+  else if (diffDays === -1) relativeDay = '昨天';
+  else if (diffDays > 0 && diffDays <= 7) relativeDay = `${diffDays}天后`;
+  else if (diffDays < 0 && diffDays >= -7) relativeDay = `${Math.abs(diffDays)}天前`;
+  
+  const formatted = date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short'
+  });
+  
+  return relativeDay ? `${relativeDay} (${formatted})` : formatted;
 }
 
 function getConflictSeverity(severity: string): string {
@@ -200,6 +277,128 @@ function getSeverityLabel(severity: string): string {
   return labels[severity] || '冲突';
 }
 
+function getRepeatLabel(repeat: string): string {
+  const labels: Record<string, string> = {
+    'none': '不重复',
+    'daily': '每天',
+    'weekly': '每周',
+    'monthly': '每月'
+  };
+  return labels[repeat] || repeat;
+}
+
+function getReminderLabel(reminder: string): string {
+  const labels: Record<string, string> = {
+    'at_time': '事件开始时',
+    'before_10min': '提前 10 分钟',
+    'before_1hour': '提前 1 小时',
+    'none': '不提醒'
+  };
+  return labels[reminder] || reminder;
+}
+
+// 处理表单变化
+function handleFormChange(formData: any) {
+  previewTitle.value = formData.title || '';
+  previewDate.value = formData.date || '';
+  previewStartTime.value = formData.start_time || '';
+  previewEndTime.value = formData.end_time || '';
+  previewLocation.value = formData.location || '';
+  previewDescription.value = formData.description || '';
+  previewRepeat.value = formData.repeat || 'none';
+  previewReminder.value = formData.reminder || 'before_10min';
+  previewIsAllDay.value = formData.isAllDay || false;
+  
+  // 检测时间冲突
+  detectConflicts(formData);
+}
+
+// 检测时间冲突
+function detectConflicts(formData: any) {
+  conflicts.value = [];
+  
+  // 如果没有选择日期或时间，不检测冲突
+  if (!formData.date || (!formData.start_time && !formData.end_time)) {
+    return;
+  }
+  
+  // 如果是全天事件，不检测时间冲突
+  if (formData.isAllDay) {
+    return;
+  }
+  
+  const selectedDate = formData.date;
+  const selectedStart = formData.start_time;
+  const selectedEnd = formData.end_time;
+  
+  // 只有一位时间无法检测冲突
+  if (!selectedStart || !selectedEnd) {
+    return;
+  }
+  
+  // 将时间转换为分钟数便于比较
+  const timeToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+  
+  const newStart = timeToMinutes(selectedStart);
+  const newEnd = timeToMinutes(selectedEnd);
+  
+  // 遍历已有日程检测冲突
+  scheduleStore.schedules.forEach((schedule: any) => {
+    // 只检测同一天的日程
+    if (schedule.date !== selectedDate) return;
+    
+    // 如果已有日程是全天事件
+    if (schedule.is_all_day || (!schedule.start_time && !schedule.end_time)) {
+      conflicts.value.push({
+        id: schedule.id,
+        title: schedule.title,
+        time: '全天',
+        description: '当天已有全天事件',
+        severity: 'medium',
+        icon: '📅'
+      });
+      return;
+    }
+    
+    // 检测时间重叠
+    if (schedule.start_time && schedule.end_time) {
+      const existStart = timeToMinutes(schedule.start_time);
+      const existEnd = timeToMinutes(schedule.end_time);
+      
+      // 时间重叠检测
+      const hasOverlap = newStart < existEnd && newEnd > existStart;
+      
+      if (hasOverlap) {
+        // 计算重叠程度
+        const overlapStart = Math.max(newStart, existStart);
+        const overlapEnd = Math.min(newEnd, existEnd);
+        const overlapMinutes = overlapEnd - overlapStart;
+        const newDuration = newEnd - newStart;
+        const overlapRatio = overlapMinutes / newDuration;
+        
+        let severity: 'high' | 'medium' | 'low' = 'low';
+        if (overlapRatio > 0.5) {
+          severity = 'high';
+        } else if (overlapRatio > 0.2) {
+          severity = 'medium';
+        }
+        
+        conflicts.value.push({
+          id: schedule.id,
+          title: schedule.title,
+          time: `${schedule.start_time} - ${schedule.end_time}`,
+          description: `时间与现有日程重叠约 ${Math.round(overlapMinutes)} 分钟`,
+          severity,
+          icon: '⏰'
+        });
+      }
+    }
+  });
+}
+
 // 操作函数
 function goBack() {
   if (window.history.length > 1) {
@@ -210,8 +409,20 @@ function goBack() {
 }
 
 function clearForm() {
-  // 清空表单逻辑
-  console.log('清空表单');
+  if (scheduleFormRef.value?.resetForm) {
+    scheduleFormRef.value.resetForm();
+  }
+  // 清空预览
+  previewTitle.value = '';
+  previewDate.value = '';
+  previewStartTime.value = '';
+  previewEndTime.value = '';
+  previewLocation.value = '';
+  previewDescription.value = '';
+  previewRepeat.value = 'none';
+  previewReminder.value = 'before_10min';
+  previewIsAllDay.value = false;
+  conflicts.value = [];
 }
 
 function dismissContext() {
@@ -220,13 +431,16 @@ function dismissContext() {
 }
 
 function adjustTime() {
-  // 调整时间逻辑
-  console.log('调整时间');
+  // 调整时间逻辑 - 滚动到时间选择区域
+  const timeSection = document.querySelector('.form-section');
+  if (timeSection) {
+    timeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function proceedAnyway() {
-  // 仍然创建逻辑
-  console.log('仍然创建');
+  // 清除冲突提示，允许用户继续创建
+  conflicts.value = [];
 }
 
 function handleCreated() {
@@ -514,50 +728,28 @@ onMounted(async () => {
   font-weight: 500;
 }
 
+.preview-placeholder {
+  color: var(--text-tertiary);
+  font-weight: normal;
+}
+
 .preview-description {
   font-weight: normal;
   line-height: 1.5;
 }
 
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .schedule-page-container {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
-  }
-  
-  .preview-sidebar {
-    order: -1;
-  }
-  
-  .preview-card {
-    position: static;
-  }
+.preview-footer {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
 }
 
-@media (max-width: 768px) {
-  .schedule-page-container {
-    padding: var(--space-4);
-  }
-  
-  .context-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-  }
-  
-  .conflict-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-  }
-  
-  .conflict-actions {
-    flex-direction: column;
-  }
-  
-  .conflict-actions Button {
-    width: 100%;
-  }
+.preview-footer p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-align: center;
 }
+
+/* 桌面端固定布局 - 无响应式适配 */
 </style>

@@ -14,8 +14,6 @@ import "./style.css";
 // 应用层样式（覆盖层）
 import "./assets/style.css";
 
-// PC端响应式缩放
-import { initResponsive } from "./utils/responsive";
 
 // AI复盘定时任务
 import { initAIReviewScheduler } from "./services/ai-review";
@@ -27,9 +25,6 @@ app.use(router);
 app.use(ArcoVue);
 
 app.mount("#app");
-
-// 初始化响应式缩放（在 app mount 后执行，确保 DOM 已渲染）
-initResponsive();
 
 // 初始化AI复盘定时任务（每日凌晨1点自动执行）
 initAIReviewScheduler();

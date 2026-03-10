@@ -594,68 +594,14 @@ textarea:read-only {
   z-index: 1;
 }
 
-/* 移动端优先级调整 */
-@media (max-width: 768px) {
-  .priority-low {
-    display: none !important;
-  }
-  
-  .priority-medium {
-    font-size: 0.875rem;
-    padding: var(--space-2);
-  }
-  
-  /* 确保核心操作可见 */
-  .priority-essential {
-    position: sticky;
-    top: 0;
-    background: var(--bg-main);
-    padding: var(--space-3);
-    border-bottom: 1px solid var(--border-main);
-    z-index: var(--z-sticky);
-  }
+/* 桌面端布局 - 统一使用固定布局 */
+.desktop-full {
+  display: block !important;
 }
 
-/* 极小屏优化 */
-@media (max-width: 480px) {
-  .priority-medium {
-    display: none !important;
-  }
-  
-  .priority-high {
-    font-size: 1rem;
-    padding: var(--space-3);
-  }
-  
-  /* 只保留最核心功能 */
-  .mobile-minimal {
-    display: flex !important;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-}
-
-/* 平板优化 */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .tablet-expand {
-    display: block !important;
-  }
-  
-  .priority-medium {
-    display: block !important;
-  }
-}
-
-/* 桌面优化 */
-@media (min-width: 1025px) {
-  .desktop-full {
-    display: block !important;
-  }
-  
-  /* 双列布局支持 */
-  .desktop-sidebar {
-    position: sticky;
-    top: calc(var(--header-height) + var(--space-4));
-    align-self: start;
-  }
+/* 双列布局支持 */
+.desktop-sidebar {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-4));
+  align-self: start;
 }

@@ -1,27 +1,78 @@
-// ...existing code...
+<!--
+  ═══════════════════════════════════════════════════════════════
+  计划概览组件 (PlanOverview.vue)
+  ═══════════════════════════════════════════════════════════════
+  
+  【组件定位】
+  今日页面的右侧面板，展示用户的长期计划列表及其进度状态。
+  
+  【核心功能】
+  1. 计划列表 - 显示所有长期计划，按重要性智能排序
+  2. 进度追踪 - 可视化展示每个计划的完成百分比
+  3. 状态判断 - 根据时间和进度判断当前阶段
+  4. AI洞察 - 提供智能建议（可展开/收起）
+  5. 快捷操作 - 管理任务、编辑、删除
+  
+  【卡片结构】
+  ┌─────────────────────────────────────┐
+  │  计划标题                           │
+  │  ████████░░░░░░░░  65%             │  ← 进度条
+  │  ───────────────────────────────    │
+  │  当前阶段：稳步推进                  │  ← 状态
+  │  ┌─────────────────────────────┐    │
+  │  │ ▸ AI 洞察                   │    │  ← 可展开
+  │  │   最近推进稳定，建议保持节奏  │    │
+  │  └─────────────────────────────┘    │
+  │  [管理任务] [修改] [删除]           │  ← 操作按钮
+  └─────────────────────────────────────┘
+  
+  【排序规则】
+  1. 进行中的计划优先（开始日期 ≤ 今天 ≤ 结束日期）
+  2. 有进度的计划优先
+  3. 按创建时间倒序
+  
+  【状态判断逻辑】
+  - 未开始：开始日期 > 今天
+  - 已结束：结束日期 < 今天
+  - 最近7天无推进：有任务但最近无完成
+  - 初期积累：进度 < 30%
+  - 稳步推进：30% ≤ 进度 < 70%
+  - 即将完成：进度 ≥ 70%
+  
+  【响应式适配】
+  - 桌面端：2-3列网格布局
+  - 移动端：单行横向滑动卡片
+  
+  【数据来源】
+  - planStore: 计划数据仓库
+  - taskStore: 任务数据仓库（用于计算进度）
+-->
 <template>
   <div class="plan-overview-section">
+    <!-- ========== 标题栏 ========== -->
     <div class="section-header">
       <h2 class="section-title">我的计划</h2>
       <!-- 创建计划按钮已移除，使用悬浮按钮替代 -->
     </div>
 
-    <!-- 空状态 -->
+    <!-- ========== 空状态提示 ========== -->
     <div v-if="sortedPlans.length === 0" class="empty-state">
       <p class="empty-icon">📋</p>
       <p class="empty-text">暂无长期计划</p>
       <p class="empty-hint">使用悬浮按钮创建你的第一个计划吧</p>
     </div>
 
-    <!-- 计划卡片列表 -->
+    <!-- ========== 计划卡片列表 ========== -->
     <div v-else class="plans-container">
+      <!-- 滚动容器 (移动端支持横向滑动) -->
       <div class="plans-scroll-wrapper">
         <div :class="['plans-grid', { 'show-all': showAll }]">
+          <!-- 单个计划卡片 -->
           <div v-for="plan in displayedPlans" :key="plan.id" class="plan-card">
-            <!-- 1. 计划名称 -->
+            <!-- 1. 计划标题 -->
             <h3 class="plan-title">{{ plan.title }}</h3>
 
-            <!-- 2. 进度表达 -->
+            <!-- 2. 进度条 (基于任务完成率计算) -->
             <div class="plan-progress">
               <a-progress
                 :percent="progressFor(plan.id) / 100"
@@ -31,19 +82,19 @@
               <span class="progress-percent">{{ progressFor(plan.id) }}%</span>
             </div>
 
-            <!-- 3. 当前状态 -->
+            <!-- 3. 当前阶段状态 -->
             <div class="plan-status">
               <span class="status-label">当前阶段：</span>
               <span class="status-text">{{ getStageText(plan) }}</span>
             </div>
 
-            <!-- 4. AI 洞察（可选） -->
+            <!-- 4. AI 洞察建议 (可折叠，根据进度和活跃度生成) -->
             <details class="ai-insight" v-if="getAIInsight(plan)">
               <summary>AI 洞察</summary>
               <p>{{ getAIInsight(plan) }}</p>
             </details>
 
-            <!-- 操作按钮 -->
+            <!-- 5. 操作按钮组 -->
             <div class="plan-actions">
               <a-button
                 size="small"
@@ -535,4 +586,3 @@ function goPlanTasks(id: number | string) {
   }
 }
 </style>
-// ...existing code...

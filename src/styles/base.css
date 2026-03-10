@@ -13,7 +13,7 @@
 
 /* 🎯 根元素设置 */
 :root {
-  /* 字体系统 - 固定 16px，由 scale() 统一缩放 */
+  /* 字体系统 */
   font-family: "Inter", "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.6;
@@ -29,12 +29,8 @@
   color-scheme: dark;
 }
 
-/* 📱 PC端自适应缩放由 CSS transform: scale() 实现 */
-/* responsive.ts 动态计算并应用缩放 */
-
 /* 🎨 Body 基础样式 */
 body {
-  min-width: 320px;
   min-height: 100vh;
   background: var(--bg-main);
   color: var(--text-main);
@@ -106,29 +102,12 @@ input, button, a, select, textarea {
 }
 
 /* ========================================
-   📱 响应式工具类
+   📱 工具类
    ======================================== */
 
 /* 隐藏/显示控制 */
 .hide {
   display: none !important;
-}
-
-.hide-sm { 
-  display: none !important; 
-}
-
-.show-sm { 
-  display: block !important; 
-}
-
-@media (min-width: 480px) {
-  .hide-sm { 
-    display: block !important; 
-  }
-  .show-sm { 
-    display: none !important; 
-  }
 }
 
 /* 文本对齐 */
@@ -165,7 +144,7 @@ input, button, a, select, textarea {
 }
 
 /* ========================================
-   🎨 布局系统
+   🎨 匉局系统
    ======================================== */
 
 /* Flexbox 工具类 */
@@ -208,51 +187,33 @@ input, button, a, select, textarea {
 }
 
 .layer-primary {
-  /* 核心动作层：本页最重要任务（创建、调整、完成） */
+  /* 核心动作层：本页最重要任务（创建、调整、完成) */
 }
 
 .layer-secondary {
   /* 辅助信息层：统计、AI建议、历史数据 */
 }
-
 .layer-utility {
   /* 工具区层：筛选、导出、设置、次要按钮 */
 }
 
-/* 三档布局模板 */
+/* 布局模板 */
 .layout-template-s {
-  /* Template S（移动）：1列，卡片上下堆叠，CTA 吸底/吸顶 */
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
 .layout-template-m {
-  /* Template M（平板）：主列 + 折叠侧区（可展开 AI/筛选） */
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: var(--space-4);
 }
 
 .layout-template-l {
-  /* Template L（桌面）：2列 7:5 或 8:4（主内容左侧） */
   display: grid;
   grid-template-columns: 7fr 5fr;
   gap: var(--space-6);
-}
-
-/* 响应式布局变换 */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .layout-template-m {
-    grid-template-columns: 2fr 1fr;
-  }
-}
-
-@media (min-width: 1025px) {
-  .layout-template-s {
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-6);
-  }
 }
 
 /* ========================================
@@ -279,17 +240,6 @@ input, button, a, select, textarea {
   order: 2;
 }
 
-/* 移动端优先级调整 */
-@media (max-width: 768px) {
-  .priority-low {
-    display: none;
-  }
-  
-  .priority-medium {
-    font-size: 0.875rem;
-  }
-}
-
 /* ========================================
    🎯 应用根容器
    ======================================== */
@@ -302,8 +252,3 @@ input, button, a, select, textarea {
     background-color var(--dur-normal) var(--ease-standard),
     color var(--dur-normal) var(--ease-standard);
 }
-
-/* ========================================
-   🎯 统一布局 - 所有尺寸使用相同布局
-   通过 zoom 缩放适配不同屏幕
-   ======================================== */
