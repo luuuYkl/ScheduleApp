@@ -5,206 +5,120 @@
     class="layer-context"
   >
     <PullToRefresh @refresh="handleRefresh">
-    <div class="profile-container layout-template-l">
-      <!-- Context Layer: 用户概览 -->
-      <section class="user-overview layer-context priority-high">
-        <div class="user-identity">
+    <div class="profile-container">
+      <!-- 1. 用户信息卡片 -->
+      <section class="user-profile-card">
+        <div class="user-main-info">
           <img :src="avatarUrl" class="user-avatar" alt="用户头像" />
-          <div class="user-info">
+          <div class="user-details">
             <h1 class="user-name">{{ user?.username || "未登录用户" }}</h1>
-          </div>
-        </div>
-
-        <!-- 关键指标速览 -->
-        <div class="key-metrics">
-          <div class="metric-card">
-            <div class="metric-value">{{ streakDays }}</div>
-            <div class="metric-label">连续天数</div>
-            <div class="metric-trend" :class="streakTrend">
-              {{ streakChange >= 0 ? '+' : '' }}{{ streakChange }}
+            <div class="user-meta">
+              <span class="user-type">👤 个人用户</span>
+              <span class="user-join-date">加入于 {{ joinDate }}</span>
             </div>
           </div>
-          <div class="metric-card">
-            <div class="metric-value">{{ weeklyCompletion }}%</div>
-            <div class="metric-label">周完成率</div>
-            <div class="metric-trend positive">+{{ weeklyGrowth }}%</div>
+        </div>
+        <!-- 成就摘要 -->
+        <div class="achievement-summary">
+          <div class="achievement-item">
+            <span class="achievement-icon">🔥</span>
+            <div class="achievement-content">
+              <span class="achievement-value">{{ streakDays }}天</span>
+              <span class="achievement-label">连续打卡</span>
+            </div>
           </div>
-          <div class="metric-card">
-            <div class="metric-value">{{ planCount }}</div>
-            <div class="metric-label">活跃计划</div>
-            <div class="metric-status" :class="planHealthStatus">
-              {{ planHealthText }}
+          <div class="achievement-divider"></div>
+          <div class="achievement-item">
+            <span class="achievement-icon">🔄</span>
+            <div class="achievement-content">
+              <span class="achievement-value">{{ habitStreak }}天</span>
+              <span class="achievement-label">习惯坚持</span>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Primary Layer: 数据洞察 -->
-      <section class="growth-section layer-primary priority-high">
-        <!-- 深度数据分析 -->
-        <Card class="analytics-card">
-          <template #header>
-            <h3 class="card-title">📈 完成情况洞察</h3>
-          </template>
-          <div class="analytics-grid">
-            <div class="analytic-item">
-              <div class="analytic-header">
-                <span class="analytic-icon">🌅</span>
-                <span class="analytic-title">黄金时段</span>
-              </div>
-              <div class="analytic-value">{{ peakHour }}:00-{{ peakHour + 2 }}:00</div>
-              <div class="analytic-desc">效率最高时间段</div>
-            </div>
-            <div class="analytic-item">
-              <div class="analytic-header">
-                <span class="analytic-icon">🎯</span>
-                <span class="analytic-title">专注峰值</span>
-              </div>
-              <div class="analytic-value">{{ focusPeak }}小时/天</div>
-              <div class="analytic-desc">单日最长专注时间</div>
-            </div>
-            <div class="analytic-item">
-              <div class="analytic-header">
-                <span class="analytic-icon">🔄</span>
-                <span class="analytic-title">习惯坚持</span>
-              </div>
-              <div class="analytic-value">{{ habitStreak }}天</div>
-              <div class="analytic-desc">重复任务连续完成</div>
-            </div>
-            <div class="analytic-item">
-              <div class="analytic-header">
-                <span class="analytic-icon">⚡</span>
-                <span class="analytic-title">冲刺记录</span>
-              </div>
-              <div class="analytic-value">{{ sprintRecord }}项</div>
-              <div class="analytic-desc">单日最多完成任务</div>
-            </div>
-          </div>
-        </Card>
+      <!-- 2. 行为结果统计模块 -->
+      <section class="behavior-stats-section">
+        <div class="stat-card" v-for="stat in behaviorStats" :key="stat.key">
+          <div class="stat-icon">{{ stat.icon }}</div>
+          <div class="stat-value">{{ stat.value }}</div>
+          <div class="stat-name">{{ stat.name }}</div>
+          <div class="stat-trend" :class="stat.trendClass">{{ stat.trend }}</div>
+        </div>
       </section>
 
-      <!-- Secondary Layer: 偏好与账户管理 - 移动端默认折叠 -->
-      <section 
-        class="preferences-section layer-secondary priority-low"
-        :class="{ 'collapsed': isMobile && !showPreferences }"
-      >
-        <Card class="preferences-card">
-          <template #header>
-            <div class="card-header-clickable" @click="togglePreferences">
-              <h3 class="card-title">⚙️ 使用偏好</h3>
-              <button 
-                v-if="isMobile" 
-                class="expand-toggle"
-                type="button"
-              >
-                {{ showPreferences ? '▲' : '▼' }}
-              </button>
+      <!-- 3. 行为分析模块 -->
+      <section class="behavior-analysis-section">
+        <h2 class="section-title">📊 行为分析</h2>
+        <div class="analysis-grid">
+          <div class="analysis-card" v-for="item in analysisItems" :key="item.key">
+            <div class="analysis-header">
+              <span class="analysis-icon">{{ item.icon }}</span>
+              <span class="analysis-title">{{ item.title }}</span>
             </div>
-          </template>
-          <div v-show="!isMobile || showPreferences">
-            <div class="preference-item">
-              <div class="preference-info">
-                <span class="preference-icon">🌗</span>
-                <div class="preference-text">
-                  <span class="preference-label">外观模式</span>
-                  <span class="preference-desc">界面主题设置</span>
-                </div>
-              </div>
-              <a-select
-                v-model="themePreference"
-                @change="handleThemeChange"
-                size="small"
-                style="width: 120px"
-              >
-                <a-option value="auto">自动</a-option>
-                <a-option value="light">明亮</a-option>
-                <a-option value="dark">暗色</a-option>
-              </a-select>
-            </div>
-
-            <div class="preference-item">
-              <div class="preference-info">
-                <span class="preference-icon">🔔</span>
-                <div class="preference-text">
-                  <span class="preference-label">提醒偏好</span>
-                  <span class="preference-desc">任务提醒时间</span>
-                </div>
-              </div>
-              <a-select
-                v-model="reminderPreference"
-                size="small"
-                style="width: 120px"
-              >
-                <a-option value="10">提前 10 分钟</a-option>
-                <a-option value="30">提前 30 分钟</a-option>
-                <a-option value="60">提前 1 小时</a-option>
-              </a-select>
-            </div>
-
-            <div class="preference-item">
-              <div class="preference-info">
-                <span class="preference-icon">🧠</span>
-                <div class="preference-text">
-                  <span class="preference-label">AI 参与程度</span>
-                  <span class="preference-desc">智能助手活跃度</span>
-                </div>
-              </div>
-              <a-select
-                v-model="aiLevel"
-                size="small"
-                style="width: 120px"
-              >
-                <a-option value="minimal">最少</a-option>
-                <a-option value="standard">标准</a-option>
-                <a-option value="active">积极</a-option>
-              </a-select>
-            </div>
+            <div class="analysis-value">{{ item.value }}</div>
+            <div class="analysis-desc">{{ item.description }}</div>
           </div>
-        </Card>
-
-        <Card class="account-card">
-          <template #header>
-            <div class="card-header-clickable" @click="toggleAccount">
-              <h3 class="card-title">🔐 账户与数据</h3>
-              <button 
-                v-if="isMobile" 
-                class="expand-toggle"
-                type="button"
-              >
-                {{ showAccount ? '▲' : '▼' }}
-              </button>
+          <!-- 行为趋势图 -->
+          <div class="analysis-card trend-card">
+            <div class="analysis-header">
+              <span class="analysis-icon">📈</span>
+              <span class="analysis-title">完成率趋势</span>
             </div>
-          </template>
-          <div v-show="!isMobile || showAccount">
-            <Button 
-              variant="outline" 
-              size="medium"
-              @click="exportData"
-              class="account-btn"
-            >
-              <span class="btn-icon">📦</span>
-              导出数据
-            </Button>
-            <Button 
-              variant="outline" 
-              size="medium"
-              @click="showPrivacy"
-              class="account-btn"
-            >
-              <span class="btn-icon">🔒</span>
-              隐私设置
-            </Button>
-            <Button 
-              variant="danger" 
-              size="medium"
-              @click="logout"
-              class="account-btn logout-btn"
-            >
-              <span class="btn-icon">🚪</span>
-              退出登录
-            </Button>
+            <div class="trend-chart">
+              <div class="trend-bar" v-for="(bar, index) in trendData" :key="index" :style="{ height: bar.height + '%' }">
+                <span class="trend-label">{{ bar.label }}</span>
+              </div>
+            </div>
+            <div class="analysis-desc">最近7天完成率变化</div>
           </div>
-        </Card>
+        </div>
+      </section>
+
+      <!-- 4. 系统设置模块 -->
+      <section class="system-settings-section">
+        <h2 class="section-title">⚙️ 系统设置</h2>
+        <div class="settings-list">
+          <div class="setting-row" v-for="setting in systemSettings" :key="setting.key" @click="setting.action">
+            <div class="setting-info">
+              <span class="setting-icon">{{ setting.icon }}</span>
+              <div class="setting-text">
+                <span class="setting-name">{{ setting.name }}</span>
+                <span class="setting-hint">{{ setting.hint }}</span>
+              </div>
+            </div>
+            <div class="setting-control">
+              <a-select
+                v-if="setting.type === 'select'"
+                v-model="setting.value"
+                size="small"
+                style="width: 100px"
+              >
+                <a-option v-for="opt in setting.options" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </a-option>
+              </a-select>
+              <span v-else class="setting-status">{{ setting.status }}</span>
+            </div>
+            <span class="setting-arrow">›</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. 账户管理模块 -->
+      <section class="account-management-section">
+        <div class="account-actions">
+          <Button variant="outline" size="small" @click="exportData" class="account-btn">
+            <span class="btn-icon">📦</span> 导出数据
+          </Button>
+          <Button variant="outline" size="small" @click="showPrivacy" class="account-btn">
+            <span class="btn-icon">🔒</span> 隐私设置
+          </Button>
+          <Button variant="danger" size="small" @click="logout" class="account-btn logout-btn">
+            <span class="btn-icon">🚪</span> 退出登录
+          </Button>
+        </div>
       </section>
     </div>
     </PullToRefresh>
@@ -223,23 +137,6 @@ import PullToRefresh from '@/components/common/PullToRefresh.vue';
 const router = useRouter();
 const userStore = useUserStore();
 
-// 响应式状态
-const isMobile = ref(window.innerWidth < 768);
-const showPreferences = ref(false);
-const showAccount = ref(false);
-
-function togglePreferences() {
-  if (isMobile.value) {
-    showPreferences.value = !showPreferences.value;
-  }
-}
-
-function toggleAccount() {
-  if (isMobile.value) {
-    showAccount.value = !showAccount.value;
-  }
-}
-
 const user = computed(() => userStore.user);
 const avatarUrl = computed(() =>
   user.value?.username
@@ -247,34 +144,112 @@ const avatarUrl = computed(() =>
     : "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
 );
 
+// 用户信息
+const joinDate = computed(() => {
+  const date = new Date();
+  return `${date.getFullYear()}年${date.getMonth() + 1}月`;
+});
+
 // 关键指标数据
 const streakDays = ref(7);
-const streakChange = ref(2);
-const streakTrend = computed(() => streakChange.value >= 0 ? 'positive' : 'negative');
-const weeklyCompletion = ref(85);
-const weeklyGrowth = ref(15);
-const planCount = ref(3);
-const planHealthStatus = computed(() => 'good');
-const planHealthText = computed(() => '良好');
-
-// 深度洞察数据
-const peakHour = ref(9);
-const focusPeak = ref(6.5);
 const habitStreak = ref(23);
-const sprintRecord = ref(18);
 
-// 偏好设置
+// 行为统计数据
+const behaviorStats = computed(() => [
+  { key: 'streak', icon: '🔥', name: '连续天数', value: streakDays.value, trend: '+2', trendClass: 'positive' },
+  { key: 'completion', icon: '📊', name: '完成率', value: '85%', trend: '+15%', trendClass: 'positive' },
+  { key: 'focus', icon: '⏱️', name: '专注时长', value: '6.5h', trend: '峰值', trendClass: 'positive' },
+  { key: 'plans', icon: '📋', name: '活跃计划', value: 3, trend: '良好', trendClass: 'positive' }
+]);
+
+// 行为分析数据
+const analysisItems = computed(() => [
+  { key: 'peak', icon: '🌅', title: '黄金时段', value: '9:00-11:00', description: '效率最高时间段' },
+  { key: 'focusPeak', icon: '🎯', title: '专注峰值', value: '6.5小时/天', description: '单日最长专注时间' },
+  { key: 'habit', icon: '🔄', title: '习惯坚持', value: '23天', description: '重复任务连续完成' },
+  { key: 'sprint', icon: '⚡', title: '冲刺记录', value: '18项', description: '单日最多完成任务' }
+]);
+
+// 趋势数据
+const trendData = ref([
+  { label: '一', height: 60 },
+  { label: '二', height: 75 },
+  { label: '三', height: 55 },
+  { label: '四', height: 85 },
+  { label: '五', height: 70 },
+  { label: '六', height: 90 },
+  { label: '日', height: 80 }
+]);
+
+// 系统设置
 const themePreference = ref<"auto" | "light" | "dark">("auto");
-const reminderPreference = ref("10");
+const reminderPreference = ref("30");
 const aiLevel = ref("standard");
+
+interface SettingOption {
+  value: string;
+  label: string;
+}
+
+interface SystemSetting {
+  key: string;
+  icon: string;
+  name: string;
+  hint: string;
+  type: 'select' | 'link';
+  value: string;
+  options?: SettingOption[];
+  status?: string;
+  action?: () => void;
+}
+
+const systemSettings = computed<SystemSetting[]>(() => [
+  {
+    key: 'theme',
+    icon: '🌗',
+    name: '外观模式',
+    hint: '界面主题设置',
+    type: 'select',
+    value: themePreference.value,
+    options: [
+      { value: 'auto', label: '自动' },
+      { value: 'light', label: '明亮' },
+      { value: 'dark', label: '暗色' }
+    ]
+  },
+  {
+    key: 'reminder',
+    icon: '🔔',
+    name: '提醒偏好',
+    hint: '任务提醒时间',
+    type: 'select',
+    value: reminderPreference.value,
+    options: [
+      { value: '10', label: '10分钟' },
+      { value: '30', label: '30分钟' },
+      { value: '60', label: '1小时' }
+    ]
+  },
+  {
+    key: 'ai',
+    icon: '🧠',
+    name: 'AI 辅助',
+    hint: '智能助手参与度',
+    type: 'select',
+    value: aiLevel.value,
+    options: [
+      { value: 'minimal', label: '最少' },
+      { value: 'standard', label: '标准' },
+      { value: 'active', label: '积极' }
+    ]
+  }
+]);
 
 function handleThemeChange() {
   if (themePreference.value === "auto") {
-    // 自动模式：移除 data-theme 属性，让浏览器使用系统设置
     document.documentElement.removeAttribute("data-theme");
     localStorage.removeItem("theme");
   } else {
-    // 手动模式：使用 userStore 的 toggleTheme 方法
     userStore.toggleTheme(themePreference.value);
   }
 }
@@ -292,13 +267,11 @@ function logout() {
   router.push("/login");
 }
 
-// 下拉刷新处理
 async function handleRefresh() {
-  // 简单刷新，不做数据加载
+  // 简单刷新
 }
 
 onMounted(() => {
-  // 加载偏好设置 - 从 userStore 获取当前主题
   const currentTheme = localStorage.getItem("theme");
   if (currentTheme === "light" || currentTheme === "dark") {
     themePreference.value = currentTheme;
@@ -309,319 +282,377 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 主容器 */
 .profile-container {
-  padding: 1rem;
-  display: grid;
-  gap: 1.5rem;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-/* 桌面端布局 */
-@media (min-width: 1025px) {
-  .preferences-section {
-    align-self: start;
-    position: sticky;
-    top: calc(var(--header-height) + var(--space-4));
-  }
-}
-
-/* 用户概览 */
-.user-overview {
+/* 1. 用户信息卡片 */
+.user-profile-card {
   background: var(--bg-card);
-  border-radius: 20px;
-  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   border: 1px solid var(--border-subtle);
+  transition: all 0.2s ease;
 }
 
-.user-identity {
+.user-profile-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.user-main-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-3);
 }
 
 .user-avatar {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 3px solid var(--primary);
+  border: 3px solid var(--ai-main);
   flex-shrink: 0;
 }
 
-.user-info {
-  flex: 1;
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .user-name {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-main);
   margin: 0;
 }
 
-/* 关键指标 */
-.key-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-top: 1.5rem;
+.user-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
-.metric-card {
-  background: var(--bg-elevated);
-  border-radius: 12px;
-  padding: 1rem;
-  border: 1px solid var(--border-main);
-  text-align: center;
+.user-type {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.user-join-date {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* 成就摘要 */
+.achievement-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  gap: var(--space-4);
+}
+
+.achievement-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.achievement-icon {
+  font-size: 20px;
+}
+
+.achievement-content {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
 }
 
-.metric-value {
+.achievement-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.achievement-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.achievement-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border-main);
+}
+
+/* 2. 行为结果统计模块 */
+.behavior-stats-section {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--ai-main);
+}
+
+.stat-icon {
   font-size: 24px;
+  margin-bottom: var(--space-1);
+}
+
+.stat-value {
+  font-size: 28px;
   font-weight: 700;
   color: var(--text-main);
   font-variant-numeric: tabular-nums;
 }
 
-.metric-label {
+.stat-name {
   font-size: 12px;
   color: var(--text-secondary);
+  margin-top: var(--space-1);
 }
 
-.metric-trend, .metric-status {
+.stat-trend {
   font-size: 11px;
   font-weight: 500;
+  margin-top: var(--space-1);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
 }
 
-.metric-trend.positive, .metric-status.good {
+.stat-trend.positive {
   color: var(--success);
+  background: var(--success-bg);
 }
 
-.metric-trend.negative, .metric-status.poor {
+.stat-trend.negative {
   color: var(--error);
+  background: var(--error-bg);
 }
 
-.metric-status.normal {
-  color: var(--warning);
-}
-
-/* 数据洞察 */
-.growth-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.analytics-card {
+/* 3. 行为分析模块 */
+.behavior-analysis-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   border: 1px solid var(--border-subtle);
 }
 
-.analytics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 var(--space-3) 0;
 }
 
-.analytic-item {
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-3);
+}
+
+.analysis-card {
   background: var(--bg-elevated);
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   border: 1px solid var(--border-main);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-1);
+  transition: all 0.2s ease;
 }
 
-.analytic-header {
+.analysis-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.analysis-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-1);
 }
 
-.analytic-icon {
+.analysis-icon {
   font-size: 16px;
 }
 
-.analytic-title {
+.analysis-title {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-.analytic-value {
-  font-size: 18px;
+.analysis-value {
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
+  margin-top: var(--space-1);
 }
 
-.analytic-desc {
-  font-size: 11px;
+.analysis-desc {
+  font-size: 10px;
   color: var(--text-muted);
 }
 
-/* 偏好设置 */
-.preferences-section {
+/* 趋势图卡片 */
+.trend-card {
+  grid-column: span 1;
+}
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 60px;
+  gap: 4px;
+  margin-top: var(--space-1);
+}
+
+.trend-bar {
+  flex: 1;
+  background: linear-gradient(to top, var(--ai-main), var(--ai-light));
+  border-radius: 2px 2px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  transition: all var(--dur-normal) var(--ease-standard);
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 20px;
 }
 
-.preferences-section.collapsed {
-  order: 2;
+.trend-label {
+  font-size: 8px;
+  color: white;
+  padding: 2px;
 }
 
-.preferences-card, .account-card {
+/* 4. 系统设置模块 */
+.system-settings-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   border: 1px solid var(--border-subtle);
 }
 
-.card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin: 0;
-}
-
-.card-header-clickable {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  cursor: pointer;
-}
-
-.preference-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: var(--bg-elevated);
-  border-radius: 12px;
-  border: 1px solid var(--border-main);
-}
-
-.preference-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.preference-text {
+.settings-list {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2);
 }
 
-.preference-label {
+.setting-row {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.setting-row:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--ai-main);
+}
+
+.setting-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.setting-icon {
+  font-size: 20px;
+}
+
+.setting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-name {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-main);
 }
 
-.preference-desc {
+.setting-hint {
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.preference-icon {
-  font-size: 18px;
+.setting-control {
+  margin-right: var(--space-2);
 }
 
-/* 账户操作 */
+.setting-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.setting-arrow {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+/* 5. 账户管理模块 */
+.account-management-section {
+  margin-top: auto;
+}
+
+.account-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
 .account-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  font-size: 13px;
 }
 
 .btn-icon {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .logout-btn {
   background: var(--error-bg) !important;
   border-color: var(--error) !important;
   color: var(--error) !important;
-}
-
-.expand-toggle {
-  background: none;
-  border: none;
-  font-size: 14px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  transition: all var(--dur-fast) var(--ease-standard);
-  flex-shrink: 0;
-}
-
-.expand-toggle:hover {
-  background: var(--bg-card-hover);
-  color: var(--text-main);
-}
-
-/* 移动端优化 */
-@media (max-width: 768px) {
-  .profile-container {
-    padding: 0.75rem;
-    gap: 1rem;
-  }
-  
-  .user-overview {
-    padding: 1.25rem;
-  }
-  
-  .user-identity {
-    gap: 0.75rem;
-  }
-  
-  .user-avatar {
-    width: 56px;
-    height: 56px;
-  }
-  
-  .user-name {
-    font-size: 18px;
-  }
-  
-  .preference-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  
-  .account-btn {
-    padding: 0.625rem;
-  }
-  
-  .preferences-section {
-    order: 2;
-  }
-  
-  .preferences-card, .account-card {
-    margin-bottom: 0.5rem;
-  }
-}
-
-/* 桌面端优化 */
-@media (min-width: 769px) {
-  .preferences-card > div,
-  .account-card > div {
-    display: block !important;
-  }
-  
-  .expand-toggle {
-    display: none !important;
-  }
 }
 </style>
