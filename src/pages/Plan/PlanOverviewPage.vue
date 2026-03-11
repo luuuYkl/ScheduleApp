@@ -11,9 +11,9 @@
       </Button>
     </template>
 
-    <div class="plan-overview">
-      <!-- 计划概览与筛选 - 合并卡片 -->
-      <Card class="overview-unified-card mb-4">
+    <!-- 标题栏折叠面板：统计与筛选 -->
+    <template #header-panel>
+      <div class="header-panel-content">
         <!-- 第一层：数量统计 -->
         <div class="stats-section">
           <div class="mini-stat-card">
@@ -126,8 +126,10 @@
             </div>
           </div>
         </div>
-      </Card>
-      
+      </div>
+    </template>
+
+    <div class="plan-overview">
       <!-- 计划列表 -->
       <div class="plan-list-section">
         <div class="section-header">

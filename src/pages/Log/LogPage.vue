@@ -462,18 +462,18 @@ onMounted(async () => {
   display: grid;
   gap: var(--space-4);
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  height: 100%;
+  /* 移除 max-width 限制，填满容器 */
 }
 
-/* 桌面端双列布局 */
-@media (min-width: 1025px) {
+/* 桌面端双列布局 - 与今日页面一致 */
+@media (min-width: 1024px) {
   .log-content {
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1.5fr 1fr;
   }
   
   .filters-section {
-    /* 左侧筛选器 */
+    /* 筛选器横跨全宽 */
     grid-column: 1 / -1;
   }
   
@@ -486,6 +486,14 @@ onMounted(async () => {
   
   .log-list-container {
     /* 左侧日志列表 */
+  }
+}
+
+/* 大屏幕优化 - 与今日页面一致 */
+@media (min-width: 1400px) {
+  .log-content {
+    grid-template-columns: 1.4fr 1fr;
+    gap: var(--space-6);
   }
 }
 
