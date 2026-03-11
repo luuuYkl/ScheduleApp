@@ -55,11 +55,42 @@
       <!-- 创建计划按钮已移除，使用悬浮按钮替代 -->
     </div>
 
-    <!-- ========== 空状态提示 ========== -->
-    <div v-if="sortedPlans.length === 0" class="empty-state">
-      <p class="empty-icon">📋</p>
+    <!-- ========== 骨架屏加载状态 ========== -->
+    <div v-if="loading" class="skeleton-container">
+      <div class="skeleton-grid">
+        <div v-for="i in 3" :key="i" class="skeleton-card">
+          <div class="skeleton-header">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-actions">
+              <div class="skeleton-action-btn"></div>
+              <div class="skeleton-action-btn"></div>
+              <div class="skeleton-action-btn"></div>
+            </div>
+          </div>
+          <div class="skeleton-progress">
+            <div class="skeleton-progress-bar"></div>
+            <div class="skeleton-percent"></div>
+          </div>
+          <div class="skeleton-footer">
+            <div class="skeleton-status"></div>
+            <div class="skeleton-hint"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 空状态提示（优化版） ========== -->
+    <div v-else-if="sortedPlans.length === 0" class="empty-state-enhanced">
+      <div class="empty-illustration">
+        <div class="empty-decoration">
+          <span class="deco-circle deco-1"></span>
+          <span class="deco-circle deco-2"></span>
+          <span class="deco-circle deco-3"></span>
+        </div>
+        <span class="empty-icon-animated">📋</span>
+      </div>
       <p class="empty-text">暂无长期计划</p>
-      <p class="empty-hint">使用悬浮按钮创建你的第一个计划吧</p>
+      <p class="empty-hint">点击下方按钮开始规划你的目标</p>
     </div>
 
     <!-- ========== 计划卡片列表 ========== -->
@@ -134,7 +165,7 @@ const router = useRouter();
 const planStore = usePlanStore();
 const taskStore = useTaskStore();
 
-const loading = ref(false);
+const loading = ref(true); // 初始为加载状态，用于显示骨架屏
 const showAll = ref(false);
 
 // 排序后的计划列表（按重要性排序）
@@ -164,8 +195,12 @@ const displayedPlans = computed(() => {
 });
 
 onMounted(async () => {
-  await planStore.loadPlans();
-  await taskStore.loadTasks();
+  try {
+    await planStore.loadPlans();
+    await taskStore.loadTasks();
+  } finally {
+    loading.value = false;
+  }
 });
 
 function progressFor(planId: number) {
@@ -298,7 +333,274 @@ function getStatusClass(plan: any): string {
 
 /* 创建计划按钮样式已移除 */
 
-/* 空状态 */
+/* ========================================
+   骨架屏样式
+   ======================================== */
+.skeleton-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .skeleton-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .skeleton-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .skeleton-grid {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .skeleton-card {
+    min-width: 260px;
+    flex-shrink: 0;
+  }
+}
+
+.skeleton-card {
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid var(--border-main);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.skeleton-title {
+  width: 60%;
+  height: 18px;
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle) 25%,
+    var(--border-main) 50%,
+    var(--border-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.skeleton-action-btn {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle) 25%,
+    var(--border-main) 50%,
+    var(--border-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.skeleton-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.skeleton-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle) 25%,
+    var(--border-main) 50%,
+    var(--border-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-percent {
+  width: 36px;
+  height: 18px;
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle) 25%,
+    var(--border-main) 50%,
+    var(--border-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.skeleton-status {
+  width: 80px;
+  height: 14px;
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle) 25%,
+    var(--border-main) 50%,
+    var(--border-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-hint {
+  width: 100px;
+  height: 14px;
+  background: linear-gradient(
+    90deg,
+    var(--border-subtle) 25%,
+    var(--border-main) 50%,
+    var(--border-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ========================================
+   优化版空状态样式
+   ======================================== */
+.empty-state-enhanced {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.empty-illustration {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.empty-decoration {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deco-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--ai-bg);
+  opacity: 0.6;
+}
+
+.deco-1 {
+  width: 100px;
+  height: 100px;
+  animation: deco-pulse 3s ease-in-out infinite;
+}
+
+.deco-2 {
+  width: 70px;
+  height: 70px;
+  background: var(--ai-main);
+  opacity: 0.15;
+  animation: deco-pulse 3s ease-in-out infinite 0.5s;
+}
+
+.deco-3 {
+  width: 40px;
+  height: 40px;
+  background: var(--ai-light);
+  opacity: 0.25;
+  animation: deco-pulse 3s ease-in-out infinite 1s;
+}
+
+@keyframes deco-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.25;
+  }
+}
+
+.empty-icon-animated {
+  font-size: 3rem;
+  position: relative;
+  z-index: 1;
+  animation: icon-float 3s ease-in-out infinite;
+}
+
+@keyframes icon-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.empty-state-enhanced .empty-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-enhanced .empty-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 200px;
+}
+
+/* 保留原空状态样式以防其他地方使用 */
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
