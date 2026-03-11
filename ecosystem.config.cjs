@@ -5,8 +5,7 @@ module.exports = {
   apps: [
     {
       name: 'schedule-app-api',
-      script: 'npm',
-      args: 'run start',
+      script: 'dist/index.js',
       cwd: './server',
       instances: 1,
       autorestart: true,
