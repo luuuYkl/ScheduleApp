@@ -49,12 +49,16 @@
 -->
 <template>
   <div class="timeline-container card">
-    <!-- ========== 头部区域: 日期 + 天气 ========== -->
+    <!-- ========== 头部区域: 日期 + 视图切换 + 天气 ========== -->
     <div class="header">
-      <!-- 左侧: 星期和日期 -->
+      <!-- 左侧: 星期 + 视图切换器 + 日期范围 (横向排列) -->
       <div class="header-left">
-        <h2 class="weekday-title">{{ weekdayText }}</h2>
-        <span class="date-label">{{ formatDateLabel(todayStr) }}</span>
+        <h2 class="weekday-title">{{ headerTitle }}</h2>
+        <select v-model="viewMode" class="view-selector">
+          <option value="single">今日</option>
+          <option value="three-day">三日</option>
+        </select>
+        <span class="date-label">{{ dateRangeLabel }}</span>
       </div>
       <!-- 右侧: 天气信息 (温度 + 描述 + 位置) -->
       <div class="weather-info" v-if="weather">
@@ -70,8 +74,8 @@
     </div>
 
     <!-- ========== 时间轴主体区域 ========== -->
-    <div class="timeline-wrapper">
-      <!-- 左侧: 时间刻度列 (05:00 - 23:00) -->
+    <div class="timeline-wrapper" :class="{ 'three-day-mode': viewMode === 'three-day' }">
+      <!-- 左侧: 时间刻度列 (00:00 - 24:00) -->
       <div class="time-axis">
         <div 
           v-for="hour in hours" 
@@ -85,8 +89,9 @@
         </div>
       </div>
 
-      <!-- 事件区域 -->
+      <!-- ========== 单日视图 ========== -->
       <div 
+        v-if="viewMode === 'single'"
         class="events-area" 
         ref="eventsAreaRef"
         @dragover="handleDragOver"
@@ -134,6 +139,65 @@
           <span class="empty-text">今天暂无日程安排</span>
         </div>
       </div>
+
+      <!-- ========== 三日视图 ========== -->
+      <div v-else class="events-area-multi">
+        <div 
+          v-for="(day, index) in threeDays" 
+          :key="day.dateStr" 
+          class="day-column"
+          :class="{ 'is-today': index === 0 }"
+        >
+          <!-- 日期头部 -->
+          <div class="day-header">
+            <span class="day-label">{{ day.label }}</span>
+            <span class="day-date">{{ day.shortDate }}</span>
+          </div>
+          <!-- 事件区域 -->
+          <div 
+            class="day-events"
+            :ref="el => { if (el) dayEventsRefs[index] = el as HTMLElement }"
+            @dragover="handleDragOver"
+            @drop="handleDragEnd"
+          >
+            <!-- 当前时间指示器（仅今天列显示） -->
+            <div 
+              v-if="index === 0"
+              class="current-time-indicator" 
+              :style="{ top: currentTimePosition + '%' }"
+            >
+              <div class="indicator-dot"></div>
+              <div class="indicator-line"></div>
+            </div>
+
+            <!-- 事件块 -->
+            <div 
+              v-for="event in getEventsForDay(day.dateStr)" 
+              :key="event.id"
+              class="event-block"
+              :class="[
+                event.type, 
+                { completed: event.completed, dragging: draggedEvent?.id === event.id }
+              ]"
+              :style="getEventStyle(event)"
+              draggable="true"
+              @dragstart="handleDragStart($event, event)"
+              @click="handleEventClick(event)"
+            >
+              <div class="event-icon">{{ getEventIcon(event) }}</div>
+              <div class="event-content">
+                <span class="event-title">{{ event.title }}</span>
+                <span class="event-time">{{ formatEventTime(event) }}</span>
+              </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-if="getEventsForDay(day.dateStr).length === 0" class="empty-state-mini">
+              <span class="empty-icon-mini">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -175,6 +239,47 @@ const eventsAreaRef = ref<HTMLElement | null>(null);
 // 调整大小状态
 const resizingEvent = ref<TimelineEvent | null>(null);
 const resizeDeltaHour = ref(0);
+
+// 三日视图的事件区域引用
+const dayEventsRefs = ref<HTMLElement[]>([]);
+
+// ========== 视图模式（单日/三日） ==========
+const viewMode = ref<'single' | 'three-day'>('single');
+
+// 三日数据
+const threeDays = computed(() => {
+  const today = new Date();
+  return [0, 1, 2].map(offset => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + offset);
+    const dateStr = date.toISOString().slice(0, 10);
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return {
+      dateStr,
+      label: offset === 0 ? '今天' : offset === 1 ? '明天' : '后天',
+      weekday: weekdays[date.getDay()],
+      shortDate: `${date.getMonth() + 1}/${date.getDate()}`
+    };
+  });
+});
+
+// 头部标题
+const headerTitle = computed(() => {
+  if (viewMode.value === 'single') {
+    return weekdayText.value;
+  }
+  return `${weekdayText.value} - ${threeDays.value[2].weekday}`;
+});
+
+// 日期范围标签
+const dateRangeLabel = computed(() => {
+  if (viewMode.value === 'single') {
+    return formatDateLabel(todayStr);
+  }
+  const start = threeDays.value[0].shortDate;
+  const end = threeDays.value[2].shortDate;
+  return `${start} - ${end}`;
+});
 
 // 星期文字
 const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -556,6 +661,69 @@ const currentTimePosition = computed(() => {
   return ((currentHour - START_HOUR) / TOTAL_HOURS) * 100;
 });
 
+// ========== 三日视图：获取指定日期的事件 ==========
+function getEventsForDay(dateStr: string): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
+
+  // 处理日程
+  scheduleStore.schedules
+    .filter(s => s.date === dateStr)
+    .forEach(s => {
+      const startHour = parseTimeToHour(s.start_time);
+      const endHour = parseTimeToHour(s.end_time);
+      
+      events.push({
+        id: 's-' + s.id + '-' + dateStr,
+        title: s.title,
+        type: getScheduleType(s.title),
+        startHour: Math.max(START_HOUR, startHour),
+        endHour: Math.min(END_HOUR, endHour),
+        completed: s.completed || false,
+        originalData: s
+      });
+    });
+
+  // 处理任务
+  const dayTasks = taskStore.tasks.filter(
+    t => t.task_date === dateStr && (!props.planId || t.plan_id === props.planId)
+  );
+  
+  const occupiedSlots: number[] = [];
+  
+  dayTasks.forEach((t) => {
+    let startHour = parseTimeToHour(t.start_time);
+    let endHour = parseTimeToHour(t.end_time);
+    
+    if (startHour === 0 && endHour === 0) {
+      let defaultHour = 9;
+      while (occupiedSlots.includes(defaultHour) && defaultHour < END_HOUR) {
+        defaultHour++;
+      }
+      startHour = defaultHour;
+      endHour = defaultHour + 1;
+      occupiedSlots.push(defaultHour);
+    } else {
+      startHour = Math.max(START_HOUR, startHour);
+      endHour = Math.min(END_HOUR, Math.max(startHour + 1, endHour));
+      for (let h = Math.floor(startHour); h < Math.floor(endHour); h++) {
+        occupiedSlots.push(h);
+      }
+    }
+    
+    events.push({
+      id: 't-' + t.id + '-' + dateStr,
+      title: t.title,
+      type: getTaskType(t),
+      startHour,
+      endHour,
+      completed: t.status === 'done',
+      originalData: t
+    });
+  });
+
+  return events.sort((a, b) => a.startHour - b.startHour);
+}
+
 // 辅助函数
 function parseTimeToHour(timeStr?: string): number {
   if (!timeStr) return 0;
@@ -840,10 +1008,35 @@ onUnmounted(() => {
   gap: var(--space-3);
 }
 
+/* 头部左侧：横向排列 */
 .header-left {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 视图切换下拉栏 - 更小巧 */
+.view-selector {
+  padding: 2px 6px;
+  font-size: 11px;
+  border: 1px solid var(--border-main);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.view-selector:hover {
+  border-color: var(--ai-main);
+  color: var(--ai-main);
+}
+
+.view-selector:focus {
+  outline: none;
+  border-color: var(--ai-main);
+  box-shadow: 0 0 0 2px var(--ai-bg);
 }
 
 .weekday-title {
@@ -1149,6 +1342,111 @@ onUnmounted(() => {
 .empty-text {
   font-size: 14px;
   color: var(--text-muted);
+}
+
+/* ========== 三日视图样式 ========== */
+.events-area-multi {
+  flex: 1;
+  display: flex;
+  gap: 1px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-left: var(--space-2);
+}
+
+.day-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  min-width: 0;
+}
+
+.day-column.is-today {
+  background: var(--bg-elevated);
+}
+
+/* 日期头部 */
+.day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+}
+
+.day-column.is-today .day-header {
+  background: var(--ai-bg);
+  border-bottom-color: var(--ai-main);
+}
+
+.day-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.day-column.is-today .day-label {
+  color: var(--ai-main);
+}
+
+.day-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.day-column.is-today .day-date {
+  color: var(--ai-light);
+}
+
+/* 三日视图的事件区域 */
+.day-events {
+  flex: 1;
+  position: relative;
+  min-height: 600px;
+}
+
+/* 三日视图中的事件块样式调整 */
+.events-area-multi .event-block {
+  left: var(--space-1);
+  right: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  min-height: 28px;
+}
+
+.events-area-multi .event-icon {
+  font-size: 12px;
+  width: 16px;
+}
+
+.events-area-multi .event-title {
+  font-size: 12px;
+}
+
+.events-area-multi .event-time {
+  font-size: 10px;
+}
+
+/* 三日视图中的当前时间指示器 */
+.events-area-multi .current-time-indicator {
+  left: var(--space-1);
+  right: var(--space-1);
+}
+
+/* 三日视图中的空状态 */
+.empty-state-mini {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.empty-icon-mini {
+  font-size: 20px;
+  color: var(--text-muted);
+  opacity: 0.3;
 }
 
 /* 响应式 */
