@@ -2,8 +2,6 @@
   <PageScaffold
     title="计划"
     subtitle="管理你的所有计划"
-    show-back-button
-    @back="goBack"
   >
     <template #actions>
       <Button variant="primary" size="sm" @click="goCreatePlan">
@@ -11,74 +9,33 @@
       </Button>
     </template>
 
-    <!-- 标题栏折叠面板：统计与筛选 -->
-    <template #header-panel>
-      <div class="header-panel-content">
-        <!-- 第一层：数量统计 -->
-        <div class="stats-section">
-          <div class="mini-stat-card">
-            <div class="mini-stat-icon gray">📋</div>
-            <div class="mini-stat-number">{{ planStats.total }}</div>
-            <div class="mini-stat-label">总计划数</div>
-          </div>
-          <div class="mini-stat-card">
-            <div class="mini-stat-icon orange">⚡</div>
-            <div class="mini-stat-number">{{ planStats.inProgress }}</div>
-            <div class="mini-stat-label">进行中</div>
-          </div>
-          <div class="mini-stat-card">
-            <div class="mini-stat-icon yellow">⚠️</div>
-            <div class="mini-stat-number">{{ planStats.riskCount }}</div>
-            <div class="mini-stat-label">风险中</div>
-          </div>
-          <div class="mini-stat-card">
-            <div class="mini-stat-icon green">✅</div>
-            <div class="mini-stat-number">{{ planStats.completed }}</div>
-            <div class="mini-stat-label">已完成</div>
-          </div>
+    <div class="plan-overview">
+      <!-- 计划概览区域：统计卡片 -->
+      <div class="stats-section">
+        <div class="mini-stat-card">
+          <div class="mini-stat-icon gray">📋</div>
+          <div class="mini-stat-number">{{ planStats.total }}</div>
+          <div class="mini-stat-label">总计划数</div>
         </div>
-
-        <!-- 分隔线 -->
-        <div class="section-divider"></div>
-
-        <!-- 第二层：执行健康度 -->
-        <div class="health-section">
-          <div class="health-section-header">
-            <span class="health-section-title">执行健康度</span>
-            <div class="health-total-score">
-              <span class="total-score-value">{{ healthScore }}%</span>
-              <span class="total-score-label">整体健康度</span>
-            </div>
-          </div>
-          <div class="health-metrics">
-            <div class="health-metric">
-              <span class="metric-label">按时完成率</span>
-              <div class="metric-bar-container">
-                <div 
-                  class="metric-bar-fill green" 
-                  :style="{ width: completionRate + '%' }">
-                </div>
-              </div>
-              <span class="metric-value">{{ completionRate }}%</span>
-            </div>
-            <div class="health-metric">
-              <span class="metric-label">任务密度</span>
-              <div class="metric-bar-container">
-                <div 
-                  class="metric-bar-fill" 
-                  :class="taskDensity > 0 ? 'red' : 'gray'"
-                  :style="{ width: taskDensity + '%' }">
-                </div>
-              </div>
-              <span class="metric-value">{{ taskDensity }}%</span>
-            </div>
-          </div>
+        <div class="mini-stat-card">
+          <div class="mini-stat-icon orange">⚡</div>
+          <div class="mini-stat-number">{{ planStats.inProgress }}</div>
+          <div class="mini-stat-label">进行中</div>
         </div>
+        <div class="mini-stat-card">
+          <div class="mini-stat-icon yellow">⚠️</div>
+          <div class="mini-stat-number">{{ planStats.riskCount }}</div>
+          <div class="mini-stat-label">风险中</div>
+        </div>
+        <div class="mini-stat-card">
+          <div class="mini-stat-icon green">✅</div>
+          <div class="mini-stat-number">{{ planStats.completed }}</div>
+          <div class="mini-stat-label">已完成</div>
+        </div>
+      </div>
 
-        <!-- 分隔线 -->
-        <div class="section-divider"></div>
-
-        <!-- 第三层：精准筛选 -->
+      <!-- 筛选区域 -->
+      <Card class="filter-card">
         <div class="filter-section">
           <div class="filter-row">
             <!-- 状态筛选 -->
@@ -107,11 +64,9 @@
                 <option value="next_quarter">下季度</option>
               </select>
             </div>
-          </div>
-          
-          <!-- 标签筛选 - 第二行 -->
-          <div class="filter-row">
-            <div class="filter-item full-width">
+            
+            <!-- 标签筛选 -->
+            <div class="filter-item">
               <span class="filter-label">标签</span>
               <div class="compact-chips">
                 <button 
@@ -126,11 +81,9 @@
             </div>
           </div>
         </div>
-      </div>
-    </template>
+      </Card>
 
-    <div class="plan-overview">
-      <!-- 计划列表 -->
+      <!-- 计划列表区域 -->
       <div class="plan-list-section">
         <div class="section-header">
           <h3>我的计划</h3>
@@ -184,6 +137,21 @@
               <p class="plan-description">
                 {{ plan.description || "暂无描述" }}
               </p>
+              
+              <!-- 执行进度条 -->
+              <div class="progress-section">
+                <div class="progress-header">
+                  <span class="progress-label">执行进度</span>
+                  <span class="progress-value">{{ plan.progress }}%</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div 
+                    class="progress-bar-fill"
+                    :style="{ width: plan.progress + '%' }"
+                    :class="getProgressClass(plan.progress)"
+                  ></div>
+                </div>
+              </div>
               
               <!-- 标准化信息层级 -->
               <div class="plan-info-hierarchy">
@@ -251,6 +219,119 @@
           </div>
         </div>
       </div>
+
+      <!-- 可展开的计划分析区域 -->
+      <div class="analysis-section">
+        <div class="analysis-header" @click="toggleAnalysis">
+          <div class="analysis-title">
+            <span class="analysis-icon">📊</span>
+            <span>计划分析</span>
+          </div>
+          <div class="analysis-summary">
+            <span class="summary-item">
+              <span class="summary-label">健康度</span>
+              <span class="summary-value" :class="getHealthClass(healthScore)">{{ healthScore }}%</span>
+            </span>
+            <span class="summary-item">
+              <span class="summary-label">任务密度</span>
+              <span class="summary-value">{{ taskDensityLevel }}</span>
+            </span>
+            <span class="summary-item">
+              <span class="summary-label">风险趋势</span>
+              <span class="summary-value" :class="riskTrendClass">{{ riskTrendText }}</span>
+            </span>
+          </div>
+          <button class="expand-btn" :class="{ expanded: isAnalysisExpanded }">
+            <span>▼</span>
+          </button>
+        </div>
+        
+        <!-- 展开的详细分析内容 -->
+        <div v-if="isAnalysisExpanded" class="analysis-content">
+          <!-- 执行健康度详情 -->
+          <div class="analysis-card">
+            <h4 class="analysis-card-title">执行健康度</h4>
+            <div class="health-detail">
+              <div class="health-score-circle" :class="getHealthClass(healthScore)">
+                <span class="score-number">{{ healthScore }}</span>
+                <span class="score-unit">分</span>
+              </div>
+              <div class="health-metrics-detail">
+                <div class="metric-item">
+                  <span class="metric-label">按时完成率</span>
+                  <div class="metric-bar-container">
+                    <div 
+                      class="metric-bar-fill green" 
+                      :style="{ width: completionRate + '%' }">
+                    </div>
+                  </div>
+                  <span class="metric-value">{{ completionRate }}%</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">进度达成率</span>
+                  <div class="metric-bar-container">
+                    <div 
+                      class="metric-bar-fill blue" 
+                      :style="{ width: progressAchievementRate + '%' }">
+                    </div>
+                  </div>
+                  <span class="metric-value">{{ progressAchievementRate }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 任务密度详情 -->
+          <div class="analysis-card">
+            <h4 class="analysis-card-title">任务密度</h4>
+            <div class="density-detail">
+              <div class="density-chart">
+                <div class="density-bar">
+                  <div 
+                    class="density-fill" 
+                    :style="{ width: taskDensity + '%' }"
+                    :class="getDensityClass(taskDensity)"
+                  ></div>
+                </div>
+                <div class="density-labels">
+                  <span>低</span>
+                  <span>中</span>
+                  <span>高</span>
+                </div>
+              </div>
+              <div class="density-info">
+                <span class="density-value">{{ taskDensityLevel }}</span>
+                <span class="density-desc">{{ taskDensityDesc }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 风险趋势详情 -->
+          <div class="analysis-card">
+            <h4 class="analysis-card-title">风险趋势</h4>
+            <div class="trend-detail">
+              <div class="trend-chart">
+                <div 
+                  v-for="(item, index) in riskTrendData" 
+                  :key="index"
+                  class="trend-bar-item"
+                >
+                  <div class="trend-bar" :style="{ height: item.value + '%' }">
+                    <span class="trend-value">{{ item.value }}</span>
+                  </div>
+                  <span class="trend-label">{{ item.label }}</span>
+                </div>
+              </div>
+              <div class="trend-summary">
+                <span class="trend-indicator" :class="riskTrendClass">
+                  {{ riskTrendIcon }} {{ riskTrendText }}
+                </span>
+                <span class="trend-desc">{{ riskTrendDesc }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </PageScaffold>
 </template>
@@ -272,6 +353,7 @@ interface Plan {
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
   taskCount: number;
   completedTasks?: number;
+  progress: number;
   tags?: string[];
   isOverdue?: boolean;
   isAtRisk?: boolean;
@@ -281,6 +363,9 @@ interface Plan {
 
 const router = useRouter();
 const plansStore = usePlanStore();
+
+// 分析区域展开状态
+const isAnalysisExpanded = ref(false);
 
 // 高级筛选状态
 const activeStatusFilters = ref<string[]>(['all']);
@@ -306,7 +391,14 @@ const plans = computed<Plan[]>(() => {
   return plansStore.plans.map((plan: any) => {
     const today = new Date();
     const endDate = new Date(plan.endDate);
+    const startDate = new Date(plan.startDate);
     const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // 计算进度
+    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const passedDays = Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const progress = plan.status === 'COMPLETED' ? 100 : 
+                     Math.min(100, Math.max(0, Math.round((passedDays / totalDays) * 100)));
     
     // 计算风险状态
     const isOverdue = daysRemaining < 0 && plan.status !== 'COMPLETED';
@@ -328,6 +420,7 @@ const plans = computed<Plan[]>(() => {
       status: plan.status,
       taskCount: plan.tasks?.length || 0,
       completedTasks: plan.tasks?.filter((t: any) => t.status === 'done').length || 0,
+      progress,
       tags: plan.tags || [],
       isOverdue,
       isAtRisk,
@@ -397,7 +490,7 @@ const healthScore = computed(() => {
   const completedRate = planStats.value.completed / planStats.value.total * 100;
   const onTrackRate = plans.value.filter(p => 
     p.status === 'IN_PROGRESS' && !p.isOverdue && !p.isAtRisk
-  ).length / planStats.value.inProgress * 100 || 0;
+  ).length / Math.max(1, planStats.value.inProgress) * 100 || 0;
   
   return Math.round((completedRate * 0.6 + onTrackRate * 0.4));
 });
@@ -407,10 +500,73 @@ const completionRate = computed(() => {
   return Math.round(planStats.value.completed / planStats.value.total * 100);
 });
 
-const taskDensity = computed(() => {
-  const totalTasks = plans.value.reduce((sum, p) => sum + p.taskCount, 0);
-  return Math.min(100, Math.round(totalTasks / plans.value.length * 10));
+const progressAchievementRate = computed(() => {
+  const inProgressPlans = plans.value.filter(p => p.status === 'IN_PROGRESS');
+  if (inProgressPlans.length === 0) return 100;
+  
+  const avgProgress = inProgressPlans.reduce((sum, p) => sum + p.progress, 0) / inProgressPlans.length;
+  return Math.round(avgProgress);
 });
+
+const taskDensity = computed(() => {
+  if (plans.value.length === 0) return 0;
+  const totalTasks = plans.value.reduce((sum, p) => sum + p.taskCount, 0);
+  const avgTasks = totalTasks / plans.value.length;
+  return Math.min(100, Math.round(avgTasks * 10));
+});
+
+const taskDensityLevel = computed(() => {
+  if (taskDensity.value < 30) return '低';
+  if (taskDensity.value < 70) return '中';
+  return '高';
+});
+
+const taskDensityDesc = computed(() => {
+  if (taskDensity.value < 30) return '任务安排较轻松，可考虑增加任务量';
+  if (taskDensity.value < 70) return '任务安排适中，保持当前节奏';
+  return '任务安排较紧凑，注意合理分配精力';
+});
+
+// 风险趋势数据（模拟最近7天数据）
+const riskTrendData = computed(() => {
+  const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  return days.map((day, index) => ({
+    label: day,
+    value: Math.max(0, planStats.value.riskCount + Math.floor(Math.random() * 3) - 1)
+  }));
+});
+
+const riskTrendClass = computed(() => {
+  const trend = riskTrendData.value;
+  const firstHalf = trend.slice(0, 3).reduce((sum, item) => sum + item.value, 0);
+  const secondHalf = trend.slice(4).reduce((sum, item) => sum + item.value, 0);
+  
+  if (secondHalf < firstHalf) return 'trend-down';
+  if (secondHalf > firstHalf) return 'trend-up';
+  return 'trend-stable';
+});
+
+const riskTrendText = computed(() => {
+  if (riskTrendClass.value === 'trend-down') return '下降';
+  if (riskTrendClass.value === 'trend-up') return '上升';
+  return '稳定';
+});
+
+const riskTrendIcon = computed(() => {
+  if (riskTrendClass.value === 'trend-down') return '↓';
+  if (riskTrendClass.value === 'trend-up') return '↑';
+  return '→';
+});
+
+const riskTrendDesc = computed(() => {
+  if (riskTrendClass.value === 'trend-down') return '风险计划数量正在减少，继续保持';
+  if (riskTrendClass.value === 'trend-up') return '风险计划数量有所增加，需要关注';
+  return '风险计划数量保持稳定';
+});
+
+function toggleAnalysis() {
+  isAnalysisExpanded.value = !isAnalysisExpanded.value;
+}
 
 function getStatusText(status: string) {
   const statusMap: Record<string, string> = {
@@ -456,6 +612,18 @@ function getHealthClass(value: number): string {
   return 'danger';
 }
 
+function getProgressClass(progress: number): string {
+  if (progress >= 80) return 'high';
+  if (progress >= 50) return 'medium';
+  return 'low';
+}
+
+function getDensityClass(value: number): string {
+  if (value < 30) return 'low';
+  if (value < 70) return 'medium';
+  return 'high';
+}
+
 function getDaysRemainingClass(days: number): string {
   if (days > 30) return 'safe';
   if (days > 7) return 'warning';
@@ -468,19 +636,6 @@ function editPlan(planId: string) {
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString("zh-CN");
-}
-
-function getFilterLabel(filter: string) {
-  const labelMap: Record<string, string> = {
-    all: "",
-    in_progress: "进行中",
-    completed: "已完成",
-  };
-  return labelMap[filter] || "";
-}
-
-function goBack() {
-  router.back();
 }
 
 function goCreatePlan() {
@@ -500,25 +655,20 @@ onMounted(() => {
 .plan-overview {
   max-width: 1000px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-/* ========== 合并卡片样式 ========== */
-.overview-unified-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-lg);
-}
-
-.overview-unified-card :deep(.card-content) {
-  padding: 0;
-}
-
-/* 第一层：数量统计 */
+/* ========== 统计卡片区域 ========== */
 .stats-section {
   display: flex;
   justify-content: space-between;
+  gap: var(--space-3);
   padding: var(--space-4);
-  gap: var(--space-2);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-main);
 }
 
 .mini-stat-card {
@@ -526,22 +676,17 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   flex: 1;
-  min-width: 70px;
-  padding: var(--space-2);
+  min-width: 80px;
+  padding: var(--space-3);
 }
 
 .mini-stat-icon {
-  font-size: 20px;
-  margin-bottom: 2px;
+  font-size: 24px;
+  margin-bottom: var(--space-2);
 }
 
-.mini-stat-icon.gray { opacity: 0.7; }
-.mini-stat-icon.orange { opacity: 1; }
-.mini-stat-icon.yellow { opacity: 1; }
-.mini-stat-icon.green { opacity: 1; }
-
 .mini-stat-number {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.2;
@@ -549,123 +694,31 @@ onMounted(() => {
 }
 
 .mini-stat-label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
   text-align: center;
-  margin-top: 2px;
+  margin-top: var(--space-1);
 }
 
-/* 分隔线 */
-.section-divider {
-  height: 1px;
-  background: var(--border-subtle);
-  margin: 0 var(--space-4);
+/* ========== 筛选区域 ========== */
+.filter-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
 }
 
-/* 第二层：执行健康度 */
-.health-section {
+.filter-card :deep(.card-content) {
   padding: var(--space-3) var(--space-4);
 }
 
-.health-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-3);
-}
-
-.health-section-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.health-total-score {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-1);
-}
-
-.total-score-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--ai-main);
-  font-variant-numeric: tabular-nums;
-}
-
-.total-score-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.health-metrics {
-  display: flex;
-  gap: var(--space-6);
-}
-
-.health-metric {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-}
-
-.metric-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  width: 72px;
-  flex-shrink: 0;
-}
-
-.metric-bar-container {
-  flex: 1;
-  height: 10px;
-  background: var(--bg-main);
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.metric-bar-fill {
-  height: 100%;
-  border-radius: 5px;
-  transition: width 0.5s ease;
-}
-
-.metric-bar-fill.green {
-  background: var(--success);
-}
-
-.metric-bar-fill.red {
-  background: var(--error);
-}
-
-.metric-bar-fill.gray {
-  background: var(--border-main);
-}
-
-.metric-value {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-main);
-  width: 40px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 第三层：精准筛选 */
 .filter-section {
-  padding: var(--space-3) var(--space-4);
+  width: 100%;
 }
 
 .filter-row {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  margin-bottom: var(--space-2);
-}
-
-.filter-row:last-child {
-  margin-bottom: 0;
+  gap: var(--space-6);
+  flex-wrap: wrap;
 }
 
 .filter-item {
@@ -674,28 +727,25 @@ onMounted(() => {
   gap: var(--space-2);
 }
 
-.filter-item.full-width {
-  flex: 1;
-}
-
 .filter-label {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .compact-chips {
   display: flex;
-  gap: 5px;
+  gap: 6px;
 }
 
 .compact-chip {
-  padding: 4px 10px;
+  padding: 6px 12px;
   border: 1px solid var(--border-main);
   background: var(--bg-main);
   color: var(--text-secondary);
   border-radius: var(--radius-full);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
@@ -713,13 +763,13 @@ onMounted(() => {
 }
 
 .compact-select {
-  padding: 4px 8px;
+  padding: 6px 12px;
   border: 1px solid var(--border-main);
   border-radius: var(--radius-sm);
   background: var(--bg-main);
   color: var(--text-main);
-  font-size: 12px;
-  min-width: 100px;
+  font-size: 13px;
+  min-width: 120px;
   cursor: pointer;
 }
 
@@ -728,27 +778,72 @@ onMounted(() => {
   border-color: var(--ai-main);
 }
 
-/* ========== 动画 ========== */
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+/* ========== 计划列表区域 ========== */
+.plan-list-section {
+  margin-top: var(--space-2);
 }
 
-/* 增强的计划卡片 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.results-info {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* 计划卡片 */
 .enhanced-plan-card {
   border-left: 4px solid transparent;
   transition: all 0.3s;
+  cursor: pointer;
 }
 
 .enhanced-plan-card:hover {
   border-left-color: var(--ai-main);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.plan-card-content {
+  padding: var(--space-4);
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-2);
 }
 
 .plan-title-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  flex: 1;
+}
+
+.plan-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 .plan-tags {
@@ -772,16 +867,99 @@ onMounted(() => {
   gap: var(--space-2);
 }
 
+.plan-status {
+  font-size: 12px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+.status-not_started {
+  background: var(--bg-warning);
+  color: var(--text-warning);
+}
+
+.status-in_progress {
+  background: var(--ai-bg);
+  color: var(--ai-main);
+}
+
+.status-completed {
+  background: var(--bg-success);
+  color: var(--text-success);
+}
+
 .risk-indicator-small {
   font-size: 16px;
   animation: pulse 2s infinite;
 }
 
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.plan-description {
+  margin: 0 0 var(--space-3);
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* 执行进度条 */
+.progress-section {
+  margin-bottom: var(--space-3);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-1);
+}
+
+.progress-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.progress-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.progress-bar-container {
+  height: 6px;
+  background: var(--bg-main);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.progress-bar-fill.high {
+  background: var(--success);
+}
+
+.progress-bar-fill.medium {
+  background: var(--warning);
+}
+
+.progress-bar-fill.low {
+  background: var(--error);
+}
+
+/* 信息层级 */
 .plan-info-hierarchy {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin: var(--space-3) 0;
   padding: var(--space-3);
   background: var(--bg-main);
   border-radius: var(--radius-md);
@@ -849,142 +1027,7 @@ onMounted(() => {
   border-top: 1px solid var(--border-subtle);
 }
 
-.plan-list-section {
-  margin-top: var(--space-6);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-4);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.results-info {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.filter-tabs {
-  display: flex;
-  gap: var(--space-2);
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: var(--space-1);
-}
-
-.filter-tab {
-  padding: var(--space-2) var(--space-3);
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--dur-fast) var(--ease-standard);
-}
-
-.filter-tab:hover {
-  color: var(--text-main);
-  background: var(--bg-card-hover);
-}
-
-.filter-tab.active {
-  background: var(--ai-main);
-  color: white;
-}
-
-.plan-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.plan-card {
-  cursor: pointer;
-  transition: all var(--dur-fast) var(--ease-standard);
-}
-
-.plan-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.plan-card-content {
-  padding: var(--space-4);
-}
-
-.plan-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-2);
-}
-
-.plan-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-main);
-  flex: 1;
-  margin-right: var(--space-2);
-}
-
-.plan-status {
-  font-size: 12px;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
-  font-weight: 500;
-}
-
-.status-not_started {
-  background: var(--bg-warning);
-  color: var(--text-warning);
-}
-
-.status-in_progress {
-  background: var(--ai-bg);
-  color: var(--ai-main);
-}
-
-.status-completed {
-  background: var(--bg-success);
-  color: var(--text-success);
-}
-
-.plan-description {
-  margin: 0 0 var(--space-3);
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.plan-meta {
-  display: flex;
-  gap: var(--space-4);
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.meta-item {
-  display: flex;
-  gap: var(--space-1);
-}
-
-.meta-label {
-  font-weight: 500;
-}
-
+/* 空状态 */
 .empty-state {
   text-align: center;
   padding: var(--space-8) var(--space-4);
@@ -1003,60 +1046,405 @@ onMounted(() => {
 
 .empty-hint {
   font-size: 14px;
-  color: var(--text-secondary);
   margin-bottom: var(--space-4);
 }
 
+/* ========== 计划分析区域 ========== */
+.analysis-section {
+  margin-top: var(--space-4);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-main);
+  overflow: hidden;
+}
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.analysis-header:hover {
+  background: var(--bg-card-hover);
+}
+
+.analysis-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.analysis-icon {
+  font-size: 20px;
+}
+
+.analysis-summary {
+  display: flex;
+  gap: var(--space-6);
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.summary-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.summary-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.summary-value.good {
+  color: var(--success);
+}
+
+.summary-value.warning {
+  color: var(--warning);
+}
+
+.summary-value.danger {
+  color: var(--error);
+}
+
+.expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--bg-main);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expand-btn span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.3s;
+}
+
+.expand-btn.expanded span {
+  transform: rotate(180deg);
+}
+
+/* 分析内容区域 */
+.analysis-content {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.analysis-card {
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.analysis-card-title {
+  margin: 0 0 var(--space-3);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* 健康度详情 */
+.health-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.health-score-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid var(--border-main);
+}
+
+.health-score-circle.good {
+  border-color: var(--success);
+  background: var(--bg-success);
+}
+
+.health-score-circle.warning {
+  border-color: var(--warning);
+  background: var(--bg-warning);
+}
+
+.health-score-circle.danger {
+  border-color: var(--error);
+  background: var(--bg-error);
+}
+
+.score-number {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.score-unit {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.health-metrics-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.metric-item .metric-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.metric-bar-container {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-card);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metric-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.metric-bar-fill.green {
+  background: var(--success);
+}
+
+.metric-bar-fill.blue {
+  background: var(--ai-main);
+}
+
+.metric-item .metric-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main);
+  width: 36px;
+  text-align: right;
+}
+
+/* 任务密度详情 */
+.density-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.density-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.density-bar {
+  height: 12px;
+  background: var(--bg-card);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.density-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+.density-fill.low {
+  background: var(--success);
+}
+
+.density-fill.medium {
+  background: var(--warning);
+}
+
+.density-fill.high {
+  background: var(--error);
+}
+
+.density-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.density-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.density-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.density-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* 风险趋势详情 */
+.trend-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 80px;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.trend-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.trend-bar {
+  width: 20px;
+  min-height: 10px;
+  background: var(--ai-main);
+  border-radius: 3px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  transition: height 0.3s ease;
+}
+
+.trend-value {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  padding-top: 2px;
+}
+
+.trend-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.trend-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.trend-indicator {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.trend-indicator.trend-down {
+  color: var(--success);
+}
+
+.trend-indicator.trend-up {
+  color: var(--error);
+}
+
+.trend-indicator.trend-stable {
+  color: var(--text-secondary);
+}
+
+.trend-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ========== 响应式调整 ========== */
 @media (max-width: 768px) {
-  /* 合并卡片移动端适配 */
   .stats-section {
     flex-wrap: wrap;
-    padding: var(--space-3);
-    gap: var(--space-1);
+    gap: var(--space-2);
   }
   
   .mini-stat-card {
     min-width: calc(50% - var(--space-2));
-    padding: var(--space-2) var(--space-1);
-  }
-  
-  .mini-stat-number {
-    font-size: 18px;
-  }
-  
-  .health-metrics {
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  
-  .health-metric {
-    width: 100%;
   }
   
   .filter-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-2);
+    gap: var(--space-3);
   }
   
   .filter-item {
     width: 100%;
-    flex-wrap: wrap;
   }
   
   .compact-chips {
     flex-wrap: wrap;
   }
   
-  .compact-select {
-    min-width: 120px;
+  .analysis-summary {
+    display: none;
   }
   
-  /* 计划列表适配 */
+  .analysis-content {
+    grid-template-columns: 1fr;
+  }
+  
   .section-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-3);
+    gap: var(--space-2);
   }
   
   .plan-header {
@@ -1070,7 +1458,6 @@ onMounted(() => {
   }
   
   .plan-status-section {
-    align-self: flex-start;
     margin-top: var(--space-1);
   }
   
@@ -1078,10 +1465,6 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-1);
-  }
-  
-  .info-label {
-    min-width: auto;
   }
   
   .info-value {
