@@ -81,7 +81,7 @@
         </div>
         <div class="border-sample" style="border-color: var(--color-border-subtle)">
           <span>Subtle Border</span>
-          <small>rgba(255,255,255,0.05)</small>
+          <small>rgba(255
         </div>
       </div>
     </section>

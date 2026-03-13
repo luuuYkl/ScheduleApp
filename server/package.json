@@ -20,6 +20,7 @@
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "my-schedule-app": "file:..",
     "mysql2": "^3.6.5",
     "uuid": "^9.0.1"
   },
@@ -34,26 +35,3 @@
     "typescript": "^5.3.3"
   }
 }
-</write_to_file>
-<task_progress>
-- [ ] 第一阶段：后端开发
-  - [x] 创建 server 项目结构
-  - [ ] 配置 RDS 数据库连接
-  - [ ] 实现用户认证（JWT）
-  - [ ] 实现计划/任务/日程 API
-  - [ ] 实现签到系统 API
-  - [ ] 更新前端配置
-- [ ] 第二阶段：部署配置
-  - [ ] PM2 进程管理配置
-  - [ ] 环境变量模板
-  - [ ] Windows 部署脚本
-- [ ] 第三阶段：CI/CD 配置
-  - [ ] Gitee Go 流水线
-  - [ ] 自动化部署脚本
-- [ ] 第四阶段：服务器配置指南
-  - [ ] Node.js 安装
-  - [ ] PM2 + Windows 服务
-  - [ ] 安全组配置
-  - [ ] RDS 白名单配置
-</task_progress>
-</write_to_file>

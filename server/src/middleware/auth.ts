@@ -62,6 +62,5 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction): v
 
 // 生成 JWT Token
 export function generateToken(payload: { id: number; username: string }): string {
-  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
