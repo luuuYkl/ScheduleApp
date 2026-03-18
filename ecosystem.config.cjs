@@ -18,8 +18,8 @@ module.exports = {
     },
     {
       name: 'schedule-app-frontend',
-      script: 'npx',
-      args: 'serve -s dist -l 80',
+      script: 'cmd',          // 关键修复：用 cmd 执行
+      args: '/c serve -s dist -l 80', // 关键修复：加 /c
       cwd: './',
       instances: 1,
       autorestart: true,
