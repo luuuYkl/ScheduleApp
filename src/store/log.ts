@@ -7,6 +7,11 @@ import type { LogEntry } from "@/services/generate-log";
 import { generateDailyLog } from "@/services/generate-log";
 import type { Task, ScheduleItem } from "@/services/api.types";
 import * as API from "@/services/api";
+import {
+  getStorageSync,
+  setStorageSync,
+  STORAGE_KEYS,
+} from "@/services/local-storage";
 
 const APIAny = API as any;
 
@@ -20,7 +25,16 @@ export const useLogStore = defineStore("log", () => {
   /** 日志列表 */
   const logs = ref<LogEntry[]>([]);
 
-  // ========== 方法 ==========
+  // ========== 辅助方法 ==========
+
+  /**
+   * 获取用户日志的存储键
+   */
+  function getLogStorageKey(userId: number): string {
+    return `${STORAGE_KEYS.LOGS_PREFIX}${userId}`;
+  }
+
+  // ========== 公共方法 ==========
 
   /**
    * 加载用户的历史日志
@@ -32,9 +46,10 @@ export const useLogStore = defineStore("log", () => {
       // 有后端接口，调用后端
       logs.value = await APIAny.fetchLogs(userId);
     } else {
-      // Mock 模式：从 localStorage 读取
-      const stored = localStorage.getItem(`logs_${userId}`);
-      logs.value = stored ? JSON.parse(stored) : [];
+      // Mock 模式：从本地存储读取
+      const key = getLogStorageKey(userId);
+      const stored = getStorageSync<LogEntry[]>(key);
+      logs.value = stored ?? [];
     }
     return logs.value;
   }
@@ -53,12 +68,10 @@ export const useLogStore = defineStore("log", () => {
     schedules: ScheduleItem[] = [],
   ) {
     const today = new Date().toISOString().slice(0, 10);
-    const key = `logs_${userId}`;
+    const key = getLogStorageKey(userId);
 
-    // 从 localStorage 读取现有日志（确保唯一性）
-    let existingLogs: LogEntry[] = JSON.parse(
-      localStorage.getItem(key) || "[]",
-    );
+    // 从本地存储读取现有日志（确保唯一性）
+    let existingLogs: LogEntry[] = getStorageSync<LogEntry[]>(key) ?? [];
     const todayLogIndex = existingLogs.findIndex((log) => log.date === today);
 
     // 生成新的日志内容（包含任务和日程）
@@ -79,8 +92,8 @@ export const useLogStore = defineStore("log", () => {
       // 有后端接口，调用后端保存
       await APIAny.saveLog(newLog);
     } else {
-      // Mock 模式：保存到 localStorage
-      localStorage.setItem(key, JSON.stringify(existingLogs));
+      // Mock 模式：保存到本地存储
+      setStorageSync(key, existingLogs);
     }
 
     // 更新内存中的日志列表

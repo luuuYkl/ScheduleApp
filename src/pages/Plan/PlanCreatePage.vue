@@ -349,9 +349,9 @@ function resetForm() {
 // 编辑态加载数据
 async function loadForEdit() {
   if (!editId.value) return;
-  // 尝试从 store 缓存取，若没有则触发加载
-  let plan = (planStore.getPlan && planStore.getPlan(editId.value)) ?? null;
-  if (!plan) {
+    // 尝试从 store 缓存取， 若没有则触发加载
+    let plan = (planStore.getPlan && planStore.getPlan(editId.value)) ?? null;
+    if (!plan) {
     await planStore.loadPlans();
     plan = planStore.plans.find((p: any) => p.id === editId.value) ?? null;
   }
@@ -364,6 +364,10 @@ async function loadForEdit() {
   form.description = plan.description ?? "";
   form.start_date = plan.start_date ?? "";
   form.end_date = plan.end_date ?? "";
+  // 加载标签数据
+  if (plan.tags) {
+    selectedTags.value = Array.isArray(plan.tags) ? plan.tags : [];
+  }
 }
 
 // 辅助函数：将日期值转换为字符串格式
@@ -546,6 +550,7 @@ async function createPlan() {
     description: form.description?.trim() ?? "",
     start_date: startDateStr,
     end_date: endDateStr,
+    tags: selectedTags.value, // 添加标签
   };
 
   try {

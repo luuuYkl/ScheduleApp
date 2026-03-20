@@ -11,9 +11,6 @@ import "@arco-design/web-vue/dist/arco.css";
 // 设计系统样式（按顺序导入：tokens → base → components）
 import "./style.css";
 
-// 应用层样式（覆盖层）
-import "./assets/style.css";
-
 
 // AI复盘定时任务
 import { initAIReviewScheduler } from "./services/ai-review";

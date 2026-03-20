@@ -9,6 +9,9 @@ export interface User {
   token?: string; // 登录凭证
 }
 
+/** 计划状态枚举 */
+export type PlanStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+
 /** 计划模型 */
 export interface Plan {
   id: number;
@@ -18,6 +21,8 @@ export interface Plan {
   start_date: string; // 格式: YYYY-MM-DD
   end_date: string; // 格式: YYYY-MM-DD
   frequency: string; // 频率: 'daily' | 'weekly' | 'custom'
+  status?: PlanStatus; // 计划状态，默认为 NOT_STARTED
+  tags?: string[]; // 标签分类：['work', 'study', 'personal', 'health', 'finance', 'creative']
   created_at?: string;
 }
 
@@ -140,6 +145,7 @@ export interface UpdatePlanPayload {
   start_date?: string;
   end_date?: string;
   frequency?: string;
+  tags?: string[]; // 标签分类
 }
 
 /** 任务创建请求参数 */

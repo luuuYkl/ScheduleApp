@@ -5,6 +5,11 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { AIReview, ReviewRequest } from "@/services/ai-review";
 import { generateAIReview } from "@/services/ai-review";
+import {
+  getStorageSync,
+  setStorageSync,
+  STORAGE_KEYS,
+} from "@/services/local-storage";
 
 /**
  * AI 复盘 Store
@@ -28,7 +33,31 @@ export const useAIReviewStore = defineStore("ai-review", () => {
   /** 错误信息 */
   const error = ref<string | null>(null);
 
-  // ========== 方法 ==========
+  // ========== 辅助方法 ==========
+
+  /**
+   * 获取用户复盘的存储键
+   */
+  function getReviewStorageKey(userId: number): string {
+    return `${STORAGE_KEYS.REVIEWS_PREFIX}${userId}`;
+  }
+
+  /**
+   * 保存复盘到本地存储
+   */
+  function saveReviewToStorage(review: AIReview): void {
+    try {
+      const userId = parseInt(localStorage.getItem("user_id") || "1");
+      const key = getReviewStorageKey(userId);
+      const existing = getStorageSync<Record<string, AIReview>>(key) ?? {};
+      existing[review.period] = review;
+      setStorageSync(key, existing);
+    } catch (err) {
+      console.warn("[AI Review] Failed to save review to storage:", err);
+    }
+  }
+
+  // ========== 公共方法 ==========
 
   /**
    * 生成复盘
@@ -57,7 +86,7 @@ export const useAIReviewStore = defineStore("ai-review", () => {
           break;
       }
 
-      // 保存到 localStorage 便于刷新后恢复
+      // 保存到本地存储，便于刷新后恢复
       saveReviewToStorage(review);
 
       console.log(
@@ -89,14 +118,13 @@ export const useAIReviewStore = defineStore("ai-review", () => {
   }
 
   /**
-   * 从 localStorage 恢复复盘
+   * 从本地存储恢复复盘
    */
-  function loadReviewsFromStorage(userId: number) {
+  function loadReviewsFromStorage(userId: number): void {
     try {
-      const key = `ai-reviews-${userId}`;
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        const data = JSON.parse(stored);
+      const key = getReviewStorageKey(userId);
+      const data = getStorageSync<Record<string, AIReview>>(key);
+      if (data) {
         todayReview.value = data.today || null;
         weekReview.value = data.week || null;
         monthReview.value = data.month || null;
@@ -110,29 +138,14 @@ export const useAIReviewStore = defineStore("ai-review", () => {
   /**
    * 清空所有复盘
    */
-  function clearReviews() {
+  function clearReviews(): void {
     todayReview.value = null;
     weekReview.value = null;
     monthReview.value = null;
     error.value = null;
   }
 
-  // ========== 辅助方法 ==========
-
-  /**
-   * 保存复盘到 localStorage
-   */
-  function saveReviewToStorage(review: AIReview) {
-    try {
-      const userId = parseInt(localStorage.getItem("user_id") || "1");
-      const key = `ai-reviews-${userId}`;
-      const existing = JSON.parse(localStorage.getItem(key) || "{}");
-      existing[review.period] = review;
-      localStorage.setItem(key, JSON.stringify(existing));
-    } catch (err) {
-      console.warn("[AI Review] Failed to save review to storage:", err);
-    }
-  }
+  // ========== 导出 ==========
 
   return {
     // 状态

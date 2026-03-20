@@ -30,7 +30,7 @@ export const useUserStore = defineStore("user", () => {
 
   /** 主题模式：dark 或 light */
   const theme = ref<"dark" | "light">(
-    (localStorage.getItem("theme") as "dark" | "light") || "dark",
+    (localStorage.getItem("theme") as "dark" | "light") || "light",
   );
 
   async function hydrateAuthFromStorage() {
@@ -191,7 +191,7 @@ export const useUserStore = defineStore("user", () => {
    */
   function initTheme() {
     const savedTheme =
-      (localStorage.getItem("theme") as "dark" | "light") || "dark";
+      (localStorage.getItem("theme") as "dark" | "light") || "light";
     theme.value = savedTheme;
     // eslint-disable-next-line no-console
     console.log("[Theme] 初始化主题:", savedTheme);

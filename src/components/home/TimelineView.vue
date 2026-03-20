@@ -49,19 +49,33 @@
 -->
 <template>
   <div class="timeline-container card">
-    <!-- ========== 头部区域: 日期 + 视图切换 + 天气 ========== -->
-    <div class="header">
-      <!-- 左侧: 星期 + 视图切换器 + 日期范围 (横向排列) -->
-      <div class="header-left">
-        <h2 class="weekday-title">{{ headerTitle }}</h2>
-        <select v-model="viewMode" class="view-selector">
-          <option value="single">今日</option>
-          <option value="three-day">三日</option>
-        </select>
-        <span class="date-label">{{ dateRangeLabel }}</span>
+    <!-- ========== 头部区域（扁平化布局） ========== -->
+    <div class="header-compact">
+      <!-- 左侧：日期信息组 -->
+      <div class="date-section">
+        <!-- 集成式日期选择器 -->
+        <div class="date-picker">
+          <span class="date-primary">{{ primaryDate }}</span>
+          <span class="date-secondary">{{ yearMonth }}</span>
+          
+        </div>
+        
+        <!-- 胶囊视图切换器 -->
+        <div class="view-switcher">
+          <button 
+            v-for="mode in viewModes" 
+            :key="mode.value"
+            class="view-mode-btn"
+            :class="{ active: viewMode === mode.value }"
+            @click="viewMode = mode.value"
+          >
+            {{ mode.label }}
+          </button>
+        </div>
       </div>
-      <!-- 右侧: 天气信息 (温度 + 描述 + 位置) -->
-      <div class="weather-info" v-if="weather">
+      
+      <!-- 右侧：天气信息 -->
+      <div class="weather-info-compact" v-if="weather">
         <div class="weather-main">
           <span class="weather-icon">{{ weatherIcon }}</span>
           <span class="weather-temp">{{ weather.temp }}°</span>
@@ -131,12 +145,106 @@
             @mousedown.stop="startResize($event, event)"
             @click.stop
           ></div>
+          <!-- 悬停详情提示 -->
+          <div class="event-tooltip">
+            <div class="tooltip-title">{{ event.title }}</div>
+            <div class="tooltip-time">{{ formatEventTimeDetailed(event) }}</div>
+            <div class="tooltip-hint">点击查看详情</div>
+          </div>
+          <!-- 溢出指示器 -->
+          <div 
+            v-if="event.totalColumns && event.totalColumns > MAX_VISIBLE_COLUMNS && event.columnIndex === MAX_VISIBLE_COLUMNS - 1" 
+            class="overflow-badge"
+          >
+            +{{ event.totalColumns - MAX_VISIBLE_COLUMNS }}
+          </div>
         </div>
+
+        <!-- 拖拽反馈元素 -->
+        <template v-if="isDragging && draggedEvent && dragDeltaHour !== 0">
+          <!-- 预期落点矩形（极淡背景引导） -->
+          <div 
+            class="drop-placeholder"
+            :style="{
+              top: dragPreviewTop + '%',
+              height: dragPreviewHeight + '%'
+            }"
+          ></div>
+          
+          <!-- 简洁时间提示（紧随占位框顶部） -->
+          <div 
+            class="drag-time-hint"
+            :style="{
+              top: `calc(${dragPreviewTop}% - 24px)`,
+              left: '50%',
+              transform: 'translateX(-50%)'
+            }"
+          >
+            <span class="hint-time">{{ formatSnapTime(snapStartHour) }}</span>
+            <span class="hint-separator"></span>
+            <span class="hint-time">{{ formatSnapTime(snapEndHour) }}</span>
+          </div>
+        </template>
 
         <!-- 空状态 -->
         <div v-if="sortedEvents.length === 0" class="empty-state">
           <span class="empty-icon">📅</span>
           <span class="empty-text">今天暂无日程安排</span>
+        </div>
+      </div>
+
+      <!-- ========== 一周视图 ========== -->
+      <div v-else-if="viewMode === 'week'" class="events-area-week">
+        <div 
+          v-for="day in weekDays" 
+          :key="day.dateStr" 
+          class="day-column"
+          :class="{ 'is-today': day.isToday }"
+        >
+          <!-- 日期头部 -->
+          <div class="day-header">
+            <span class="day-label">{{ day.label }}</span>
+            <span class="day-date">{{ day.shortDate }}</span>
+          </div>
+          <!-- 事件区域 -->
+          <div class="day-events">
+            <!-- 当前时间指示器（仅今天列显示） -->
+            <div 
+              v-if="day.isToday"
+              class="current-time-indicator" 
+              :style="{ top: currentTimePosition + '%' }"
+            >
+              <div class="indicator-dot"></div>
+              <div class="indicator-line"></div>
+            </div>
+
+            <!-- 事件块 -->
+            <div 
+              v-for="event in getEventsForDay(day.dateStr, 2)" 
+              :key="event.id"
+              class="event-block"
+              :class="[event.type, { completed: event.completed }]"
+              :style="getEventStyle(event)"
+              @click="handleEventClick(event)"
+            >
+              <div class="event-icon">{{ getEventIcon(event) }}</div>
+              <div class="event-content">
+                <span class="event-title">{{ event.title }}</span>
+              </div>
+              <!-- 溢出指示器 -->
+              <div 
+                v-if="event.totalColumns && event.totalColumns > 2 && event.columnIndex === 1" 
+                class="overflow-badge"
+              >
+                +{{ event.totalColumns - 2 }}
+              </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-if="getEventsForDay(day.dateStr).length === 0" class="empty-state-mini">
+              <span class="empty-icon-mini">-</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -172,7 +280,7 @@
 
             <!-- 事件块 -->
             <div 
-              v-for="event in getEventsForDay(day.dateStr)" 
+              v-for="event in getEventsForDay(day.dateStr, 3)" 
               :key="event.id"
               class="event-block"
               :class="[
@@ -189,6 +297,13 @@
                 <span class="event-title">{{ event.title }}</span>
                 <span class="event-time">{{ formatEventTime(event) }}</span>
               </div>
+              <!-- 溢出指示器 -->
+              <div 
+                v-if="event.totalColumns && event.totalColumns > 3 && event.columnIndex === 2" 
+                class="overflow-badge"
+              >
+                +{{ event.totalColumns - 3 }}
+              </div>
             </div>
 
             <!-- 空状态 -->
@@ -203,7 +318,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted, watchEffect } from "vue";
 import { useTaskStore } from "@/store/tasks";
 import { useScheduleStore } from "@/store/schedules";
 import { useRouter } from "vue-router";
@@ -216,6 +331,55 @@ interface TimelineEvent {
   endHour: number;
   completed: boolean;
   originalData: any;
+  columnIndex?: number; // 所在列索引
+  totalColumns?: number;  // 总列数
+}
+
+// 最大同时显示的列数
+const MAX_VISIBLE_COLUMNS = 4;
+
+// ========== 重叠检测和分组函数 ==========
+
+// 检测两个事件是否重叠
+function eventsOverlap(e1: TimelineEvent, e2: TimelineEvent): boolean {
+  return e1.startHour < e2.endHour && e2.startHour < e1.endHour;
+}
+
+// 为事件分配列索引，处理重叠情况
+function assignColumnsToEvents(events: TimelineEvent[], maxColumns: number = MAX_VISIBLE_COLUMNS): TimelineEvent[] {
+  if (events.length === 0) return events;
+  
+  // 按开始时间排序
+  const sorted = [...events].sort((a, b) => a.startHour - b.startHour);
+  
+  // 每一列的最后一个结束时间
+  const columnEndTimes: number[] = [];
+  
+  return sorted.map(event => {
+    // 找到第一个不重叠的列
+    let columnIndex = 0;
+    while (columnIndex < columnEndTimes.length && columnEndTimes[columnIndex] > event.startHour) {
+      columnIndex++;
+    }
+    
+    // 更新该列的结束时间
+    if (columnIndex >= columnEndTimes.length) {
+      columnEndTimes.push(event.endHour);
+    } else {
+      columnEndTimes[columnIndex] = event.endHour;
+    }
+    
+    return {
+      ...event,
+      columnIndex,
+      totalColumns: Math.min(columnEndTimes.length, maxColumns)
+    };
+  });
+}
+
+// 计算同一时间段内的事件总数（用于显示溢出）
+function getOverlapGroup(events: TimelineEvent[], targetEvent: TimelineEvent): TimelineEvent[] {
+  return events.filter(e => eventsOverlap(e, targetEvent));
 }
 
 const props = defineProps<{ planId?: number }>();
@@ -235,6 +399,42 @@ let timeUpdateInterval: number | null = null;
 const draggedEvent = ref<TimelineEvent | null>(null);
 const dragDeltaHour = ref(0);
 const eventsAreaRef = ref<HTMLElement | null>(null);
+const isDragging = ref(false);
+const dragMouseY = ref(0);
+const dragPreviewTop = ref(0);
+const dragPreviewHeight = ref(0);
+
+// 吸附间隔：15分钟
+const SNAP_INTERVAL = 0.25;
+
+// 吸附后的开始和结束时间
+const snapStartHour = computed(() => {
+  if (!draggedEvent.value) return 0;
+  return draggedEvent.value.startHour + dragDeltaHour.value;
+});
+
+const snapEndHour = computed(() => {
+  if (!draggedEvent.value) return 0;
+  return draggedEvent.value.endHour + dragDeltaHour.value;
+});
+
+
+// 时间格式化
+function formatSnapTime(hour: number): string {
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
+// 监听拖拽状态，更新预览位置
+watchEffect(() => {
+  if (!draggedEvent.value || dragDeltaHour.value === 0) return;
+  const newStartHour = draggedEvent.value.startHour + dragDeltaHour.value;
+  const duration = draggedEvent.value.endHour - draggedEvent.value.startHour;
+  
+  dragPreviewTop.value = ((newStartHour - START_HOUR) / TOTAL_HOURS) * 100;
+  dragPreviewHeight.value = (duration / TOTAL_HOURS) * 100;
+});
 
 // 调整大小状态
 const resizingEvent = ref<TimelineEvent | null>(null);
@@ -243,8 +443,8 @@ const resizeDeltaHour = ref(0);
 // 三日视图的事件区域引用
 const dayEventsRefs = ref<HTMLElement[]>([]);
 
-// ========== 视图模式（单日/三日） ==========
-const viewMode = ref<'single' | 'three-day'>('single');
+// ========== 视图模式（单日/三日/一周） ==========
+const viewMode = ref<'single' | 'three-day' | 'week'>('single');
 
 // 三日数据
 const threeDays = computed(() => {
@@ -263,23 +463,67 @@ const threeDays = computed(() => {
   });
 });
 
-// 头部标题
-const headerTitle = computed(() => {
-  if (viewMode.value === 'single') {
-    return weekdayText.value;
-  }
-  return `${weekdayText.value} - ${threeDays.value[2].weekday}`;
+// 一周数据（从周一开始）
+const weekDays = computed(() => {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0=周日, 1=周一, ..., 6=周六
+  // 计算到周一的偏移（周日需要回退6天）
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  
+  return [0, 1, 2, 3, 4, 5, 6].map(offset => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + offset);
+    const dateStr = date.toISOString().slice(0, 10);
+    const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const isToday = dateStr === todayStr;
+    return {
+      dateStr,
+      label: weekdays[offset],
+      shortDate: `${date.getMonth() + 1}/${date.getDate()}`,
+      isToday
+    };
+  });
 });
 
-// 日期范围标签
-const dateRangeLabel = computed(() => {
+// ========== 日期标题区域（扁平化布局） ==========
+
+// 主日期（星期 + 日）
+const primaryDate = computed(() => {
   if (viewMode.value === 'single') {
-    return formatDateLabel(todayStr);
+    return `${weekdayText.value} ${todayDate.value}`;
+  } else if (viewMode.value === 'three-day') {
+    const start = threeDays.value[0].shortDate;
+    const end = threeDays.value[2].shortDate;
+    return `${start}-${end}`;
+  } else {
+    // 一周视图
+    const start = weekDays.value[0].shortDate;
+    const end = weekDays.value[6].shortDate;
+    return `${start}-${end}`;
   }
-  const start = threeDays.value[0].shortDate;
-  const end = threeDays.value[2].shortDate;
-  return `${start} - ${end}`;
 });
+
+// 次要日期（年月）
+const yearMonth = computed(() => {
+  const today = new Date();
+  return `${today.getFullYear()}年${today.getMonth() + 1}月`;
+});
+
+// 今天的日期号
+const todayDate = computed(() => {
+  const today = new Date();
+  return today.getDate();
+});
+
+// 视图模式配置
+const viewModes = [
+  { value: 'single', label: '今日' },
+  { value: 'three-day', label: '三日' },
+  { value: 'week', label: '一周' }
+];
 
 // 星期文字
 const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -586,7 +830,7 @@ const START_HOUR = 0;
 const END_HOUR = 24;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 
-// 合并任务和日程为时间轴事件
+// 合并任务和日程为时间轴事件（带列分配）
 const sortedEvents = computed<TimelineEvent[]>(() => {
   const events: TimelineEvent[] = [];
 
@@ -613,31 +857,19 @@ const sortedEvents = computed<TimelineEvent[]>(() => {
     t => t.task_date === todayStr && (!props.planId || t.plan_id === props.planId)
   );
   
-  // 用于跟踪已占用的时间槽，避免重叠
-  const occupiedSlots: number[] = [];
-  
-  todayTasks.forEach((t, index) => {
+  todayTasks.forEach((t) => {
     let startHour = parseTimeToHour(t.start_time);
     let endHour = parseTimeToHour(t.end_time);
     
     // 如果任务没有时间信息，给它分配一个默认位置
     if (startHour === 0 && endHour === 0) {
-      // 从9点开始，找一个未占用的1小时槽位
-      let defaultHour = 9;
-      while (occupiedSlots.includes(defaultHour) && defaultHour < END_HOUR) {
-        defaultHour++;
-      }
-      startHour = defaultHour;
-      endHour = defaultHour + 1;
-      occupiedSlots.push(defaultHour);
+      // 从9点开始，默认1小时
+      startHour = 9;
+      endHour = 10;
     } else {
       // 确保时间有效
       startHour = Math.max(START_HOUR, startHour);
       endHour = Math.min(END_HOUR, Math.max(startHour + 1, endHour));
-      // 标记占用的槽位
-      for (let h = Math.floor(startHour); h < Math.floor(endHour); h++) {
-        occupiedSlots.push(h);
-      }
     }
     
     events.push({
@@ -651,8 +883,8 @@ const sortedEvents = computed<TimelineEvent[]>(() => {
     });
   });
 
-  // 按开始时间排序
-  return events.sort((a, b) => a.startHour - b.startHour);
+  // 为重叠事件分配列索引
+  return assignColumnsToEvents(events);
 });
 
 // 当前时间指示器位置
@@ -662,7 +894,7 @@ const currentTimePosition = computed(() => {
 });
 
 // ========== 三日视图：获取指定日期的事件 ==========
-function getEventsForDay(dateStr: string): TimelineEvent[] {
+function getEventsForDay(dateStr: string, maxColumns: number = MAX_VISIBLE_COLUMNS): TimelineEvent[] {
   const events: TimelineEvent[] = [];
 
   // 处理日程
@@ -721,7 +953,8 @@ function getEventsForDay(dateStr: string): TimelineEvent[] {
     });
   });
 
-  return events.sort((a, b) => a.startHour - b.startHour);
+  // 为重叠事件分配列索引
+  return assignColumnsToEvents(events, maxColumns);
 }
 
 // 辅助函数
@@ -773,9 +1006,21 @@ function getEventStyle(event: TimelineEvent): Record<string, string> {
     height = ((newEndHour - event.startHour) / TOTAL_HOURS) * 100;
   }
   
+  // 处理重叠事件的并排显示
+  const columnIndex = event.columnIndex ?? 0;
+  const totalColumns = event.totalColumns ?? 1;
+  const visibleColumns = Math.min(totalColumns, MAX_VISIBLE_COLUMNS);
+  
+  // 计算宽度百分比（留出小间隙）
+  const gap = 2; // 像素间隙
+  const widthPercent = (100 - (gap * (visibleColumns - 1)) / 3) / visibleColumns;
+  const leftPercent = columnIndex * (widthPercent + gap / 3);
+  
   return {
     top: `${top}%`,
-    height: `${Math.max(height, 4)}%` // 最小高度
+    height: `${Math.max(height, 4)}%`, // 最小高度
+    left: `calc(var(--space-2) + ${leftPercent}%)`,
+    width: `calc(${widthPercent}% - var(--space-2))`
   };
 }
 
@@ -787,6 +1032,15 @@ function formatEventTime(event: TimelineEvent): string {
   const startH = Math.floor(event.startHour);
   const endH = Math.floor(event.endHour);
   return `${startH} - ${endH}`;
+}
+
+function formatEventTimeDetailed(event: TimelineEvent): string {
+  const formatHourMinute = (hour: number) => {
+    const h = Math.floor(hour);
+    const m = Math.round((hour - h) * 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+  return `${formatHourMinute(event.startHour)} - ${formatHourMinute(event.endHour)}`;
 }
 
 function formatDateLabel(dateStr: string): string {
@@ -815,6 +1069,7 @@ function handleDragStart(event: DragEvent, timelineEvent: TimelineEvent) {
   }
   draggedEvent.value = timelineEvent;
   dragDeltaHour.value = 0;
+  isDragging.value = true;
 }
 
 function handleDragOver(event: DragEvent) {
@@ -825,15 +1080,18 @@ function handleDragOver(event: DragEvent) {
   
   if (!draggedEvent.value || !eventsAreaRef.value) return;
   
+  // 更新鼠标Y坐标
+  dragMouseY.value = event.clientY;
+  
   // 计算拖拽位置对应的时间
   const rect = eventsAreaRef.value.getBoundingClientRect();
   const y = event.clientY - rect.top;
   const percentage = y / rect.height;
   const newStartHour = START_HOUR + percentage * TOTAL_HOURS;
   
-  // 计算时间偏移量（四舍五入到半小时）
+  // 计算时间偏移量（吸附到15分钟）
   const delta = newStartHour - draggedEvent.value.startHour;
-  dragDeltaHour.value = Math.round(delta * 2) / 2; // 四舍五入到0.5小时
+  dragDeltaHour.value = Math.round(delta / SNAP_INTERVAL) * SNAP_INTERVAL;
 }
 
 function handleDragEnd() {
@@ -843,6 +1101,7 @@ function handleDragEnd() {
   }
   draggedEvent.value = null;
   dragDeltaHour.value = 0;
+  isDragging.value = false;
 }
 
 async function updateEventTime(event: TimelineEvent, deltaHour: number) {
@@ -1000,59 +1259,107 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
-.header {
+/* ========== 扁平化头部布局 ========== */
+.header-compact {
   display: flex;
-  align-items: flex-start;
+  align-items: center;  /* 统一基准线对齐 */
   justify-content: space-between;
-  margin-bottom: var(--space-4);
-  gap: var(--space-3);
+  gap: var(--space-4);
+  height: 44px;  /* 压缩纵向空间 */
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-/* 头部左侧：横向排列 */
-.header-left {
+/* 日期信息组 */
+.date-section {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-4);
 }
 
-/* 视图切换下拉栏 - 更小巧 */
-.view-selector {
-  padding: 2px 6px;
-  font-size: 11px;
-  border: 1px solid var(--border-main);
-  border-radius: 4px;
-  background: var(--bg-card);
+/* 集成式日期选择器 */
+.date-picker {
+  display: flex;
+  align-items: baseline;  /* 基线对齐 */
+  gap: var(--space-3);
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.date-picker:hover {
+  border-color: var(--ai-main);
+  background: var(--ai-bg);
+}
+
+.date-picker:active {
+  transform: scale(0.98);
+}
+
+/* 主日期：等高视觉权重 */
+.date-primary {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 次要日期：通过留白平衡，而非字号差异 */
+.date-secondary {
+  font-size: 15px;  /* 与主日期等高 */
+  font-weight: 400;  /* 通过字重区分 */
+  color: var(--text-secondary);
+}
+
+.date-icon {
+  font-size: 16px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.date-picker:hover .date-icon {
+  opacity: 1;
+}
+
+/* 胶囊视图切换器 */
+.view-switcher {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+}
+
+.view-mode-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1.2;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.view-selector:hover {
-  border-color: var(--ai-main);
-  color: var(--ai-main);
-}
-
-.view-selector:focus {
-  outline: none;
-  border-color: var(--ai-main);
-  box-shadow: 0 0 0 2px var(--ai-bg);
-}
-
-.weekday-title {
-  font-size: 20px;
-  font-weight: 700;
+.view-mode-btn:hover {
   color: var(--text-main);
-  margin: 0;
-  letter-spacing: -0.02em;
 }
 
-.date-label {
-  font-size: 13px;
-  color: var(--text-muted);
+.view-mode-btn.active {
+  background: var(--bg-elevated);
+  color: var(--ai-main);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.weather-info {
+/* 紧凑天气信息 */
+.weather-info-compact {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1242,6 +1549,71 @@ onUnmounted(() => {
   text-decoration: line-through;
 }
 
+/* 悬停详情提示 */
+.event-tooltip {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: var(--space-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s, visibility 0.2s;
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+.event-block:hover .event-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tooltip-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* 溢出指示器 */
+.overflow-badge {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--ai-main);
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: var(--radius-full);
+  min-width: 18px;
+  text-align: center;
+}
+
 /* 拖拽状态 */
 .event-block.dragging {
   opacity: 0.5;
@@ -1344,10 +1716,69 @@ onUnmounted(() => {
   color: var(--text-muted);
 }
 
-/* ========== 三日视图样式 ========== */
-.events-area-multi {
-  flex: 1;
+/* ========== 拖拽反馈系统（重构后） ========== */
+
+/* 预期落点矩形 - 极淡背景引导 */
+.drop-placeholder {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  border: 1px dashed rgba(var(--ai-main-rgb, 59, 130, 246), 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(var(--ai-main-rgb, 59, 130, 246), 0.015);
+  z-index: 2;
+  pointer-events: none;
+  transition: top 0.15s ease-out, height 0.15s ease-out;
+}
+
+/* 简洁时间提示 - 紧随占位框顶部 */
+.drag-time-hint {
+  position: absolute;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(var(--ai-main-rgb, 59, 130, 246), 0.3);
+  border-radius: 6px;
+  padding: 6px 12px;
+  box-shadow: var(--shadow-md);
+  z-index: 15;
   display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.hint-time {
+  color: var(--ai-main);
+}
+
+.hint-separator {
+  width: 1px;
+  height: 14px;
+  background: rgba(var(--ai-main-rgb, 59, 130, 246), 0.3);
+}
+
+/* ========== 一周视图样式 ========== */
+.hour-mark.highlighted {
+  background: var(--ai-bg);
+}
+
+.hour-mark.highlighted .hour-label {
+  color: var(--ai-main);
+  font-weight: 600;
+}
+
+.hour-mark.highlighted .hour-line {
+  background: var(--ai-main);
+  height: 2px;
+}
+
+/* ========== 一周视图样式 ========== */
+.events-area-week {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 1px;
   background: var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -1355,20 +1786,18 @@ onUnmounted(() => {
   margin-left: var(--space-2);
 }
 
-.day-column {
-  flex: 1;
+.events-area-week .day-column {
   display: flex;
   flex-direction: column;
   background: var(--bg-card);
   min-width: 0;
 }
 
-.day-column.is-today {
+.events-area-week .day-column.is-today {
   background: var(--bg-elevated);
 }
 
-/* 日期头部 */
-.day-header {
+.events-area-week .day-header {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1377,41 +1806,177 @@ onUnmounted(() => {
   background: var(--bg-card);
 }
 
-.day-column.is-today .day-header {
+.events-area-week .day-column.is-today .day-header {
   background: var(--ai-bg);
   border-bottom-color: var(--ai-main);
 }
 
-.day-label {
+.events-area-week .day-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.events-area-week .day-column.is-today .day-label {
+  color: var(--ai-main);
+}
+
+.events-area-week .day-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.events-area-week .day-column.is-today .day-date {
+  color: var(--ai-light);
+}
+
+.events-area-week .day-events {
+  flex: 1;
+  position: relative;
+  min-height: 500px;
+}
+
+.events-area-week .event-block {
+  left: 2px;
+  right: 2px;
+  padding: 2px 4px;
+  min-height: 24px;
+}
+
+.events-area-week .event-icon {
+  font-size: 10px;
+  width: 14px;
+}
+
+.events-area-week .event-title {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.events-area-week .current-time-indicator {
+  left: 2px;
+  right: 2px;
+}
+
+.events-area-week .indicator-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.events-area-week .indicator-line {
+  height: 1px;
+}
+
+.events-area-week .empty-state-mini {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.events-area-week .empty-icon-mini {
+  font-size: 14px;
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+
+/* 一周视图溢出指示器 */
+.events-area-week .overflow-badge {
+  font-size: 8px;
+  padding: 1px 3px;
+  min-width: 14px;
+  right: 2px;
+}
+
+/* 一周视图响应式 */
+@media (max-width: 768px) {
+  .events-area-week .day-header {
+    padding: var(--space-1);
+  }
+  
+  .events-area-week .day-label {
+    font-size: 10px;
+  }
+  
+  .events-area-week .day-date {
+    font-size: 9px;
+  }
+  
+  .events-area-week .day-events {
+    min-height: 400px;
+  }
+  
+  .events-area-week .event-block {
+    padding: 1px 2px;
+    min-height: 20px;
+  }
+  
+  .events-area-week .event-title {
+    font-size: 9px;
+  }
+}
+
+/* ========== 三日视图样式 ========== */
+.events-area-multi {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-left: var(--space-2);
+}
+
+.events-area-multi .day-column {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  min-width: 0;
+}
+
+.events-area-multi .day-column.is-today {
+  background: var(--bg-elevated);
+}
+
+.events-area-multi .day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+}
+
+.events-area-multi .day-column.is-today .day-header {
+  background: var(--ai-bg);
+  border-bottom-color: var(--ai-main);
+}
+
+.events-area-multi .day-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-.day-column.is-today .day-label {
+.events-area-multi .day-column.is-today .day-label {
   color: var(--ai-main);
 }
 
-.day-date {
+.events-area-multi .day-date {
   font-size: 11px;
   color: var(--text-muted);
 }
 
-.day-column.is-today .day-date {
-  color: var(--ai-light);
-}
-
-/* 三日视图的事件区域 */
-.day-events {
+.events-area-multi .day-events {
   flex: 1;
   position: relative;
-  min-height: 600px;
+  min-height: 500px;
 }
 
-/* 三日视图中的事件块样式调整 */
 .events-area-multi .event-block {
-  left: var(--space-1);
-  right: var(--space-1);
+  left: 2px;
+  right: 2px;
   padding: var(--space-1) var(--space-2);
   min-height: 28px;
 }
@@ -1429,57 +1994,45 @@ onUnmounted(() => {
   font-size: 10px;
 }
 
-/* 三日视图中的当前时间指示器 */
 .events-area-multi .current-time-indicator {
-  left: var(--space-1);
-  right: var(--space-1);
+  left: 2px;
+  right: 2px;
 }
 
-/* 三日视图中的空状态 */
-.empty-state-mini {
+.events-area-multi .indicator-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.events-area-multi .indicator-line {
+  height: 1px;
+}
+
+.events-area-multi .empty-state-mini {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
 
-.empty-icon-mini {
-  font-size: 20px;
+.events-area-multi .empty-icon-mini {
+  font-size: 16px;
   color: var(--text-muted);
   opacity: 0.3;
 }
 
-/* 响应式 */
+/* 三日视图溢出指示器 */
+.events-area-multi .overflow-badge {
+  font-size: 8px;
+  padding: 1px 3px;
+  min-width: 14px;
+  right: 2px;
+}
+
+/* 响应式调整 */
 @media (max-width: 768px) {
-  .header {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-  
-  .weekday-title {
-    font-size: 18px;
-  }
-  
-  .weather-info {
-    padding: var(--space-1) var(--space-2);
-    gap: var(--space-1);
-  }
-  
-  .weather-icon {
-    font-size: 16px;
-  }
-  
-  .weather-temp {
-    font-size: 14px;
-  }
-  
-  .weather-desc {
-    font-size: 11px;
-    max-width: 40px;
-  }
-  
-  .timeline-wrapper {
-    min-height: 350px;
+  .timeline-container {
+    padding: var(--space-3);
   }
   
   .events-area {

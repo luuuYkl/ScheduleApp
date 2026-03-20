@@ -56,6 +56,7 @@ export async function initDatabase(): Promise<void> {
         start_date DATE NOT NULL,
         end_date DATE NOT NULL,
         frequency VARCHAR(20) DEFAULT 'daily',
+        tags JSON DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

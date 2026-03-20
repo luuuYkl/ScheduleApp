@@ -51,17 +51,9 @@
 
     <!-- ========== 主内容区 ========== -->
     <div class="home-content layout-template-l">
-      <!-- 双卡布局容器 -->
-      <div class="home-primary layer-primary priority-high">
-        <!-- 左侧: 时间轴视图 - 展示今日任务的时间分布 -->
-        <div class="task-section desktop-execution">
-          <TimelineView />
-        </div>
-        
-        <!-- 右侧: 计划概览 - 展示长期计划及进度 -->
-        <div class="plan-section desktop-strategy">
-          <PlanOverview />
-        </div>
+      <!-- 时间轴视图 - 展示今日任务的时间分布 -->
+      <div class="timeline-section">
+        <TimelineView />
       </div>
     </div>
     
@@ -84,7 +76,6 @@ import { useTaskStore } from "@/store/tasks";       // 任务数据仓库
 import { useScheduleStore } from "@/store/schedules"; // 日程数据仓库
 
 // 子组件
-import PlanOverview from "@/components/home/PlanOverview.vue";         // 计划概览组件
 import TimelineView from "@/components/home/TimelineView.vue";         // 时间轴组件
 import PageScaffold from "@/components/common/PageScaffold.vue";       // 页面脚手架
 import Button from "@/components/common/Button.vue";                   // 通用按钮
@@ -135,59 +126,41 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   padding: 0;
   gap: var(--space-4);
 }
 
-/* 双卡布局容器 */
-.home-primary {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: var(--space-5);
-  flex: 1;
+/* 时间轴区域 - 单列布局 */
+.timeline-section {
   width: 100%;
-  min-height: 0;
+  max-width: 900px;
+  flex: 1;
 }
 
 /* 大屏幕优化 */
 @media (min-width: 1400px) {
-  .home-primary {
-    grid-template-columns: 1.4fr 1fr;
-    gap: var(--space-6);
+  .timeline-section {
+    max-width: 1500px;
   }
 }
 
 /* 中等屏幕适配 */
 @media (min-width: 1024px) and (max-width: 1399px) {
-  .home-primary {
-    grid-template-columns: 1.5fr 1fr;
+  .timeline-section {
+    max-width: 900px;
   }
 }
 
-/* 平板和小屏幕 - 垂直堆叠 */
+/* 平板和小屏幕 */
 @media (max-width: 1023px) {
   .home-content {
     padding: 0 var(--space-2);
   }
   
-  .home-primary {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
+  .timeline-section {
+    max-width: 100%;
   }
-}
-
-.plan-section,
-.task-section {
-  min-width: 0;
-}
-
-/* 桌面端战略与执行分离 */
-.desktop-strategy {
-  /* 左侧：战略层 */
-}
-
-.desktop-execution {
-  /* 右侧：执行层 */
 }
 
 /* 浮动操作按钮区域 */

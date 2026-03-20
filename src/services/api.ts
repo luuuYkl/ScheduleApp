@@ -24,64 +24,96 @@ import {
   setSecureAuthJson,
   setSecureAuthValue,
 } from "@/services/secure-storage";
+import {
+  getStorageSync,
+  setStorageSync,
+  STORAGE_KEYS,
+} from "@/services/local-storage";
 
 // ================================
-// Mock 数据存储（内存中的假数据）
+// Mock 数据存储（持久化到 localStorage）
 // ================================
 
-// 从 localStorage 加载用户数据,确保刷新后仍保留注册用户
-function loadMockUsers(): User[] {
-  const stored = localStorage.getItem("mockUsers");
-  console.log("[Mock API] Loading users from localStorage:", stored);
-  if (stored) {
-    try {
-      const users = JSON.parse(stored);
-      console.log("[Mock API] Loaded users:", users);
-      return users;
-    } catch (e) {
-      console.warn("Failed to parse mockUsers from localStorage:", e);
-    }
-  }
-  // 默认用户
-  const defaultUsers = [
-    {
-      id: 1,
-      username: "demoUser",
-      email: "demo@example.com",
-      token: "mock-token-123456",
-    },
-  ];
-  console.log("[Mock API] Using default users:", defaultUsers);
-  return defaultUsers;
-}
+/** 默认用户数据 */
+const DEFAULT_USERS: User[] = [
+  {
+    id: 1,
+    username: "demoUser",
+    email: "demo@example.com",
+    token: "mock-token-123456",
+  },
+];
 
-function saveMockUsers(users: User[]) {
-  console.log("[Mock API] Saving users to localStorage:", users);
-  localStorage.setItem("mockUsers", JSON.stringify(users));
-}
-
-/** Mock 用户数据（持久化到 localStorage） */
-const mockUsers = ref<User[]>(loadMockUsers());
-
-/** Mock 计划数据 */
-const mockPlans = ref<Plan[]>([]);
-
-/** Mock 任务数据（已清空示例） */
-const mockTasks = ref<Task[]>([]);
-
-/** Mock 日程数据（独立） */
-const mockSchedules = ref<ScheduleItem[]>([]);
-
-/** Mock 签到记录数据 */
-const mockStreaks = ref<Streak[]>([
+/** 默认签到数据 */
+const DEFAULT_STREAKS: Streak[] = [
   {
     id: 1,
     user_id: 1,
-    current_streak: 3,
-    longest_streak: 10,
-    last_checkin: "2025-10-09",
+    current_streak: 0,
+    longest_streak: 0,
+    last_checkin: null,
   },
-]);
+];
+
+/**
+ * 从本地存储加载数据
+ * @param key 存储键
+ * @param defaultValue 默认值
+ */
+function loadFromStorage<T>(key: string, defaultValue: T): T {
+  const stored = getStorageSync<T>(key);
+  if (stored) {
+    console.log(`[Mock API] 从本地存储加载 ${key}:`, stored);
+    return stored;
+  }
+  console.log(`[Mock API] 使用默认数据 ${key}:`, defaultValue);
+  return defaultValue;
+}
+
+/**
+ * 保存数据到本地存储
+ * @param key 存储键
+ * @param data 数据
+ */
+function saveToStorage<T>(key: string, data: T): void {
+  setStorageSync(key, data);
+  console.log(`[Mock API] 已保存到本地存储 ${key}`);
+}
+
+// 初始化 Mock 数据（从本地存储加载或使用默认值）
+const mockUsers = ref<User[]>(loadFromStorage(STORAGE_KEYS.USERS, DEFAULT_USERS));
+const mockPlans = ref<Plan[]>(loadFromStorage(STORAGE_KEYS.PLANS, []));
+const mockTasks = ref<Task[]>(loadFromStorage(STORAGE_KEYS.TASKS, []));
+const mockSchedules = ref<ScheduleItem[]>(loadFromStorage(STORAGE_KEYS.SCHEDULES, []));
+const mockStreaks = ref<Streak[]>(loadFromStorage(STORAGE_KEYS.STREAKS, DEFAULT_STREAKS));
+
+// 监听数据变化自动保存（使用 Vue 的 watchEffect）
+import { watchEffect } from "vue";
+
+// 自动持久化用户数据
+watchEffect(() => {
+  saveToStorage(STORAGE_KEYS.USERS, mockUsers.value);
+});
+
+// 自动持久化计划数据
+watchEffect(() => {
+  saveToStorage(STORAGE_KEYS.PLANS, mockPlans.value);
+});
+
+// 自动持久化任务数据
+watchEffect(() => {
+  saveToStorage(STORAGE_KEYS.TASKS, mockTasks.value);
+});
+
+// 自动持久化日程数据
+watchEffect(() => {
+  saveToStorage(STORAGE_KEYS.SCHEDULES, mockSchedules.value);
+});
+
+// 自动持久化签到数据
+watchEffect(() => {
+  saveToStorage(STORAGE_KEYS.STREAKS, mockStreaks.value);
+});
 
 // ================================
 // Mock API 实现（开发/测试用）
@@ -115,7 +147,7 @@ const mockAPI: APIInterface = {
       token: `mock-token-${id}`,
     };
     mockUsers.value.push(user);
-    saveMockUsers(mockUsers.value); // 持久化到 localStorage
+    // 数据变更会通过 watchEffect 自动持久化
     return user;
   },
 
@@ -144,9 +176,12 @@ const mockAPI: APIInterface = {
       start_date: plan.start_date ?? new Date().toISOString().slice(0, 10),
       end_date: plan.end_date ?? new Date().toISOString().slice(0, 10),
       frequency: plan.frequency ?? "daily",
+      status: plan.status ?? "NOT_STARTED",
       created_at: new Date().toISOString(),
     };
     mockPlans.value.push(newPlan);
+    console.log("[Mock API] 计划已创建:", newPlan);
+    console.log("[Mock API] 当前所有计划:", mockPlans.value);
     return newPlan;
   },
 

@@ -60,8 +60,8 @@
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: 
     background-color var(--dur-fast) var(--ease-standard),
@@ -240,14 +240,64 @@
 .btn--sm {
   height: 32px;
   padding: 0 var(--space-3);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 
 /* 大按钮 */
 .btn--lg {
   height: 48px;
   padding: 0 var(--space-6);
-  font-size: 16px;
+  font-size: var(--font-size-md);
+}
+
+/* ========================================
+   🔘 Button 兼容类（旧版 button.primary 等）
+   ======================================== */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  transition: 
+    background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard);
+}
+
+button.primary {
+  background-color: var(--ai-main);
+  color: #fff;
+}
+
+button.primary:hover {
+  background-color: var(--ai-light);
+}
+
+button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background-color: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-main);
+}
+
+button.secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+button.danger {
+  background-color: var(--error);
+  color: #fff;
+}
+
+button.danger:hover {
+  background-color: #DC2626;
 }
 
 /* ========================================
