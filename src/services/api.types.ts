@@ -38,9 +38,10 @@ export interface Task {
   plan_id: number; // 所属计划ID
   user_id: number;
   title: string;
-  task_date: string; // 格式: YYYY-MM-DD
-  start_time?: string; // HH:MM 可选
-  end_time?: string; // HH:MM 可选
+  start_date: string; // 任务开始日期，格式: YYYY-MM-DD
+  end_date: string; // 任务结束日期，格式: YYYY-MM-DD
+  start_time?: string; // HH:MM 可选（具体时分）
+  end_time?: string; // HH:MM 可选（具体时分）
   status: TaskStatus;
   note?: string; // 备注
   repeat_type?: TaskRepeatType; // 重复类型，默认 'none'
@@ -80,9 +81,10 @@ export interface AIOptimizePlanRequest {
 /** AI 推荐任务（包含时间/重复/描述） */
 export interface AIRecommendedTask {
   title: string;
-  task_date?: string;
-  start_time?: string; // HH:MM
-  end_time?: string; // HH:MM
+  start_date?: string; // 任务开始日期
+  end_date?: string; // 任务结束日期
+  start_time?: string; // HH:MM（具体时分）
+  end_time?: string; // HH:MM（具体时分）
   note?: string; // 描述/备注
   repeat_type?: TaskRepeatType;
   repeat_end_date?: string;
@@ -153,9 +155,10 @@ export interface CreateTaskPayload {
   plan_id: number;
   user_id: number;
   title: string;
-  task_date: string; // 格式: YYYY-MM-DD
-  start_time?: string; // HH:MM
-  end_time?: string; // HH:MM
+  start_date: string; // 任务开始日期，格式: YYYY-MM-DD
+  end_date: string; // 任务结束日期，格式: YYYY-MM-DD
+  start_time?: string; // HH:MM（具体时分）
+  end_time?: string; // HH:MM（具体时分）
   status?: TaskStatus; // 默认为 pending
   note?: string;
   repeat_type?: TaskRepeatType; // 重复类型
@@ -165,9 +168,10 @@ export interface CreateTaskPayload {
 /** 任务更新请求参数 */
 export interface UpdateTaskPayload {
   title?: string;
-  task_date?: string;
-  start_time?: string;
-  end_time?: string;
+  start_date?: string; // 任务开始日期
+  end_date?: string; // 任务结束日期
+  start_time?: string; // HH:MM（具体时分）
+  end_time?: string; // HH:MM（具体时分）
   status?: TaskStatus;
   note?: string;
   repeat_type?: TaskRepeatType;

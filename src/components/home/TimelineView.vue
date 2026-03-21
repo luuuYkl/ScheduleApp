@@ -131,6 +131,8 @@
           ]"
           :style="getEventStyle(event)"
           draggable="true"
+          @mouseenter="handleMouseEnter($event, event)"
+          @mouseleave="handleMouseLeave"
           @dragstart="handleDragStart($event, event)"
           @click="handleEventClick(event)"
         >
@@ -145,12 +147,6 @@
             @mousedown.stop="startResize($event, event)"
             @click.stop
           ></div>
-          <!-- 悬停详情提示 -->
-          <div class="event-tooltip">
-            <div class="tooltip-title">{{ event.title }}</div>
-            <div class="tooltip-time">{{ formatEventTimeDetailed(event) }}</div>
-            <div class="tooltip-hint">点击查看详情</div>
-          </div>
           <!-- 溢出指示器 -->
           <div 
             v-if="event.totalColumns && event.totalColumns > MAX_VISIBLE_COLUMNS && event.columnIndex === MAX_VISIBLE_COLUMNS - 1" 
@@ -159,6 +155,78 @@
             +{{ event.totalColumns - MAX_VISIBLE_COLUMNS }}
           </div>
         </div>
+
+        <!-- 全局 Tooltip 容器 -->
+        <transition name="tooltip-fade">
+          <div 
+            v-if="activeTooltip && activeEvent"
+            class="event-tooltip-global"
+            :style="{ 
+              left: tooltipPosition.x + 'px',
+              top: tooltipPosition.y + 'px'
+            }"
+          >
+            <div class="tooltip-content">
+              <!-- 头部：标题 + 类型标签 -->
+              <div class="tooltip-header">
+                <div class="tooltip-title">{{ activeEvent.title }}</div>
+                <div class="tooltip-type-badge">
+                  {{ getTypeLabel(activeEvent.type) }}
+                </div>
+              </div>
+              
+              <!-- 时间信息 -->
+              <div class="tooltip-row">
+                <span class="tooltip-icon">🕐</span>
+                <span class="tooltip-label">时间</span>
+                <span class="tooltip-value">{{ formatEventTimeDetailed(activeEvent) }}</span>
+              </div>
+              
+              <!-- 描述（如果有）-->
+              <div v-if="activeEvent.originalData.description" class="tooltip-description">
+                {{ activeEvent.originalData.description }}
+              </div>
+              
+              <!-- 任务特有信息 -->
+              <template v-if="activeEvent.type === 'task'">
+                <!-- 优先级 -->
+                <div class="tooltip-row" v-if="activeEvent.originalData.priority">
+                  <span class="tooltip-icon">⚡</span>
+                  <span class="tooltip-label">优先级</span>
+                  <span class="tooltip-value">{{ getPriorityLabel(activeEvent.originalData.priority) }}</span>
+                </div>
+                
+                <!-- 进度 -->
+                <div class="tooltip-progress" v-if="activeEvent.originalData.progress !== undefined">
+                  <div class="tooltip-row">
+                    <span class="tooltip-icon">📊</span>
+                    <span class="tooltip-label">进度</span>
+                    <span class="tooltip-value">{{ activeEvent.originalData.progress }}%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: activeEvent.originalData.progress + '%' }"></div>
+                  </div>
+                </div>
+                
+                <!-- 状态 -->
+                <div class="tooltip-row">
+                  <span class="tooltip-icon">✅</span>
+                  <span class="tooltip-label">状态</span>
+                  <span class="tooltip-value">{{ getStatusLabel(activeEvent.originalData.status) }}</span>
+                </div>
+              </template>
+              
+              <!-- 日程特有信息 -->
+              <template v-if="activeEvent.type === 'schedule'">
+                <div class="tooltip-row">
+                  <span class="tooltip-icon">✅</span>
+                  <span class="tooltip-label">状态</span>
+                  <span class="tooltip-value">{{ activeEvent.completed ? '已完成' : '未完成' }}</span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </transition>
 
         <!-- 拖拽反馈元素 -->
         <template v-if="isDragging && draggedEvent && dragDeltaHour !== 0">
@@ -225,6 +293,8 @@
               class="event-block"
               :class="[event.type, { completed: event.completed }]"
               :style="getEventStyle(event)"
+              @mouseenter="handleMouseEnter($event, event)"
+              @mouseleave="handleMouseLeave"
               @click="handleEventClick(event)"
             >
               <div class="event-icon">{{ getEventIcon(event) }}</div>
@@ -289,6 +359,8 @@
               ]"
               :style="getEventStyle(event)"
               draggable="true"
+              @mouseenter="handleMouseEnter($event, event)"
+              @mouseleave="handleMouseLeave"
               @dragstart="handleDragStart($event, event)"
               @click="handleEventClick(event)"
             >
@@ -442,6 +514,11 @@ const resizeDeltaHour = ref(0);
 
 // 三日视图的事件区域引用
 const dayEventsRefs = ref<HTMLElement[]>([]);
+
+// ========== Tooltip 状态管理 ==========
+const activeTooltip = ref<string | number | null>(null);
+const tooltipPosition = ref({ x: 0, y: 0 });
+const activeEvent = ref<TimelineEvent | null>(null);
 
 // ========== 视图模式（单日/三日/一周） ==========
 const viewMode = ref<'single' | 'three-day' | 'week'>('single');
@@ -854,7 +931,7 @@ const sortedEvents = computed<TimelineEvent[]>(() => {
 
   // 处理任务 - 显示所有今日任务
   const todayTasks = taskStore.tasks.filter(
-    t => t.task_date === todayStr && (!props.planId || t.plan_id === props.planId)
+    t => t.start_date <= todayStr && t.end_date >= todayStr && (!props.planId || t.plan_id === props.planId)
   );
   
   todayTasks.forEach((t) => {
@@ -917,7 +994,7 @@ function getEventsForDay(dateStr: string, maxColumns: number = MAX_VISIBLE_COLUM
 
   // 处理任务
   const dayTasks = taskStore.tasks.filter(
-    t => t.task_date === dateStr && (!props.planId || t.plan_id === props.planId)
+    t => t.start_date <= dateStr && t.end_date >= dateStr && (!props.planId || t.plan_id === props.planId)
   );
   
   const occupiedSlots: number[] = [];
@@ -1052,6 +1129,68 @@ function formatDateLabel(dateStr: string): string {
 function isCurrentHour(hour: number): boolean {
   const currentHour = Math.floor(currentMinute.value / 60);
   return hour === currentHour;
+}
+
+// ========== Tooltip 辅助函数 ==========
+
+// 获取类型标签
+function getTypeLabel(type: TimelineEvent['type']): string {
+  const labels: Record<TimelineEvent['type'], string> = {
+    task: '任务',
+    schedule: '日程',
+    focus: '专注',
+    meal: '用餐',
+    break: '休息'
+  };
+  return labels[type] || type;
+}
+
+// 获取优先级标签
+function getPriorityLabel(priority: string | undefined): string {
+  if (!priority) return '';
+  const labels: Record<string, string> = {
+    high: '高',
+    medium: '中',
+    low: '低'
+  };
+  return labels[priority] || priority;
+}
+
+// 获取状态标签
+function getStatusLabel(status: string | undefined): string {
+  if (!status) return '';
+  const labels: Record<string, string> = {
+    todo: '待办',
+    in_progress: '进行中',
+    done: '已完成',
+    cancelled: '已取消'
+  };
+  return labels[status] || status;
+}
+
+// ========== Tooltip 事件处理 ==========
+
+function handleMouseEnter(event: MouseEvent, timelineEvent: TimelineEvent) {
+  activeTooltip.value = timelineEvent.id;
+  activeEvent.value = timelineEvent;
+  
+  // 计算 tooltip 位置
+  const target = event.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect();
+  const containerRect = eventsAreaRef.value?.getBoundingClientRect();
+  
+  if (containerRect) {
+    // Tooltip 在事件块右侧 12px
+    tooltipPosition.value = {
+      x: rect.right - containerRect.left + 12,
+      y: rect.top - containerRect.top + rect.height / 2
+    };
+  }
+}
+
+function handleMouseLeave() {
+  activeTooltip.value = null;
+  activeEvent.value = null;
 }
 
 function handleEventClick(event: TimelineEvent) {
@@ -1549,53 +1688,140 @@ onUnmounted(() => {
   text-decoration: line-through;
 }
 
-/* 悬停详情提示 */
-.event-tooltip {
+/* ========== 全局 Tooltip 样式 ========== */
+
+/* 全局 Tooltip 容器 */
+.event-tooltip-global {
   position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: var(--space-2);
   background: var(--bg-elevated);
   border: 1px solid var(--border-main);
-  border-radius: var(--radius);
-  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
-  opacity: 0;
-  visibility: hidden;
+  z-index: 1000;
+  min-width: 280px;
+  max-width: 320px;
+  white-space: normal;
   pointer-events: none;
-  transition: opacity 0.2s, visibility 0.2s;
-  min-width: 140px;
-  white-space: nowrap;
+  transform: translate(-50%, -50%);
 }
 
-.event-block:hover .event-tooltip {
+/* Tooltip 进入/离开动画 */
+.tooltip-fade-enter-active,
+.tooltip-fade-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tooltip-fade-enter-from,
+.tooltip-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateX(-10px);
+}
+
+.tooltip-fade-enter-to,
+.tooltip-fade-leave-from {
   opacity: 1;
-  visibility: visible;
+  transform: translate(-50%, -50%) translateX(0);
+}
+
+/* Tooltip 内容容器 */
+.tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+/* 头部：标题 + 类型标签 */
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .tooltip-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
-  margin-bottom: 2px;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.tooltip-time {
+.tooltip-type-badge {
   font-size: 11px;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--ai-bg);
+  color: var(--ai-main);
+  font-weight: 500;
+  flex-shrink: 0;
 }
 
-.tooltip-hint {
-  font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border-subtle);
+/* 信息行 */
+.tooltip-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tooltip-icon {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.tooltip-label {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.tooltip-value {
+  color: var(--text-main);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 描述文本 */
+.tooltip-description {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-wrap: break-word;
+}
+
+/* 进度条 */
+.tooltip-progress {
+  margin-top: var(--space-2);
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--bg-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: var(--space-1);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ai-main), #7C3AED);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 
 /* 溢出指示器 */

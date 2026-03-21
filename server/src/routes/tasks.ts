@@ -43,16 +43,22 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { plan_id, title, task_date, start_time, end_time, status, note, repeat_type, repeat_end_date } = req.body;
+    const { plan_id, title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date } = req.body;
 
-    if (!plan_id || !title || !task_date) {
-      res.status(400).json({ error: '计划ID、标题和任务日期不能为空' });
+    if (!plan_id || !title || !start_date || !end_date) {
+      res.status(400).json({ error: '计划ID、标题、开始日期和结束日期不能为空' });
       return;
     }
 
-    // 验证计划是否属于当前用户
+    // 验证日期范围有效性
+    if (new Date(start_date) > new Date(end_date)) {
+      res.status(400).json({ error: '开始日期不能晚于结束日期' });
+      return;
+    }
+
+    // 验证计划是否属于当前用户，并获取计划的时间范围
     const [plans] = await pool.execute(
-      'SELECT id FROM plans WHERE id = ? AND user_id = ?',
+      'SELECT id, start_date AS plan_start_date, end_date AS plan_end_date FROM plans WHERE id = ? AND user_id = ?',
       [plan_id, req.user.id]
     );
 
@@ -61,10 +67,20 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const plan = plans[0] as any;
+
+    // 验证任务日期范围必须在计划范围内
+    if (new Date(start_date) < new Date(plan.plan_start_date) || new Date(end_date) > new Date(plan.plan_end_date)) {
+      res.status(400).json({ 
+        error: `任务日期范围必须在计划范围内 (${plan.plan_start_date} 到 ${plan.plan_end_date})` 
+      });
+      return;
+    }
+
     const [result] = await pool.execute(
-      `INSERT INTO tasks (plan_id, user_id, title, task_date, start_time, end_time, status, note, repeat_type, repeat_end_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [plan_id, req.user.id, title, task_date, start_time || null, end_time || null, status || 'pending', note || null, repeat_type || 'none', repeat_end_date || null]
+      `INSERT INTO tasks (plan_id, user_id, title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [plan_id, req.user.id, title, start_date, end_date, start_time || null, end_time || null, status || 'pending', note || null, repeat_type || 'none', repeat_end_date || null]
     );
 
     const insertResult = result as { insertId: number };
@@ -86,7 +102,7 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
     }
 
     const { id } = req.params;
-    const { title, task_date, start_time, end_time, status, note, repeat_type, repeat_end_date } = req.body;
+    const { title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date } = req.body;
 
     // 检查任务是否存在且属于当前用户
     const [existingTasks] = await pool.execute(
@@ -99,12 +115,44 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const existingTask = existingTasks[0] as any;
+
+    // 如果更新了日期范围，需要进行验证
+    if (start_date !== undefined || end_date !== undefined) {
+      const taskStartDate = start_date || existingTask.start_date;
+      const taskEndDate = end_date || existingTask.end_date;
+
+      // 验证日期范围有效性
+      if (new Date(taskStartDate) > new Date(taskEndDate)) {
+        res.status(400).json({ error: '开始日期不能晚于结束日期' });
+        return;
+      }
+
+      // 获取计划的时间范围进行验证
+      const [plans] = await pool.execute(
+        'SELECT start_date AS plan_start_date, end_date AS plan_end_date FROM plans WHERE id = ?',
+        [existingTask.plan_id]
+      );
+
+      if (Array.isArray(plans) && plans.length > 0) {
+        const plan = plans[0] as any;
+        // 验证任务日期范围必须在计划范围内
+        if (new Date(taskStartDate) < new Date(plan.plan_start_date) || new Date(taskEndDate) > new Date(plan.plan_end_date)) {
+          res.status(400).json({ 
+            error: `任务日期范围必须在计划范围内 (${plan.plan_start_date} 到 ${plan.plan_end_date})` 
+          });
+          return;
+        }
+      }
+    }
+
     // 构建更新语句
     const updates: string[] = [];
     const values: any[] = [];
 
     if (title !== undefined) { updates.push('title = ?'); values.push(title); }
-    if (task_date !== undefined) { updates.push('task_date = ?'); values.push(task_date); }
+    if (start_date !== undefined) { updates.push('start_date = ?'); values.push(start_date); }
+    if (end_date !== undefined) { updates.push('end_date = ?'); values.push(end_date); }
     if (start_time !== undefined) { updates.push('start_time = ?'); values.push(start_time); }
     if (end_time !== undefined) { updates.push('end_time = ?'); values.push(end_time); }
     if (status !== undefined) { updates.push('status = ?'); values.push(status); }

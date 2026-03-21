@@ -265,18 +265,32 @@ import { onMounted, computed, ref, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { useLogStore } from "@/store/log";
 import { useUserStore } from "@/store/user";
+import { useTaskStore } from "@/store/tasks";
 import type { LogEntry } from "@/services/generate-log";
+import type { AILogAnalysis } from "@/services/ai-log-analysis";
+import { analyzeLogsWithAI } from "@/services/ai-log-analysis";
+import { 
+  optimizeTaskQuantity as optimizeTaskQuantityFn, 
+  rescheduleTasksByEfficiency, 
+  addRestReminders 
+} from "@/services/task-optimizer";
+import { API } from "@/services/api";
 import PageScaffold from "@/components/common/PageScaffold.vue";
 import PullToRefresh from "@/components/common/PullToRefresh.vue";
+import { Message } from "@arco-design/web-vue";
 
 const router = useRouter();
 const logStore = useLogStore();
 const userStore = useUserStore();
+const taskStore = useTaskStore();
 
 const logs = computed(() => logStore.logs);
 const loading = ref(false);
 const showAllLogs = ref(false);
 const analysisExpanded = ref(false);
+const aiAnalysis = ref<AILogAnalysis | null>(null);
+const loadingAnalysis = ref(false);
+const optimizing = ref(false);
 
 // 今日统计数据
 const todayStats = computed(() => {
@@ -327,13 +341,26 @@ const recentLogs = computed(() => {
 // AI 建议数量
 const aiSuggestionsCount = computed(() => aiSuggestions.value.length);
 
-// AI 行为分析数据
+// AI 行为分析数据（使用真实AI分析）
 const analysisData = computed(() => {
+  if (aiAnalysis.value) {
+    return {
+      trend: aiAnalysis.value.trend.direction,
+      trendLabel: aiAnalysis.value.trend.label,
+      trendDetail: aiAnalysis.value.trend.detail,
+      riskLevel: aiAnalysis.value.risk.level,
+      riskLabel: aiAnalysis.value.risk.label,
+      riskDetail: aiAnalysis.value.risk.detail,
+      insights: aiAnalysis.value.insights.map(i => i.content),
+      insightsCount: aiAnalysis.value.insights.length
+    };
+  }
+  
+  // 降级到本地分析
   const totalTasks = filteredLogs.value.reduce((sum, log) => sum + log.tasks_total, 0);
   const doneTasks = filteredLogs.value.reduce((sum, log) => sum + log.tasks_done, 0);
   const avgCompletion = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
   
-  // 趋势判断
   let trend = 'stable';
   let trendLabel = '稳定';
   let trendDetail = '您的效率保持稳定，继续保持当前的工作节奏。';
@@ -348,7 +375,6 @@ const analysisData = computed(() => {
     trendDetail = `您的效率有所下降，任务完成率仅 ${avgCompletion}%，需要关注。`;
   }
   
-  // 风险判断
   let riskLevel = 'low';
   let riskLabel = '低';
   let riskDetail = '您的拖延风险较低，能够按时完成任务。';
@@ -363,7 +389,6 @@ const analysisData = computed(() => {
     riskDetail = '您的拖延风险为中等，建议优化时间安排，提高执行效率。';
   }
   
-  // 行为洞察
   const insights: string[] = [];
   if (filteredLogs.value.length >= 3) {
     const avgTasksPerDay = totalTasks / filteredLogs.value.length;
@@ -390,8 +415,22 @@ const analysisData = computed(() => {
   };
 });
 
-// AI 行动建议
+// AI 行动建议（使用真实AI分析结果）
 const aiSuggestions = computed(() => {
+  if (aiAnalysis.value && aiAnalysis.value.personalizedSuggestions.length > 0) {
+    return aiAnalysis.value.personalizedSuggestions.map(s => ({
+      id: s.id,
+      icon: s.icon,
+      title: s.title,
+      problem: s.problem,
+      advice: s.advice,
+      actionLabel: s.actionLabel,
+      action: s.action,
+      expanded: false
+    }));
+  }
+  
+  // 降级到本地建议
   const suggestions: Array<{
     id: number;
     icon: string;
@@ -497,20 +536,119 @@ function getLogDeviationTypes(log: LogEntry): Array<{key: string; label: string}
   return types;
 }
 
-// 执行AI建议
-function executeAction(suggestion: any) {
-  switch (suggestion.action) {
-    case 'reduce_tasks':
-      alert('已为您优化明日任务数量');
-      break;
-    case 'reschedule_tasks':
-      alert('已重新安排任务时间');
-      break;
-    case 'add_reminders':
-      alert('已添加休息提醒');
-      break;
-    default:
-      alert('功能开发中...');
+// 执行AI建议（真实实现）
+async function executeAction(suggestion: any) {
+  try {
+    optimizing.value = true;
+    const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+    
+    // 确保有任务数据
+    await taskStore.loadTasks();
+    
+    switch (suggestion.action) {
+      case 'reduce_tasks':
+        await optimizeTaskQuantity(userId);
+        break;
+      case 'reschedule_tasks':
+        await rescheduleTaskTime(userId);
+        break;
+      case 'add_reminders':
+        await addRestRemindersForTasks(userId);
+        break;
+      case 'improve_efficiency':
+        Message.info('请查看AI分析部分了解详细的效率提升建议');
+        break;
+      default:
+        Message.warning('功能开发中...');
+    }
+  } catch (error) {
+    console.error('执行建议失败:', error);
+    Message.error('操作失败，请稍后重试');
+  } finally {
+    optimizing.value = false;
+  }
+}
+
+// 优化任务数量
+async function optimizeTaskQuantity(userId: number) {
+  const result = await optimizeTaskQuantityFn(taskStore.tasks);
+  
+  // 更新任务（如果API支持）
+  for (const task of result.optimized) {
+    await taskStore.updateTask(task.id, {
+      start_date: task.start_date,
+      end_date: task.end_date
+    });
+  }
+  
+  Message.success(result.message);
+  
+  // 刷新数据
+  await refreshData(userId);
+}
+
+// 调整任务时间
+async function rescheduleTaskTime(userId: number) {
+  const efficiencyPeriods = aiAnalysis.value?.efficiencyPeriods || ['09:00-11:00', '14:00-16:00'];
+  const result = await rescheduleTasksByEfficiency(taskStore.tasks, efficiencyPeriods);
+  
+  // 更新任务时间
+  for (const task of result.optimized) {
+    if (task.start_time && task.end_time) {
+      await taskStore.updateTask(task.id, {
+        start_time: task.start_time,
+        end_time: task.end_time
+      });
+    }
+  }
+  
+  Message.success(result.message);
+  await refreshData(userId);
+}
+
+// 添加休息提醒
+async function addRestRemindersForTasks(userId: number) {
+  const result = await addRestReminders(taskStore.tasks);
+  
+  if (result.added > 0) {
+    // 创建日程提醒（如果API支持）
+    for (const schedule of result.schedules) {
+      try {
+        await API.createSchedule(schedule);
+      } catch (error) {
+        console.warn('创建日程失败:', error);
+      }
+    }
+    
+    Message.success(result.message);
+  } else {
+    Message.info(result.message);
+  }
+}
+
+// 刷新数据
+async function refreshData(userId: number) {
+  await logStore.loadLogs(userId);
+  await taskStore.loadTasks();
+}
+
+// 执行AI分析
+async function performAIAnalysis() {
+  if (filteredLogs.value.length < 3) {
+    Message.warning('需要至少3天的日志记录才能进行AI分析');
+    return;
+  }
+  
+  loadingAnalysis.value = true;
+  try {
+    const analysis = await analyzeLogsWithAI(filteredLogs.value);
+    aiAnalysis.value = analysis;
+    Message.success('AI分析完成');
+  } catch (error) {
+    console.error('AI分析失败:', error);
+    Message.warning('AI分析失败，使用本地分析');
+  } finally {
+    loadingAnalysis.value = false;
   }
 }
 
@@ -529,7 +667,11 @@ function exportLogs() {
     日期: log.date,
     内容: log.content,
     完成任务: log.tasks_done,
-    总任务: log.tasks_total
+    总任务: log.tasks_total,
+    情绪: log.mood || '-',
+    工作时长: log.work_hours ? `${log.work_hours}小时` : '-',
+    亮点: log.highlight || '-',
+    高效时段: log.efficiency_periods?.join(', ') || '-'
   }));
   
   const csv = [
@@ -542,17 +684,56 @@ function exportLogs() {
   link.href = URL.createObjectURL(blob);
   link.download = `日志记录_${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
+  
+  Message.success('日志已导出');
 }
 
 // 生成报告
 function generateReport() {
-  alert("正在生成行为分析报告...");
+  if (!aiAnalysis.value) {
+    Message.warning('请先进行AI分析');
+    return;
+  }
+  
+  const report = `
+# 行为分析报告
+生成时间：${new Date().toLocaleString()}
+
+## 效率趋势
+${aiAnalysis.value.trend.label} - ${aiAnalysis.value.trend.detail}
+
+## 拖延风险
+${aiAnalysis.value.risk.label} - ${aiAnalysis.value.risk.detail}
+
+## 行为洞察
+${aiAnalysis.value.insights.map(i => `- ${i.title}: ${i.content}`).join('\n')}
+
+## 高效时段
+${aiAnalysis.value.efficiencyPeriods.join('、')}
+
+## 个性化建议
+${aiAnalysis.value.personalizedSuggestions.map(s => `- ${s.title}: ${s.advice}`).join('\n')}
+  `;
+  
+  const blob = new Blob([report], { type: 'text/plain;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `行为分析报告_${new Date().toISOString().slice(0, 10)}.txt`;
+  link.click();
+  
+  Message.success('报告已生成');
 }
 
 // 下拉刷新
 async function handleRefresh() {
   const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
   await logStore.loadLogs(userId);
+  await taskStore.loadTasks();
+  
+  // 刷新后自动执行AI分析
+  if (filteredLogs.value.length >= 3) {
+    await performAIAnalysis();
+  }
 }
 
 onMounted(async () => {
@@ -560,6 +741,12 @@ onMounted(async () => {
   try {
     const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
     await logStore.loadLogs(userId);
+    await taskStore.loadTasks();
+    
+    // 如果有足够的日志数据，自动执行AI分析
+    if (filteredLogs.value.length >= 3) {
+      await performAIAnalysis();
+    }
   } catch (e) {
     console.error("加载日志失败:", e);
   } finally {

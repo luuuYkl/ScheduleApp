@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>任务数据迁移工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+
+    .info-box.warning {
+      border-left-color: #ffc107;
+      background: #fff8e1;
+    }
+
+    .info-box.success {
+      border-left-color: #28a745;
+      background: #d4edda;
+    }
+
+    .info-box.error {
+      border-left-color: #dc3545;
+      background: #f8d7da;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .task-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .task-item {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .task-item:last-child {
+      border-bottom: none;
+    }
+
+    .task-item.warning {
+      background: #fff8e1;
+    }
+
+    .task-id {
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .task-info {
+      flex: 1;
+      margin-left: 15px;
+    }
+
+    .task-title {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .task-dates {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .task-status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .task-status.old {
+      background: #ffc107;
+      color: #333;
+    }
+
+    .task-status.new {
+      background: #28a745;
+      color: white;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 12px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 任务数据迁移工具</h1>
+    <p class="subtitle">将旧版任务数据（task_date）迁移到新格式（start_date + end_date）</p>
+
+    <!-- 检测状态 -->
+    <div class="section">
+      <div class="section-title">📊 数据检测</div>
+      <div class="info-box" id="statusBox">
+        点击"开始检测"按钮来分析当前的任务数据
+      </div>
+      
+      <div class="stat-grid hidden" id="statGrid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalTasks">0</div>
+          <div class="stat-label">总任务数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="oldTasks">0</div>
+          <div class="stat-label">旧格式任务</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="newTasks">0</div>
+          <div class="stat-label">新格式任务</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 任务列表 -->
+    <div class="section hidden" id="taskListSection">
+      <div class="section-title">📋 需要迁移的任务</div>
+      <div class="task-list" id="taskList"></div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="button-group">
+      <button class="btn-primary" id="checkBtn" onclick="checkData()">开始检测</button>
+      <button class="btn-primary hidden" id="migrateBtn" onclick="migrateData()">执行迁移</button>
+      <button class="btn-danger hidden" id="clearBtn" onclick="clearData()">清空所有任务</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'tasks';
+    
+    function getTasks() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (!data) return [];
+      
+      try {
+        const parsed = JSON.parse(data);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.error('解析任务数据失败:', e);
+        return [];
+      }
+    }
+
+    function saveTasks(tasks) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function isOldFormat(task) {
+      return task.hasOwnProperty('task_date') && 
+             !task.hasOwnProperty('start_date') && 
+             !task.hasOwnProperty('end_date');
+    }
+
+    function checkData() {
+      const tasks = getTasks();
+      const oldTasks = tasks.filter(isOldFormat);
+      const newTasks = tasks.filter(t => !isOldFormat(t));
+
+      // 更新统计
+      document.getElementById('totalTasks').textContent = tasks.length;
+      document.getElementById('oldTasks').textContent = oldTasks.length;
+      document.getElementById('newTasks').textContent = newTasks.length;
+
+      // 显示统计
+      document.getElementById('statGrid').classList.remove('hidden');
+
+      // 更新状态信息
+      const statusBox = document.getElementById('statusBox');
+      if (oldTasks.length === 0) {
+        statusBox.className = 'info-box success';
+        statusBox.textContent = '✅ 所有任务已经是新格式，无需迁移';
+        document.getElementById('migrateBtn').classList.add('hidden');
+        document.getElementById('taskListSection').classList.add('hidden');
+      } else {
+        statusBox.className = 'info-box warning';
+        statusBox.textContent = `⚠️ 发现 ${oldTasks.length} 个旧格式任务需要迁移`;
+        document.getElementById('migrateBtn').classList.remove('hidden');
+        document.getElementById('taskListSection').classList.remove('hidden');
+        renderTaskList(oldTasks);
+      }
+
+      document.getElementById('checkBtn').textContent = '重新检测';
+      document.getElementById('clearBtn').classList.remove('hidden');
+    }
+
+    function renderTaskList(oldTasks) {
+      const listEl = document.getElementById('taskList');
+      listEl.innerHTML = '';
+
+      oldTasks.forEach(task => {
+        const item = document.createElement('div');
+        item.className = 'task-item warning';
+        item.innerHTML = `
+          <span class="task-id">#${task.id}</span>
+          <div class="task-info">
+            <div class="task-title">${task.title || '无标题'}</div>
+            <div class="task-dates">旧字段: task_date = ${task.task_date}</div>
+          </div>
+          <span class="task-status old">旧格式</span>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    function migrateData() {
+      const tasks = getTasks();
+      const oldTasks = tasks.filter(isOldFormat);
+      
+      if (oldTasks.length === 0) {
+        alert('没有需要迁移的任务');
+        return;
+      }
+
+      if (!confirm(`即将迁移 ${oldTasks.length} 个任务，确定继续吗？`)) {
+        return;
+      }
+
+      // 执行迁移
+      let migrated = 0;
+      const migratedTasks = tasks.map(task => {
+        if (isOldFormat(task)) {
+          migrated++;
+          return {
+            ...task,
+            start_date: task.task_date,
+            end_date: task.task_date,
+            // 保留旧字段以便回滚
+            _old_task_date: task.task_date
+          };
+        }
+        return task;
+      });
+
+      // 保存
+      saveTasks(migratedTasks);
+
+      // 更新界面
+      document.getElementById('statusBox').className = 'info-box success';
+      document.getElementById('statusBox').textContent = `✅ 成功迁移 ${migrated} 个任务！`;
+      
+      document.getElementById('migrateBtn').classList.add('hidden');
+      document.getElementById('taskListSection').classList.add('hidden');
+      
+      alert(`✅ 成功迁移 ${migrated} 个任务！\n\n旧字段已迁移到新字段：\n- start_date\n- end_date\n\n旧字段 task_date 已保留为 _old_task_date 以便回滚`);
+      
+      // 重新检测
+      checkData();
+    }
+
+    function clearData() {
+      if (!confirm('⚠️ 警告：此操作将删除所有任务数据，确定继续吗？')) {
+        return;
+      }
+
+      if (!confirm('⚠️ 再次确认：删除后无法恢复，确定要清空所有任务吗？')) {
+        return;
+      }
+
+      localStorage.removeItem(STORAGE_KEY);
+      
+      document.getElementById('statusBox').className = 'info-box';
+      document.getElementById('statusBox').textContent = '所有任务已清空';
+      
+      document.getElementById('totalTasks').textContent = '0';
+      document.getElementById('oldTasks').textContent = '0';
+      document.getElementById('newTasks').textContent = '0';
+      
+      document.getElementById('migrateBtn').classList.add('hidden');
+      document.getElementById('taskListSection').classList.add('hidden');
+      document.getElementById('taskList').innerHTML = '';
+      
+      alert('✅ 所有任务已清空');
+    }
+  </script>
+</body>
+</html>

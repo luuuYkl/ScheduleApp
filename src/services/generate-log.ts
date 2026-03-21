@@ -14,6 +14,12 @@ export interface LogEntry {
   schedules_done: number; // 已完成日程数
   schedules_total: number; // 总日程数
   created_at: string; // 创建时间戳
+  
+  // 新增字段
+  mood?: 'happy' | 'calm' | 'anxious' | 'tired' | 'focused' | 'stressed'; // 当日情绪
+  work_hours?: number; // 工作时长（小时）
+  highlight?: string; // 当日亮点
+  efficiency_periods?: string[]; // 高效时段（如 ['09:00-11:00', '14:00-16:00']）
 }
 
 /**
@@ -36,6 +42,18 @@ export async function generateDailyLog(
   const schedulesDone = schedules.filter((s) => s.completed).length;
   const schedulesTotal = schedules.length;
 
+  // 分析情绪
+  const mood = analyzeMood(tasks, schedules, tasksDone, tasksTotal);
+
+  // 计算工作时长
+  const workHours = calculateWorkHours(tasks, schedules);
+
+  // 提取当日亮点
+  const highlight = extractHighlight(tasks, schedules);
+
+  // 识别高效时段
+  const efficiencyPeriods = identifyEfficiencyPeriods(tasks, schedules);
+
   // 调用内容生成函数
   const content = generateLogContent(
     tasks,
@@ -44,6 +62,7 @@ export async function generateDailyLog(
     tasksTotal,
     schedulesDone,
     schedulesTotal,
+    mood,
   );
 
   const today = new Date().toISOString().slice(0, 10);
@@ -58,7 +77,164 @@ export async function generateDailyLog(
     schedules_done: schedulesDone,
     schedules_total: schedulesTotal,
     created_at: new Date().toISOString(),
+    mood,
+    work_hours: workHours,
+    highlight,
+    efficiency_periods: efficiencyPeriods,
   };
+}
+
+/**
+ * 分析当日情绪
+ */
+function analyzeMood(
+  tasks: Task[],
+  schedules: ScheduleItem[],
+  tasksDone: number,
+  tasksTotal: number
+): LogEntry['mood'] {
+  const completionRate = tasksTotal > 0 ? tasksDone / tasksTotal : 0;
+  const schedulesDone = schedules.filter(s => s.completed).length;
+
+  // 根据完成率和任务数量分析情绪
+  if (completionRate >= 0.9) {
+    return 'happy'; // 完成率高，心情愉悦
+  } else if (completionRate >= 0.7) {
+    return 'calm'; // 完成率较高，心情平静
+  } else if (completionRate >= 0.5) {
+    return 'focused'; // 完成率中等，专注但可能有压力
+  } else if (tasksTotal > 10) {
+    return 'anxious'; // 任务多且完成率低，焦虑
+  } else if (tasksDone === 0) {
+    return 'tired'; // 没有完成任务，可能是疲劳
+  } else {
+    return 'stressed'; // 其他情况，压力
+  }
+}
+
+/**
+ * 计算工作时长
+ */
+function calculateWorkHours(tasks: Task[], schedules: ScheduleItem[]): number {
+  let totalMinutes = 0;
+
+  // 计算任务时长
+  for (const task of tasks) {
+    if (task.status === 'done' && task.start_time && task.end_time) {
+      const [startHour, startMinute] = task.start_time.split(':').map(Number);
+      const [endHour, endMinute] = task.end_time.split(':').map(Number);
+      const duration = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+      totalMinutes += Math.max(0, duration);
+    }
+  }
+
+  // 计算日程时长
+  for (const schedule of schedules) {
+    if (schedule.completed && schedule.start_time && schedule.end_time) {
+      const [startHour, startMinute] = schedule.start_time.split(':').map(Number);
+      const [endHour, endMinute] = schedule.end_time.split(':').map(Number);
+      const duration = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+      totalMinutes += Math.max(0, duration);
+    }
+  }
+
+  return Number((totalMinutes / 60).toFixed(1));
+}
+
+/**
+ * 提取当日亮点
+ */
+function extractHighlight(tasks: Task[], schedules: ScheduleItem[]): string | undefined {
+  const doneTasks = tasks.filter(t => t.status === 'done');
+  const doneSchedules = schedules.filter(s => s.completed);
+
+  // 查找标记为重要或紧急的任务
+  const importantTask = doneTasks.find(t => 
+    t.title.includes('重要') || 
+    t.title.includes('紧急') || 
+    t.title.includes('关键') ||
+    t.title.toLowerCase().includes('important') ||
+    t.title.toLowerCase().includes('urgent')
+  );
+
+  if (importantTask) {
+    return `完成了重要任务：${importantTask.title}`;
+  }
+
+  // 如果没有重要任务，查找时长最长的任务
+  const longestTask = doneTasks.reduce((longest, task) => {
+    if (!task.start_time || !task.end_time) return longest;
+    const [startHour, startMinute] = task.start_time.split(':').map(Number);
+    const [endHour, endMinute] = task.end_time.split(':').map(Number);
+    const duration = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+    
+    if (!longest || duration > longest.duration) {
+      return { task, duration };
+    }
+    return longest;
+  }, null as { task: Task; duration: number } | null);
+
+  if (longestTask && longestTask.duration > 60) {
+    return `专注完成了${(longestTask.duration / 60).toFixed(1)}小时的任务：${longestTask.task.title}`;
+  }
+
+  // 完成了多项任务
+  if (doneTasks.length >= 5) {
+    return `今天高效完成了${doneTasks.length}项任务`;
+  }
+
+  // 完成了所有日程
+  if (doneSchedules.length > 0 && doneSchedules.length === schedules.length) {
+    return `按时完成了所有日程安排`;
+  }
+
+  return undefined;
+}
+
+/**
+ * 识别高效时段
+ */
+function identifyEfficiencyPeriods(tasks: Task[], schedules: ScheduleItem[]): string[] {
+  const periodCounts = new Map<string, number>();
+
+  // 统计任务完成的时段
+  for (const task of tasks) {
+    if (task.status === 'done' && task.start_time) {
+      const hour = parseInt(task.start_time.split(':')[0]);
+      const period = getPeriod(hour);
+      periodCounts.set(period, (periodCounts.get(period) || 0) + 1);
+    }
+  }
+
+  // 统计日程完成的时段
+  for (const schedule of schedules) {
+    if (schedule.completed && schedule.start_time) {
+      const hour = parseInt(schedule.start_time.split(':')[0]);
+      const period = getPeriod(hour);
+      periodCounts.set(period, (periodCounts.get(period) || 0) + 1);
+    }
+  }
+
+  // 找出完成最多的前两个时段
+  const sortedPeriods = Array.from(periodCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([period]) => period);
+
+  return sortedPeriods.length > 0 ? sortedPeriods : ['09:00-11:00', '14:00-16:00'];
+}
+
+/**
+ * 根据小时数获取时段
+ */
+function getPeriod(hour: number): string {
+  if (hour >= 6 && hour < 9) return '06:00-09:00';
+  if (hour >= 9 && hour < 12) return '09:00-12:00';
+  if (hour >= 12 && hour < 14) return '12:00-14:00';
+  if (hour >= 14 && hour < 17) return '14:00-17:00';
+  if (hour >= 17 && hour < 20) return '17:00-20:00';
+  if (hour >= 20 && hour < 23) return '20:00-23:00';
+  return '23:00-06:00';
 }
 
 /**
@@ -69,6 +245,7 @@ export async function generateDailyLog(
  * @param tasksTotal 总任务数量
  * @param schedulesDone 已完成日程数量
  * @param schedulesTotal 总日程数量
+ * @param mood 当日情绪
  * @returns 格式化的日志内容
  */
 function generateLogContent(
@@ -78,6 +255,7 @@ function generateLogContent(
   tasksTotal: number,
   schedulesDone: number,
   schedulesTotal: number,
+  mood?: LogEntry['mood'],
 ): string {
   const totalDone = tasksDone + schedulesDone;
 

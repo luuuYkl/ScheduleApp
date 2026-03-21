@@ -75,13 +75,25 @@
           class="quick-input"
           @keyup.enter="quickAddTask"
         />
-        <input
-          v-model="quickForm.task_date"
-          type="date"
-          class="quick-date"
-          :min="planStartDate"
-          :max="planEndDate"
-        />
+        <div class="quick-date-group">
+          <input
+            v-model="quickForm.start_date"
+            type="date"
+            class="quick-date"
+            :min="planStartDate"
+            :max="planEndDate"
+            title="开始日期"
+          />
+          <input
+            v-model="quickForm.end_date"
+            type="date"
+            class="quick-date"
+            :min="quickForm.start_date"
+            :max="planEndDate"
+            title="结束日期"
+          />
+        </div>
+        
         <select v-model="quickForm.repeat_type" class="quick-select">
           <option value="none">不重复</option>
           <option value="daily">每日</option>
@@ -239,7 +251,8 @@
                   <template v-if="editingId === task.id">
                     <div class="task-edit-form">
                       <input v-model="editForm.title" type="text" class="edit-input" />
-                      <input v-model="editForm.task_date" type="date" class="edit-date" />
+                      <input v-model="editForm.start_date" type="date" class="edit-date" title="开始日期" />
+                      <input v-model="editForm.end_date" type="date" class="edit-date" title="结束日期" />
                       <button class="edit-save" @click="saveEdit">✓</button>
                       <button class="edit-cancel" @click="cancelEdit">✕</button>
                     </div>
@@ -257,7 +270,13 @@
                     <div class="task-content">
                       <span class="task-title">{{ task.title }}</span>
                       <div class="task-meta">
-                        <span class="task-date">{{ formatDateShort(task.task_date) }}</span>
+                        <span class="task-date">
+                          {{ formatDateShort(task.start_date) }}
+                          <span v-if="task.start_date !== task.end_date">
+                            - {{ formatDateShort(task.end_date) }}
+                            <span class="task-duration">📅 {{ calculateDuration(task.start_date, task.end_date) }}天</span>
+                          </span>
+                        </span>
                         <span v-if="task.repeat_type && task.repeat_type !== 'none'" class="task-repeat">
                           {{ task.repeat_type === 'daily' ? '📅 每日' : '📆 每月' }}
                         </span>
@@ -315,7 +334,8 @@ const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 // 快速添加表单
 const quickForm = reactive({
   title: "",
-  task_date: new Date().toISOString().slice(0, 10),
+  start_date: new Date().toISOString().slice(0, 10),
+  end_date: new Date().toISOString().slice(0, 10),
   repeat_type: "none" as "none" | "daily" | "monthly",
 });
 
@@ -323,7 +343,8 @@ const quickForm = reactive({
 const editForm = reactive({
   id: 0,
   title: "",
-  task_date: "",
+  start_date: "",
+  end_date: "",
 });
 
 // 筛选选项
@@ -365,8 +386,8 @@ const weeklyStats = computed(() => {
 
   const weekTasks = taskStore.tasks.filter(t =>
     t.plan_id === planId &&
-    t.task_date >= weekStartStr &&
-    t.task_date <= weekEndStr
+    t.start_date <= weekEndStr &&
+    t.end_date >= weekStartStr
   );
 
   const completed = weekTasks.filter(t => t.status === 'done').length;
@@ -378,7 +399,21 @@ const weeklyStats = computed(() => {
 
 // 任务分组
 const filteredGroups = computed(() => {
+  console.log('[PlanTasksPage] ========== 开始计算任务分组 ==========');
+  console.log('[PlanTasksPage] planId:', planId);
+  console.log('[PlanTasksPage] 所有任务数量:', taskStore.tasks.length);
+  console.log('[PlanTasksPage] 所有任务:', JSON.stringify(taskStore.tasks));
+  
   let tasks = taskStore.tasks.filter(t => t.plan_id === planId);
+  console.log('[PlanTasksPage] 筛选后的任务数量:', tasks.length);
+  console.log('[PlanTasksPage] 筛选后的任务:', JSON.stringify(tasks));
+  
+  // 检查任务是否有必要的字段
+  tasks.forEach((task, idx) => {
+    if (!task.start_date || !task.end_date) {
+      console.warn(`[PlanTasksPage] ⚠️ 任务 ${task.id} 缺少日期字段:`, task);
+    }
+  });
 
   // 状态筛选
   if (activeFilter.value === 'pending') {
@@ -386,6 +421,8 @@ const filteredGroups = computed(() => {
   } else if (activeFilter.value === 'done') {
     tasks = tasks.filter(t => t.status === 'done');
   }
+  
+  console.log('[PlanTasksPage] 状态筛选后的任务数量:', tasks.length);
 
   if (viewMode.value === 'flat') {
     return [{
@@ -393,38 +430,58 @@ const filteredGroups = computed(() => {
       type: 'flat',
       icon: '📋',
       title: '所有任务',
-      tasks: tasks.sort((a, b) => a.task_date.localeCompare(b.task_date))
+      tasks: tasks.sort((a, b) => a.start_date.localeCompare(b.start_date))
     }];
   }
 
   const groups: Array<{key: string; type: string; icon: string; title: string; tasks: any[]}> = [];
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  
+  // 正确计算本周开始和结束日期
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const weekEndStr = weekEnd.toISOString().slice(0, 10);
+  
+  console.log('[PlanTasksPage] 日期范围:', { today, tomorrow, weekStartStr, weekEndStr });
 
-  // 今天
-  const todayTasks = tasks.filter(t => t.task_date === today);
+  // 今天：任务日期范围包含今天（检查字段是否存在）
+  const todayTasks = tasks.filter(t => 
+    t.start_date && t.end_date && t.start_date <= today && t.end_date >= today
+  );
+  console.log('[PlanTasksPage] 今天任务数量:', todayTasks.length);
+  console.log('[PlanTasksPage] 今天任务:', JSON.stringify(todayTasks));
   if (todayTasks.length > 0) {
     groups.push({ key: 'today', type: 'today', icon: '📌', title: '今天', tasks: todayTasks });
   }
 
-  // 明天
-  const tomorrowTasks = tasks.filter(t => t.task_date === tomorrow);
+  // 明天：任务日期范围包含明天
+  const tomorrowTasks = tasks.filter(t => 
+    t.start_date <= tomorrow && t.end_date >= tomorrow
+  );
   if (tomorrowTasks.length > 0) {
     groups.push({ key: 'tomorrow', type: 'future', icon: '📅', title: '明天', tasks: tomorrowTasks });
   }
 
-  // 本周
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-
+  // 本周：任务日期范围与本周有交集
   const weekTasks = tasks.filter(t => {
-    const taskDate = new Date(t.task_date);
-    return t.task_date !== today &&
-           t.task_date !== tomorrow &&
-           taskDate >= weekStart &&
-           taskDate <= weekEnd;
+    const taskStart = new Date(t.start_date);
+    const taskEnd = new Date(t.end_date);
+    const weekStart = new Date(weekStartStr);
+    const weekEnd = new Date(weekEndStr);
+    
+    // 排除已经归类到今天和明天的任务
+    const isToday = t.start_date <= today && t.end_date >= today;
+    const isTomorrow = t.start_date <= tomorrow && t.end_date >= tomorrow;
+    
+    return !isToday && !isTomorrow &&
+           taskStart <= weekEnd &&
+           taskEnd >= weekStart;
   });
   if (weekTasks.length > 0) {
     groups.push({
@@ -432,34 +489,41 @@ const filteredGroups = computed(() => {
       type: 'week',
       icon: '📆',
       title: '本周',
-      tasks: weekTasks.sort((a, b) => a.task_date.localeCompare(b.task_date))
+      tasks: weekTasks.sort((a, b) => a.start_date.localeCompare(b.start_date))
     });
   }
 
-  // 逾期
-  const overdueTasks = tasks.filter(t => t.task_date < today && t.status !== 'done');
+  // 逾期：任务结束日期早于今天且未完成
+  const overdueTasks = tasks.filter(t => 
+    t.end_date < today && t.status !== 'done'
+  );
   if (overdueTasks.length > 0) {
     groups.push({
       key: 'overdue',
       type: 'overdue',
       icon: '⚠️',
       title: '逾期',
-      tasks: overdueTasks.sort((a, b) => a.task_date.localeCompare(b.task_date))
+      tasks: overdueTasks.sort((a, b) => a.start_date.localeCompare(b.start_date))
     });
   }
 
-  // 未来
-  const futureTasks = tasks.filter(t => t.task_date > weekEnd.toISOString().slice(0, 10));
+  // 未来：任务开始日期晚于本周
+  const futureTasks = tasks.filter(t => 
+    t.start_date > weekEndStr
+  );
   if (futureTasks.length > 0) {
     groups.push({
       key: 'future',
       type: 'future',
       icon: '🗓️',
       title: '未来',
-      tasks: futureTasks.sort((a, b) => a.task_date.localeCompare(b.task_date))
+      tasks: futureTasks.sort((a, b) => a.start_date.localeCompare(b.start_date))
     });
   }
 
+  console.log('[PlanTasksPage] 最终分组数量:', groups.length);
+  console.log('[PlanTasksPage] 最终分组:', JSON.stringify(groups));
+  console.log('[PlanTasksPage] ========== 分组计算完成 ==========');
   return groups;
 });
 
@@ -473,8 +537,11 @@ const calendarDays = computed(() => {
   
   for (let day = 1; day <= lastDay; day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    // 查找日期范围包含当前日期的任务
     const tasks = taskStore.tasks.filter(t => 
-      t.plan_id === planId && t.task_date === dateStr
+      t.plan_id === planId && 
+      t.start_date <= dateStr && 
+      t.end_date >= dateStr
     );
     const allDone = tasks.length > 0 && tasks.every(t => t.status === 'done');
     
@@ -510,7 +577,22 @@ function formatDateShort(dateStr: string): string {
   if (dateStr === today) return '今天';
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   if (dateStr === tomorrow) return '明天';
-  return dateStr.slice(5);
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  if (dateStr === yesterday) return '昨天';
+  
+  // 格式化为 MM-DD
+  const date = new Date(dateStr);
+  return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function formatDateRange(startDate: string, endDate: string): string {
+  if (startDate === endDate) {
+    return formatDateShort(startDate);
+  }
+  
+  const start = formatDateShort(startDate);
+  const end = formatDateShort(endDate);
+  return `${start} ~ ${end}`;
 }
 
 function getPercentClass(percent: number): string {
@@ -552,21 +634,30 @@ async function quickAddTask() {
   const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id") || 0);
   if (!userId) return alert("请先登录");
 
+  // 验证日期范围
+  if (quickForm.start_date > quickForm.end_date) {
+    alert("开始日期不能晚于结束日期");
+    return;
+  }
+
   submitting.value = true;
   try {
     await taskStore.createTask({
       plan_id: planId,
       user_id: userId,
       title: quickForm.title,
-      task_date: quickForm.task_date,
+      start_date: quickForm.start_date,
+      end_date: quickForm.end_date,
       repeat_type: quickForm.repeat_type,
     });
 
     // 重置
     quickForm.title = "";
+    quickForm.start_date = new Date().toISOString().slice(0, 10);
+    quickForm.end_date = new Date().toISOString().slice(0, 10);
     quickForm.repeat_type = "none";
-
-    await taskStore.loadTasks(planId);
+    
+    // createTask 已经更新了本地状态，不需要重新加载
   } catch (e: any) {
     alert(e?.message || "添加失败");
   } finally {
@@ -585,7 +676,8 @@ function startEdit(task: any) {
   editingId.value = task.id;
   editForm.id = task.id;
   editForm.title = task.title;
-  editForm.task_date = task.task_date;
+  editForm.start_date = task.start_date;
+  editForm.end_date = task.end_date;
 }
 
 // 取消编辑
@@ -597,7 +689,8 @@ function cancelEdit() {
 async function saveEdit() {
   await taskStore.updateTask(editForm.id, {
     title: editForm.title,
-    task_date: editForm.task_date,
+    start_date: editForm.start_date,
+    end_date: editForm.end_date,
   });
   editingId.value = null;
   await taskStore.loadTasks(planId);
@@ -634,6 +727,15 @@ function goToToday() {
 
 function selectCalendarDay(day: any) {
   selectedCalendarDay.value = day;
+}
+
+// ========== 计算天数方法 ==========
+
+function calculateDuration(startDate: string, endDate: string): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 }
 
 // ========== 生命周期 ==========
@@ -906,6 +1008,13 @@ onMounted(async () => {
   width: 140px;
 }
 
+/* 日期输入框组 */
+.quick-date-group {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
 .quick-select {
   width: 100px;
 }
@@ -1144,6 +1253,16 @@ onMounted(async () => {
 
 .task-date {
   color: var(--text-secondary);
+}
+
+.task-duration {
+  color: var(--ai-main);
+  font-weight: 500;
+  background: var(--ai-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  margin-left: var(--space-1);
 }
 
 .task-repeat {

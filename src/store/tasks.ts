@@ -152,9 +152,11 @@ export const useTaskStore = defineStore("tasks", () => {
       const userId =
         userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
 
-      // 筛选今天的任务
+      // 筛选今天的任务（检查任务日期范围是否包含今天）
       const today = new Date().toISOString().slice(0, 10);
-      const todayTasks = tasks.value.filter((t) => t.task_date === today);
+      const todayTasks = tasks.value.filter((t) => 
+        t.start_date <= today && t.end_date >= today
+      );
 
       if (todayTasks.length > 0) {
         await logStore.generateTodayLog(userId, todayTasks);
