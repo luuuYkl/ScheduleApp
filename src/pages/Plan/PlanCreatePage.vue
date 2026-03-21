@@ -116,29 +116,19 @@
       </div>
       
       <!-- 右侧：AI 建议和预览区域 -->
-      <div class="preview-section">
-        <!-- AI 建议面板 -->
-        <Card class="ai-panel" v-if="aiResponse || pendingTasks.length > 0">
-          <div class="panel-header">
-            <h3>🤖 AI 智能建议</h3>
-            <Button 
-              v-if="aiResponse" 
-              variant="ghost" 
-              size="small" 
-              @click="clearAISuggestions"
-            >
-              清除
-            </Button>
-          </div>
-          
-          <AISuggestions
+      <div class="preview-section" ref="previewSection">
+        <!-- AI 建议面板（流式） -->
+        <div class="ai-panel" v-if="aiLoading || streamContent.length > 0 || aiResponse">
+          <AISuggestionsStream
             :loading="aiLoading"
             :response="aiResponse"
+            :stream-content="streamContent"
+            :closeable="true"
             @close="clearAISuggestions"
             @add-task="addRecommendedTask"
             @apply-optimization="applyOptimization"
           />
-        </Card>
+        </div>
         
         <!-- 待创建任务预览 -->
         <Card class="tasks-preview" v-if="pendingTasks.length > 0">
@@ -217,13 +207,13 @@ import { useRoute, useRouter } from "vue-router";
 import { Message } from "@arco-design/web-vue";
 import { usePlanStore } from "@/store/plans";
 import { useUserStore } from "@/store/user";
-import { optimizePlanWithAI, quickValidatePlan } from "@/services/ai";
+import { optimizePlanWithAI, optimizePlanWithAIStream, quickValidatePlan } from "@/services/ai";
 import type {
   AIOptimizePlanResponse,
   AIRecommendedTask,
   CreateTaskPayload,
 } from "@/services/api.types";
-import AISuggestions from "@/components/plan/AISuggestions.vue";
+import AISuggestionsStream from "@/components/plan/AISuggestionsStream.vue";
 import PageScaffold from "@/components/common/PageScaffold.vue";
 import Button from "@/components/common/Button.vue";
 import Card from "@/components/common/Card.vue";
@@ -285,6 +275,7 @@ const submitting = ref(false);
 // AI 相关状态
 const aiLoading = ref(false);
 const aiResponse = ref<AIOptimizePlanResponse | null>(null);
+const streamContent = ref(""); // 流式输出的内容
 const pendingTasks = ref<AIRecommendedTask[]>([]); // 用户选择要创建的推荐任务（含时间/重复/描述）
 
 // 是否可以进行 AI 优化（基本字段已填写）
@@ -430,7 +421,7 @@ function validate() {
   return isValid;
 }
 
-// AI 优化相关函数
+// AI 优化相关函数（流式版本）
 async function getAISuggestions() {
   if (!canOptimize.value) return;
 
@@ -451,18 +442,45 @@ async function getAISuggestions() {
     return;
   }
 
+  // 清空之前的内容
+  streamContent.value = "";
+  aiResponse.value = null;
   aiLoading.value = true;
+
   try {
-    const response = await optimizePlanWithAI({
+    // 使用流式 API
+    const stream = optimizePlanWithAIStream({
       title: form.title,
       description: form.description || "",
       start_date: form.start_date,
       end_date: form.end_date,
       user_context: `用户ID: ${userStore.user?.id}, 用户名: ${userStore.user?.username}`,
     });
-    aiResponse.value = response;
+
+    // 逐字符接收流式内容
+    for await (const chunk of stream) {
+      streamContent.value += chunk;
+    }
+
+    // 流式完成后，解析完整的响应
+    try {
+      const trimmed = streamContent.value.trim();
+      let cleaned = trimmed
+        .replace(/^```(?:json)?\s*/gm, "")
+        .replace(/```$/gm, "")
+        .replace(/```/g, "")
+        .trim();
+      
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        aiResponse.value = JSON.parse(jsonMatch[0]);
+      }
+    } catch (error) {
+      console.error("解析流式响应失败:", error);
+      // 如果解析失败，保留流式内容供用户查看
+    }
   } catch (error) {
-    console.error("AI 优化失败:", error);
+    console.error("AI 流式优化失败:", error);
     alert("AI 优化失败，请稍后重试");
   } finally {
     aiLoading.value = false;
@@ -471,6 +489,7 @@ async function getAISuggestions() {
 
 function clearAISuggestions() {
   aiResponse.value = null;
+  streamContent.value = "";
 }
 
 function isSameTask(a: AIRecommendedTask, b: AIRecommendedTask) {
@@ -815,20 +834,30 @@ onMounted(async () => {
   background: var(--bg-card-hover);
 }
 
-/* 右侧预览区域 */
+/* 右侧预览区域 - 纵向弹性扩展 */
 .preview-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
   height: fit-content;
+  min-width: 0;
 }
 
-.ai-panel,
+/* AI 面板 - 动态成果展示区 */
+.ai-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+  overflow: visible;
+}
+
+/* 其他卡片 */
 .tasks-preview,
 .plan-preview {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  padding: var(--space-5);
   box-shadow: var(--shadow-sm);
 }
 
@@ -837,8 +866,8 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-3);
-  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
 }
 

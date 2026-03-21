@@ -91,39 +91,32 @@ export async function optimizePlanWithAI(
           content: `你是一个专业的时间管理和日程规划助手。请严格按照以下JSON格式返回数据：
 
 {
-  "suggestions": [
-    {
-      "type": "warning|suggestion|info",
-      "message": "建议内容",
-      "field": "字段名（可选）"
-    }
-  ],
+  "suggestions": [{"type": "warning|suggestion|info", "message": "建议内容", "field": "可选字段名"}],
   "optimized_plan": {
-    "title": "优化后的标题（可选）",
-    "description": "优化后的描述（可选）",
-    "start_date": "可选的优化开始日期(YYYY-MM-DD)",
-    "end_date": "可选的优化结束日期(YYYY-MM-DD)",
+    "title": "优化后标题（可选）",
+    "description": "优化后描述（可选）",
+    "start_date": "YYYY-MM-DD（可选）",
+    "end_date": "YYYY-MM-DD（可选）",
     "recommended_tasks": [
       {
-        "title": "任务标题",
+        "title": "任务标题【必填】",
         "task_date": "YYYY-MM-DD（可选，默认用计划开始日）",
-        "start_time": "HH:MM（可选）",
-        "end_time": "HH:MM（可选）",
-        "note": "任务描述/备注",
-        "repeat_type": "none|daily|monthly",
+        "start_time": "HH:MM【必填】",
+        "end_time": "HH:MM【必填】",
+        "note": "详细的任务描述和执行要点",
+        "repeat_type": "none|daily|monthly（可选）",
         "repeat_end_date": "YYYY-MM-DD（可选）"
       }
     ]
   },
-  "reasoning": "简要说明你的分析思路"
+  "reasoning": "简要说明分析思路"
 }
 
-【重要指令】：
-1. 只返回这个JSON对象本身，不要有任何其他文本
-2. 绝对不要使用 \`\`\`json 或 \`\`\` 包裹JSON
+【严格规则】：
+1. 直接输出纯JSON对象，从 { 开始到 } 结束
+2. 绝对不要使用 \`\`\`json 或 \`\`\` 包裹
 3. 不要添加任何说明文字、注释或额外内容
-4. 确保JSON格式完全正确，所有字段都必须存在
-5. 直接输出纯JSON，从 { 开始，到 } 结束`,
+4. 确保JSON格式完全正确`,
         },
         {
           role: "user",
@@ -132,7 +125,7 @@ export async function optimizePlanWithAI(
       ],
       temperature: 0.7,
       stream: false,
-      max_tokens: 2000, // 增加 token 限制以容纳完整的任务列表和详细描述
+      max_tokens: 4000, // 增加 token 限制以容纳完整的任务列表和详细描述
     };
 
     // 发送请求，兼容 DeepSeek：如果 400 再尝试精简版 payload
@@ -144,7 +137,7 @@ export async function optimizePlanWithAI(
         model: APP_CONFIG.AI_MODEL,
         messages: [{ role: "user", content: prompt }],
         stream: false,
-        max_tokens: 2000,
+        max_tokens: 4000,
       };
       finalResult = await sendAIRequest(fallbackPayload, "fallback");
     }
@@ -363,8 +356,15 @@ ${user_context ? `用户背景: ${user_context}` : ""}
 请从以下角度分析并提供建议：
 1. 时间安排是否合理（是否过于紧凑或松散）
 2. 计划标题和描述是否清晰明确
-3. 推荐的具体任务列表（含日期/时间/重复/描述）
+3. 推荐的具体任务列表（每个任务必须包含标题、开始时间、结束时间）
 4. 任何潜在的风险或注意事项
+
+推荐任务要求：
+- 每个任务必须包含：title（标题）、start_time（开始时间）、end_time（结束时间）
+- 时间格式必须是 HH:MM（例如：09:00）
+- note 字段必须详细说明：具体执行内容、关键要点、注意事项
+- 描述要具体可执行，避免过于笼统
+- 例如不要只写"学习Vue3"，而是写"学习Vue3的Composition API，重点掌握ref和reactive的使用场景，完成3个练习案例"
 
 请以 JSON 格式返回，结构如下：
 {
@@ -536,6 +536,141 @@ function generateMockSuggestions(
     },
     reasoning: `基于计划时长（${durationDays}天）和标题内容，生成了针对性的建议和任务拆解。建议根据实际情况调整任务列表。`,
   };
+}
+
+/**
+ * 流式 AI 优化计划建议
+ * 支持 SSE (Server-Sent Events) 流式响应
+ */
+export async function* optimizePlanWithAIStream(
+  request: AIOptimizePlanRequest,
+): AsyncGenerator<string, void, unknown> {
+  // 检查是否启用 AI 功能
+  if (!APP_CONFIG.AI_ENABLED || !APP_CONFIG.AI_API_KEY) {
+    // 返回 Mock 数据的流式版本
+    const mockData = generateMockSuggestions(request);
+    const jsonStr = JSON.stringify(mockData);
+    for (let i = 0; i < jsonStr.length; i += 5) {
+      yield jsonStr.slice(i, i + 5);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    return;
+  }
+
+  try {
+    const prompt = buildOptimizationPrompt(request);
+
+    const payload = {
+      model: APP_CONFIG.AI_MODEL,
+      messages: [
+        {
+          role: "system",
+          content: `你是一个专业的时间管理和日程规划助手。请严格按照以下JSON格式返回数据：
+
+{
+  "suggestions": [{"type": "warning|suggestion|info", "message": "建议内容", "field": "可选字段名"}],
+  "optimized_plan": {
+    "title": "优化后标题（可选）",
+    "description": "优化后描述（可选）",
+    "start_date": "YYYY-MM-DD（可选）",
+    "end_date": "YYYY-MM-DD（可选）",
+    "recommended_tasks": [
+      {
+        "title": "任务标题【必填】",
+        "task_date": "YYYY-MM-DD（可选，默认用计划开始日）",
+        "start_time": "HH:MM【必填】",
+        "end_time": "HH:MM【必填】",
+        "note": "详细的任务描述和执行要点",
+        "repeat_type": "none|daily|monthly（可选）",
+        "repeat_end_date": "YYYY-MM-DD（可选）"
+      }
+    ]
+  },
+  "reasoning": "简要说明分析思路"
+}
+
+【严格规则】：
+1. 直接输出纯JSON对象，从 { 开始到 } 结束
+2. 绝对不要使用 \`\`\`json 或 \`\`\` 包裹
+3. 不要添加任何说明文字、注释或额外内容
+4. 确保JSON格式完全正确`,
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      stream: true,
+      max_tokens: 4000,
+    };
+
+    const response = await fetch(
+      `${APP_CONFIG.AI_API_BASE_URL}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${APP_CONFIG.AI_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) {
+      console.error("AI 流式请求失败:", response.status, response.statusText);
+      throw new Error(`AI 请求失败: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error("响应体为空");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+        const data = trimmed.slice(6);
+        if (data === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            buffer += content;
+            // 逐字符输出，模拟打字效果
+            for (const char of content) {
+              yield char;
+              await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+          }
+        } catch (e) {
+          // 忽略解析错误，继续处理
+          console.warn("解析流数据失败:", e);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("AI 流式优化失败:", error);
+    // 降级到 Mock 数据
+    const mockData = generateMockSuggestions(request);
+    const jsonStr = JSON.stringify(mockData);
+    for (let i = 0; i < jsonStr.length; i += 5) {
+      yield jsonStr.slice(i, i + 5);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+  }
 }
 
 /**
