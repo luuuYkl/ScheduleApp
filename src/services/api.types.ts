@@ -40,12 +40,13 @@ export interface Task {
   title: string;
   start_date: string; // 任务开始日期，格式: YYYY-MM-DD
   end_date: string; // 任务结束日期，格式: YYYY-MM-DD
-  start_time?: string; // HH:MM 可选（具体时分）
-  end_time?: string; // HH:MM 可选（具体时分）
+  start_time: string | null; // HH:MM 可选（具体时分）
+  end_time: string | null; // HH:MM 可选（具体时分）
   status: TaskStatus;
-  note?: string; // 备注
+  note: string | null; // 备注
   repeat_type?: TaskRepeatType; // 重复类型，默认 'none'
-  repeat_end_date?: string; // 重复结束日期 (YYYY-MM-DD)，仅当 repeat_type 不为 'none' 时有效
+  repeat_end_date: string | null; // 重复结束日期 (YYYY-MM-DD)，仅当 repeat_type 不为 'none' 时有效
+  repeat_group_id: number | null; // 重复任务组ID，用于标识同一组重复任务
   created_at?: string;
 }
 
@@ -157,12 +158,13 @@ export interface CreateTaskPayload {
   title: string;
   start_date: string; // 任务开始日期，格式: YYYY-MM-DD
   end_date: string; // 任务结束日期，格式: YYYY-MM-DD
-  start_time?: string; // HH:MM（具体时分）
-  end_time?: string; // HH:MM（具体时分）
+  start_time?: string | null; // HH:MM（具体时分）
+  end_time?: string | null; // HH:MM（具体时分）
   status?: TaskStatus; // 默认为 pending
-  note?: string;
+  note?: string | null;
   repeat_type?: TaskRepeatType; // 重复类型
-  repeat_end_date?: string; // 重复结束日期
+  repeat_end_date?: string | null; // 重复结束日期
+  repeat_group_id?: number | null; // 重复任务组ID
 }
 
 /** 任务更新请求参数 */

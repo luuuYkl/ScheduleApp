@@ -43,7 +43,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { plan_id, title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date } = req.body;
+    const { plan_id, title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date, repeat_group_id } = req.body;
 
     if (!plan_id || !title || !start_date || !end_date) {
       res.status(400).json({ error: '计划ID、标题、开始日期和结束日期不能为空' });
@@ -78,9 +78,9 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     }
 
     const [result] = await pool.execute(
-      `INSERT INTO tasks (plan_id, user_id, title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date)
+      `INSERT INTO tasks (plan_id, user_id, title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date, repeat_group_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [plan_id, req.user.id, title, start_date, end_date, start_time || null, end_time || null, status || 'pending', note || null, repeat_type || 'none', repeat_end_date || null]
+      [plan_id, req.user.id, title, start_date, end_date, start_time || null, end_time || null, status || 'pending', note || null, repeat_type || 'none', repeat_end_date || null, repeat_group_id || null]
     );
 
     const insertResult = result as { insertId: number };

@@ -88,11 +88,19 @@
       </main>
     </div>
   </a-layout>
+
+  <!-- 全局专注模式任务选择弹窗 -->
+  <FocusTaskSelector
+    v-model:visible="focusStore.showTaskSelector"
+    :tasks="focusStore.todayTasks"
+    @select="focusStore.selectTask"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, watch, ref, nextTick } from "vue";
 import { useUserStore } from "@/store/user";
+import { useFocusStore } from "@/store/focus";
 import { APP_CONFIG } from "@/config";
 import { useRoute, useRouter } from "vue-router";
 // Arco Design 图标
@@ -100,6 +108,9 @@ import {
   IconUser,
   IconExport,
 } from "@arco-design/web-vue/es/icon";
+
+// 专注模式组件
+import FocusTaskSelector from "@/components/focus/FocusTaskSelector.vue";
 
 // 路由
 const route = useRoute();
@@ -112,6 +123,7 @@ const showNavigation = computed(() => !route.meta.hideNav);
 const mainContent = ref<HTMLElement | null>(null);
 
 const userStore = useUserStore();
+const focusStore = useFocusStore();
 const user = computed(() => userStore.user);
 const avatarUrl = computed(() =>
   user.value?.username

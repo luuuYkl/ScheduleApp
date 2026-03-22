@@ -48,17 +48,68 @@
             </div>
             
             <div class="preview-content">
-              <div class="preview-hint">
-                <p>💡 填写表单后，任务将显示在今日任务列表中</p>
+              <!-- 实时预览内容 -->
+              <div v-if="taskFormRef" class="preview-task">
+                <!-- 优先级和标签 -->
+                <div class="preview-meta">
+                  <div 
+                    class="preview-priority"
+                    :style="{ '--priority-color': taskFormRef?.previewData?.priorityColor }"
+                  >
+                    {{ taskFormRef?.previewData?.priorityLabel }}优先级
+                  </div>
+                  <div v-if="taskFormRef?.previewData?.tags?.length" class="preview-tags">
+                    <span 
+                      v-for="tag in taskFormRef.previewData.tags"
+                      :key="tag"
+                      class="preview-tag"
+                    >
+                      {{ tag }}
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- 任务标题 -->
+                <div class="preview-title">
+                  {{ taskFormRef?.previewData?.title }}
+                </div>
+                
+                <!-- 日期和时间 -->
+                <div class="preview-datetime">
+                  <div class="preview-date">
+                    📅 {{ formatDate(taskFormRef?.previewData?.startDate || '') }}
+                    <span v-if="taskFormRef?.previewData?.startDate !== taskFormRef?.previewData?.endDate">
+                      ~ {{ formatDate(taskFormRef?.previewData?.endDate || '') }}
+                    </span>
+                  </div>
+                  <div v-if="taskFormRef?.previewData?.startTime" class="preview-time">
+                    ⏰ {{ taskFormRef?.previewData?.startTime }} - {{ taskFormRef?.previewData?.endTime }}
+                  </div>
+                </div>
+                
+                <!-- 关联计划 -->
+                <div v-if="taskFormRef?.previewData?.plan" class="preview-plan">
+                  📋 计划：{{ taskFormRef?.previewData?.plan?.title }}
+                </div>
+                
+                <!-- 备注 -->
+                <div v-if="taskFormRef?.previewData?.note" class="preview-note">
+                  <div class="preview-note-label">📝 备注</div>
+                  <div class="preview-note-content">{{ taskFormRef?.previewData?.note }}</div>
+                </div>
+                
+                <!-- 重复信息 -->
+                <div class="preview-repeat">
+                  <div class="preview-repeat-label">🔄 重复</div>
+                  <div class="preview-repeat-value">
+                    {{ getRepeatLabel(taskFormRef?.previewData?.repeatType) }}
+                  </div>
+                </div>
               </div>
               
-              <div class="preview-tips">
-                <h4>快捷提示</h4>
-                <ul>
-                  <li>设置重复规则可自动创建周期性任务</li>
-                  <li>关联计划可以帮助追踪整体进度</li>
-                  <li>添加时间有助于合理安排日程</li>
-                </ul>
+              <!-- 空状态 -->
+              <div v-else class="preview-empty">
+                <p>💡 填写表单，实时预览任务信息</p>
               </div>
             </div>
           </Card>
@@ -103,6 +154,17 @@ function formatDate(dateString: string): string {
     month: 'short',
     day: 'numeric'
   });
+}
+
+// 获取重复标签
+function getRepeatLabel(repeatType?: string): string {
+  const labels: Record<string, string> = {
+    'none': '不重复',
+    'daily': '每天',
+    'weekly': '每周',
+    'monthly': '每月',
+  };
+  return labels[repeatType || 'none'] || '不重复';
 }
 
 // 操作函数
@@ -290,6 +352,133 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.8;
+}
+
+/* 实时预览任务样式 */
+.preview-task {
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.preview-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.preview-priority {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  background: var(--priority-color);
+}
+
+.preview-tags {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.preview-tag {
+  padding: var(--space-0.5) var(--space-2);
+  background: var(--ai-bg);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  color: var(--ai-main);
+  font-weight: 500;
+}
+
+.preview-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: var(--space-3);
+  line-height: 1.4;
+}
+
+.preview-datetime {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.preview-date,
+.preview-time {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.preview-date span,
+.preview-time span {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.preview-plan {
+  padding: var(--space-2);
+  background: var(--ai-bg);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--ai-main);
+  font-size: 13px;
+  color: var(--text-main);
+  margin-bottom: var(--space-3);
+}
+
+.preview-note {
+  margin-bottom: var(--space-3);
+}
+
+.preview-note-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.preview-note-content {
+  padding: var(--space-2);
+  background: var(--bg-main);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.preview-repeat {
+  padding: var(--space-3);
+  background: var(--bg-main);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border-subtle);
+}
+
+.preview-repeat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.preview-repeat-value {
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.preview-empty {
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.preview-empty p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
 /* 响应式设计 */

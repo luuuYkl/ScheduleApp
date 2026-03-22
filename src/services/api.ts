@@ -224,12 +224,13 @@ const mockAPI: APIInterface = {
       title: payload.title,
       start_date: payload.start_date,
       end_date: payload.end_date,
-      start_time: payload.start_time,
-      end_time: payload.end_time,
+      start_time: payload.start_time ?? null,
+      end_time: payload.end_time ?? null,
       status: payload.status ?? "pending",
-      note: payload.note,
+      note: payload.note ?? null,
       repeat_type: payload.repeat_type ?? "none",
-      repeat_end_date: payload.repeat_end_date,
+      repeat_end_date: payload.repeat_end_date ?? null,
+      repeat_group_id: payload.repeat_group_id ?? null,
       created_at: new Date().toISOString(),
     };
     mockTasks.value.push(task);

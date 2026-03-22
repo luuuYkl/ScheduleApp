@@ -97,8 +97,19 @@
         <select v-model="quickForm.repeat_type" class="quick-select">
           <option value="none">不重复</option>
           <option value="daily">每日</option>
+          <option value="weekly">每周</option>
           <option value="monthly">每月</option>
         </select>
+        
+        <button 
+          class="advanced-toggle-btn" 
+          @click="showAdvanced = !showAdvanced"
+          :class="{ active: showAdvanced }"
+        >
+          {{ showAdvanced ? '收起' : '高级选项' }}
+          <span class="toggle-icon">{{ showAdvanced ? '▲' : '▼' }}</span>
+        </button>
+        
         <button 
           class="quick-add-btn" 
           @click="quickAddTask"
@@ -107,6 +118,67 @@
           {{ submitting ? '...' : '添加' }}
         </button>
       </div>
+
+      <!-- 高级选项（展开后显示） -->
+      <transition name="slide-fade">
+        <div v-if="showAdvanced" class="advanced-options">
+          <div class="advanced-row">
+            <label class="advanced-label">优先级：</label>
+            <div class="priority-chips">
+              <button
+                v-for="p in priorityOptions"
+                :key="p.value"
+                :class="['priority-chip', { active: quickForm.priority === p.value }]"
+                :style="{ '--priority-color': p.color }"
+                @click="quickForm.priority = p.value"
+              >
+                {{ p.label }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="advanced-row">
+            <label class="advanced-label">时间：</label>
+            <input 
+              v-model="quickForm.start_time" 
+              type="time" 
+              class="advanced-time"
+              placeholder="开始时间"
+            />
+            <span class="time-separator">-</span>
+            <input 
+              v-model="quickForm.end_time" 
+              type="time" 
+              class="advanced-time"
+              placeholder="结束时间"
+            />
+          </div>
+          
+          <div class="advanced-row">
+            <label class="advanced-label">标签：</label>
+            <div class="tag-chips">
+              <button
+                v-for="tag in tagPresets"
+                :key="tag"
+                :class="['tag-chip', { active: quickForm.tags.includes(tag) }]"
+                @click="toggleTag(tag)"
+              >
+                {{ tag }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="advanced-row">
+            <label class="advanced-label">备注：</label>
+            <textarea 
+              v-model="quickForm.note" 
+              class="advanced-textarea" 
+              placeholder="添加备注..."
+              rows="2"
+            ></textarea>
+          </div>
+        </div>
+      </transition>
 
       <!-- 任务列表区 -->
       <div class="task-list-section">
@@ -311,6 +383,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useTaskStore } from "@/store/tasks";
 import { usePlanStore } from "@/store/plans";
 import { useUserStore } from "@/store/user";
+import { generateRepeatTaskPayloads } from "@/services/repeat-task";
 
 const route = useRoute();
 const router = useRouter();
@@ -325,6 +398,7 @@ const viewMode = ref<'grouped' | 'flat' | 'month'>('grouped');
 const activeFilter = ref<string>('all');
 const submitting = ref(false);
 const editingId = ref<number | null>(null);
+const showAdvanced = ref(false); // 高级选项展开状态
 
 // 月视图状态
 const currentDate = ref(new Date());
@@ -336,7 +410,12 @@ const quickForm = reactive({
   title: "",
   start_date: new Date().toISOString().slice(0, 10),
   end_date: new Date().toISOString().slice(0, 10),
-  repeat_type: "none" as "none" | "daily" | "monthly",
+  start_time: "",
+  end_time: "",
+  repeat_type: "none" as "none" | "daily" | "weekly" | "monthly",
+  priority: "medium" as "high" | "medium" | "low",
+  tags: [] as string[],
+  note: "",
 });
 
 // 编辑表单
@@ -450,9 +529,9 @@ const filteredGroups = computed(() => {
   
   console.log('[PlanTasksPage] 日期范围:', { today, tomorrow, weekStartStr, weekEndStr });
 
-  // 今天：任务日期范围包含今天（检查字段是否存在）
+  // 今天：精确匹配 start_date
   const todayTasks = tasks.filter(t => 
-    t.start_date && t.end_date && t.start_date <= today && t.end_date >= today
+    t.start_date === today
   );
   console.log('[PlanTasksPage] 今天任务数量:', todayTasks.length);
   console.log('[PlanTasksPage] 今天任务:', JSON.stringify(todayTasks));
@@ -460,28 +539,27 @@ const filteredGroups = computed(() => {
     groups.push({ key: 'today', type: 'today', icon: '📌', title: '今天', tasks: todayTasks });
   }
 
-  // 明天：任务日期范围包含明天
+  // 明天：精确匹配 start_date
   const tomorrowTasks = tasks.filter(t => 
-    t.start_date <= tomorrow && t.end_date >= tomorrow
+    t.start_date === tomorrow
   );
   if (tomorrowTasks.length > 0) {
     groups.push({ key: 'tomorrow', type: 'future', icon: '📅', title: '明天', tasks: tomorrowTasks });
   }
 
-  // 本周：任务日期范围与本周有交集
+  // 本周：start_date 在本周范围内（排除今天和明天）
   const weekTasks = tasks.filter(t => {
     const taskStart = new Date(t.start_date);
-    const taskEnd = new Date(t.end_date);
     const weekStart = new Date(weekStartStr);
     const weekEnd = new Date(weekEndStr);
     
-    // 排除已经归类到今天和明天的任务
-    const isToday = t.start_date <= today && t.end_date >= today;
-    const isTomorrow = t.start_date <= tomorrow && t.end_date >= tomorrow;
+    // 排除今天和明天
+    const isToday = t.start_date === today;
+    const isTomorrow = t.start_date === tomorrow;
     
     return !isToday && !isTomorrow &&
-           taskStart <= weekEnd &&
-           taskEnd >= weekStart;
+           taskStart >= weekStart &&
+           taskStart <= weekEnd;
   });
   if (weekTasks.length > 0) {
     groups.push({
@@ -537,11 +615,10 @@ const calendarDays = computed(() => {
   
   for (let day = 1; day <= lastDay; day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    // 查找日期范围包含当前日期的任务
+    // 精确匹配：只查找当天开始的任务
     const tasks = taskStore.tasks.filter(t => 
       t.plan_id === planId && 
-      t.start_date <= dateStr && 
-      t.end_date >= dateStr
+      t.start_date === dateStr
     );
     const allDone = tasks.length > 0 && tasks.every(t => t.status === 'done');
     
@@ -565,6 +642,28 @@ const leadingBlanks = computed(() => {
 const monthLabel = computed(() => {
   return `${currentDate.value.getFullYear()}年${currentDate.value.getMonth() + 1}月`;
 });
+
+// ========== 辅助数据和函数 ==========
+
+// 优先级选项
+const priorityOptions = [
+  { value: 'high' as const, label: '高', color: '#ef4444' },
+  { value: 'medium' as const, label: '中', color: '#f59e0b' },
+  { value: 'low' as const, label: '低', color: '#6b7280' },
+];
+
+// 标签预设
+const tagPresets = ['工作', '学习', '运动', '生活', '其他'];
+
+// 切换标签
+function toggleTag(tag: string) {
+  const index = quickForm.tags.indexOf(tag);
+  if (index > -1) {
+    quickForm.tags.splice(index, 1);
+  } else {
+    quickForm.tags.push(tag);
+  }
+}
 
 // ========== 方法 ==========
 
@@ -642,22 +741,42 @@ async function quickAddTask() {
 
   submitting.value = true;
   try {
-    await taskStore.createTask({
+    // 构建基础payload
+    const basePayload = {
       plan_id: planId,
       user_id: userId,
       title: quickForm.title,
       start_date: quickForm.start_date,
       end_date: quickForm.end_date,
+      start_time: null,
+      end_time: null,
+      status: 'pending' as const,
+      note: null,
       repeat_type: quickForm.repeat_type,
-    });
-
+      repeat_end_date: quickForm.end_date, // 使用结束日期作为重复结束日期
+    };
+    
+    // 如果是重复任务，生成多个任务
+    if (quickForm.repeat_type !== 'none') {
+      const payloads = generateRepeatTaskPayloads(basePayload);
+      
+      // 批量创建所有任务
+      for (const payload of payloads) {
+        await taskStore.createTask(payload);
+      }
+    } else {
+      // 非重复任务，创建单个任务
+      await taskStore.createTask(basePayload);
+    }
+    
     // 重置
     quickForm.title = "";
     quickForm.start_date = new Date().toISOString().slice(0, 10);
     quickForm.end_date = new Date().toISOString().slice(0, 10);
     quickForm.repeat_type = "none";
     
-    // createTask 已经更新了本地状态，不需要重新加载
+    // 重新加载任务列表
+    await taskStore.loadTasks(planId);
   } catch (e: any) {
     alert(e?.message || "添加失败");
   } finally {
@@ -1039,6 +1158,173 @@ onMounted(async () => {
 .quick-add-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 高级选项切换按钮 */
+.advanced-toggle-btn {
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-main);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.advanced-toggle-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--ai-main);
+}
+
+.advanced-toggle-btn.active {
+  background: var(--ai-bg);
+  border-color: var(--ai-main);
+  color: var(--ai-main);
+}
+
+.toggle-icon {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+/* 高级选项面板 */
+.advanced-options {
+  padding: var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-2);
+}
+
+.advanced-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.advanced-row:last-child {
+  margin-bottom: 0;
+}
+
+.advanced-label {
+  min-width: 70px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* 优先级芯片 */
+.priority-chips {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.priority-chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-main);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.priority-chip:hover {
+  border-color: var(--border-main);
+  background: var(--bg-card-hover);
+}
+
+.priority-chip.active {
+  border-color: var(--priority-color);
+  background: var(--priority-color);
+  color: white;
+}
+
+/* 时间输入 */
+.advanced-time {
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--bg-main);
+  color: var(--text-main);
+  width: 120px;
+}
+
+.time-separator {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* 标签芯片 */
+.tag-chips {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.tag-chip {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-main);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tag-chip:hover {
+  border-color: var(--ai-main);
+  color: var(--text-main);
+}
+
+.tag-chip.active {
+  background: var(--ai-main);
+  border-color: var(--ai-main);
+  color: white;
+}
+
+/* 备注输入 */
+.advanced-textarea {
+  flex: 1;
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--bg-main);
+  color: var(--text-main);
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.advanced-textarea:focus {
+  outline: none;
+  border-color: var(--ai-main);
+}
+
+/* 展开动画 */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 /* ========== 任务列表区 ========== */

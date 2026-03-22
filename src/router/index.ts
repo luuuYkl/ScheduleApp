@@ -12,11 +12,13 @@ import LoginPage from "@/pages/Auth/LoginPage.vue";
 import RegisterPage from "@/pages/Auth/RegisterPage.vue";
 import SchedulePage from "@/pages/Schedule/SchedulePage.vue";
 import ProfilePage from "@/pages/User/ProfilePage.vue";
+import FocusPage from "@/pages/Focus/FocusPage.vue";
 import { useUserStore } from "@/store/user";
 
 const routes = [
   { path: "/", redirect: "/home" },
   { path: "/home", component: HomePage, meta: { requiresAuth: true } },
+  { path: "/focus", component: FocusPage, meta: { requiresAuth: true, hideNav: true } },
   { path: "/plan", component: PlanOverviewPage, meta: { requiresAuth: true } },
   {
     path: "/plan/create",

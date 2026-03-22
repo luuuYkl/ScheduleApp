@@ -96,18 +96,21 @@ function formatDate(date: Date): string {
 export function generateRepeatTaskPayloads(
   basePayload: CreateTaskPayload,
 ): CreateTaskPayload[] {
-  const { repeat_type, repeat_end_date, task_date } = basePayload;
+  const { repeat_type, repeat_end_date, start_date } = basePayload;
 
   // 如果没有重复或缺少结束日期，返回单个任务
   if (!repeat_type || repeat_type === "none" || !repeat_end_date) {
     return [basePayload];
   }
 
-  const dates = generateRepeatDates(task_date, repeat_end_date, repeat_type);
+  const dates = generateRepeatDates(start_date, repeat_end_date, repeat_type);
+  const groupId = Date.now(); // 生成组ID，所有重复任务共享
 
   // 为每个日期创建一个任务 payload
   return dates.map((date) => ({
     ...basePayload,
-    task_date: date,
+    start_date: date,
+    end_date: date,
+    repeat_group_id: groupId,
   }));
 }

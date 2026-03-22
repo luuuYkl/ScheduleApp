@@ -38,6 +38,15 @@
     <template #actions>
       <div class="desktop-cta priority-essential">
         <Button 
+          variant="secondary" 
+          size="small" 
+          @click="goToFocusMode"
+          class="focus-btn"
+        >
+          <span class="focus-icon">🎯</span>
+          <span class="focus-text">专注模式</span>
+        </Button>
+        <Button 
           variant="primary" 
           size="small" 
           @click="goToCreateTask"
@@ -100,6 +109,10 @@ function goToCreatePlan() {
 
 function goToCreateTask() {
   router.push('/task/create');  // 跳转至任务创建页
+}
+
+function goToFocusMode() {
+  router.push('/focus');  // 跳转至专注模式页
 }
 
 function goToCreateSchedule() {
@@ -176,6 +189,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.focus-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.focus-icon {
+  font-size: 16px;
+}
+
+.focus-text {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .cta-main {
