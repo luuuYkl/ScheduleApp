@@ -7,6 +7,7 @@ import PlanTasksPage from "@/pages/Plan/PlanTasksPage.vue";
 import PlanCalendarPage from "@/pages/Plan/PlanCalendarPage.vue";
 import LogPage from "@/pages/Log/LogPage.vue";
 import TaskDetailPage from "@/pages/Task/TaskDetailPage.vue";
+import TaskEditPage from "@/pages/Task/TaskEditPage.vue";
 import TaskCreatePage from "@/pages/Task/TaskCreatePage.vue";
 import LoginPage from "@/pages/Auth/LoginPage.vue";
 import RegisterPage from "@/pages/Auth/RegisterPage.vue";
@@ -51,6 +52,12 @@ const routes = [
   {
     path: "/task/:id",
     component: TaskDetailPage,
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/task/:id/edit",
+    component: TaskEditPage,
     props: true,
     meta: { requiresAuth: true },
   },

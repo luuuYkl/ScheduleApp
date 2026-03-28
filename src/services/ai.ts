@@ -2,6 +2,7 @@
 // AI 服务模块 - 提供计划优化建议功能
 
 import { APP_CONFIG } from "@/config";
+import { isAIFeatureEnabledSync } from "@/composables/useUserSettings";
 import type {
   AIOptimizePlanRequest,
   AIOptimizePlanResponse,
@@ -69,8 +70,13 @@ async function sendAIRequest(
 export async function optimizePlanWithAI(
   request: AIOptimizePlanRequest,
 ): Promise<AIOptimizePlanResponse> {
-  // 检查是否启用 AI 功能
+  // 检查是否启用 AI 功能（全局配置）
   if (!APP_CONFIG.AI_ENABLED) {
+    return generateMockSuggestions(request);
+  }
+
+  // 检查用户是否启用 AI 建议功能
+  if (!isAIFeatureEnabledSync('suggest')) {
     return generateMockSuggestions(request);
   }
 

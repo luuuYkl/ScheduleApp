@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "session_id": "0c57c-1774607269089-cd10fz5x",
+  "source": "cli",
+  "pid": 29780,
+  "started_at": "2026-03-27T10:27:49.090Z",
+  "ended_at": "2026-03-28T07:50:36.172Z",
+  "exit_code": 0,
+  "status": "cancelled",
+  "interactive": true,
+  "provider": "zai",
+  "model": "glm-5-turbo",
+  "cwd": "C:\\Users\\ASUS\\.cline\\worktrees\\0c57c\\ScheduleApp",
+  "workspace_root": "C:\\Users\\ASUS\\.cline\\worktrees\\0c57c\\ScheduleApp",
+  "enable_tools": true,
+  "enable_spawn": false,
+  "enable_teams": false,
+  "prompt": "优化个人界面。工作时不使用命令测试项目",
+  "metadata": {
+    "title": "优化个人界面。工作时不使用命令测试项目"
+  },
+  "messages_path": "~\\.cline\\data\\sessions\\0c57c-1774607269089-cd10fz5x\\0c57c-1774607269089-cd10fz5x.messages.json"
+}

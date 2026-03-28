@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "session_id": "734af-1774608044741-fbh41xp1",
+  "source": "cli",
+  "pid": 29780,
+  "started_at": "2026-03-27T10:40:44.742Z",
+  "ended_at": "2026-03-28T07:50:36.173Z",
+  "exit_code": 0,
+  "status": "cancelled",
+  "interactive": true,
+  "provider": "zai",
+  "model": "glm-5-turbo",
+  "cwd": "C:\\Users\\ASUS\\.cline\\worktrees\\734af\\ScheduleApp",
+  "workspace_root": "C:\\Users\\ASUS\\.cline\\worktrees\\734af\\ScheduleApp",
+  "enable_tools": true,
+  "enable_spawn": false,
+  "enable_teams": false,
+  "prompt": "优化全局，去掉移动端相关的代码",
+  "metadata": {
+    "title": "优化全局，去掉移动端相关的代码"
+  },
+  "messages_path": "~\\.cline\\data\\sessions\\734af-1774608044741-fbh41xp1\\734af-1774608044741-fbh41xp1.messages.json"
+}

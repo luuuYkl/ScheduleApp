@@ -6,6 +6,7 @@ import {
   NotificationOptions,
   ReminderConfig,
 } from "./notification";
+import { getUserSettingsSnapshot } from "@/composables/useUserSettings";
 import type { Task } from "./api.types";
 
 /**
@@ -62,7 +63,10 @@ export class ReminderService {
     planProgress: 80,
   };
 
-  private constructor() {}
+  private constructor() {
+    // 初始化时同步用户设置
+    this.syncWithUserSettings();
+  }
 
   /**
    * 获取单例实例
@@ -73,6 +77,37 @@ export class ReminderService {
     }
     return ReminderService.instance;
   }
+
+  /**
+   * 从 useUserSettings 同步提醒配置
+   * 应在设置变更后调用，以保持提醒行为与用户偏好一致
+   */
+  public syncWithUserSettings(): void {
+    const settings = getUserSettingsSnapshot();
+
+    // 同步提前提醒时间（将分钟转为毫秒）
+    const advanceMs = settings.reminderAdvanceMinutes * 60 * 1000;
+    this.advanceNotice.taskDue = [advanceMs];
+
+    // 同步每日签到提醒时间
+    if (settings.dailyCheckinTime) {
+      this.advanceNotice.dailyCheckin = settings.dailyCheckinTime;
+    }
+
+    // 同步声音配置到 ReminderConfig 默认
+    this._defaultSoundEnabled = settings.reminderSoundEnabled;
+
+    // 根据开关状态决定是否启用签到/周回顾提醒
+    this._dailyCheckinEnabled = settings.dailyCheckinEnabled;
+    this._weeklyReviewEnabled = settings.weeklyReviewEnabled;
+    this._reminderGlobalEnabled = settings.reminderEnabled;
+  }
+
+  /** 用户设置缓存 */
+  private _defaultSoundEnabled = true;
+  private _dailyCheckinEnabled = true;
+  private _weeklyReviewEnabled = true;
+  private _reminderGlobalEnabled = true;
 
   /**
    * 设置用户活跃时间段
@@ -169,13 +204,10 @@ export class ReminderService {
    * 设置每日签到提醒
    */
   public scheduleDailyCheckinReminder(
-    config: ReminderConfig = {
-      enabled: true,
-      soundEnabled: true,
-      vibrationEnabled: true,
-    },
+    config?: ReminderConfig,
   ): void {
-    if (!config.enabled) {
+    const mergedConfig = this.mergeConfig(config);
+    if (!mergedConfig.enabled || !this._dailyCheckinEnabled) {
       return;
     }
 
@@ -208,13 +240,10 @@ export class ReminderService {
    * 设置每周回顾提醒
    */
   public scheduleWeeklyReviewReminder(
-    config: ReminderConfig = {
-      enabled: true,
-      soundEnabled: true,
-      vibrationEnabled: true,
-    },
+    config?: ReminderConfig,
   ): void {
-    if (!config.enabled) {
+    const mergedConfig = this.mergeConfig(config);
+    if (!mergedConfig.enabled || !this._weeklyReviewEnabled) {
       return;
     }
 
@@ -390,6 +419,17 @@ export class ReminderService {
     targetDate.setHours(hour, minute, 0, 0);
 
     return targetDate;
+  }
+
+  /**
+   * 合并用户设置到 ReminderConfig
+   */
+  private mergeConfig(config?: Partial<ReminderConfig>): ReminderConfig {
+    return {
+      enabled: this._reminderGlobalEnabled && (config?.enabled ?? true),
+      soundEnabled: this._defaultSoundEnabled && (config?.soundEnabled ?? true),
+      vibrationEnabled: config?.vibrationEnabled ?? true,
+    };
   }
 
   /**

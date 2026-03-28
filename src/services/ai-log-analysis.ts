@@ -140,67 +140,145 @@ ${recentLogs.map(log => `
 6. 个性化建议：针对发现的问题提供具体可执行的建议
 `;
 
-  const response = await fetch(`${APP_CONFIG.AI_API_BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${APP_CONFIG.AI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: APP_CONFIG.AI_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: '你是一个专业的时间管理和行为分析助手。请严格按照JSON格式返回分析结果，不要添加任何额外的文字说明。'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 3000
-    })
-  });
+  const url = `${APP_CONFIG.AI_API_BASE_URL}/chat/completions`;
+  
+  // 添加详细的调试日志
+  console.log('[AI Log Analysis] =======================');
+  console.log('[AI Log Analysis] 请求 URL:', url);
+  console.log('[AI Log Analysis] API Key 存在:', !!APP_CONFIG.AI_API_KEY);
+  console.log('[AI Log Analysis] API Key 长度:', APP_CONFIG.AI_API_KEY?.length || 0);
+  console.log('[AI Log Analysis] Model:', APP_CONFIG.AI_MODEL);
+  console.log('[AI Log Analysis] 日志数量:', recentLogs.length);
+  console.log('[AI Log Analysis] Prompt 长度:', prompt.length, '字符');
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${APP_CONFIG.AI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: APP_CONFIG.AI_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的时间管理和行为分析助手。请严格按照JSON格式返回分析结果，不要添加任何额外的文字说明。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 3000
+      })
+    });
 
-  if (!response.ok) {
-    throw new Error(`AI请求失败: ${response.status}`);
+    console.log('[AI Log Analysis] 响应状态:', response.status, response.statusText);
+    // 响应头日志（兼容性处理）
+    try {
+      const headersObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      console.log('[AI Log Analysis] 响应头:', headersObj);
+    } catch (e) {
+      console.log('[AI Log Analysis] 无法读取响应头');
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[AI Log Analysis] 错误响应内容:', errorText);
+      throw new Error(`AI请求失败: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      console.error('[AI Log Analysis] AI响应内容为空');
+      throw new Error('AI响应内容为空');
+    }
+
+    console.log('[AI Log Analysis] 响应内容长度:', content.length, '字符');
+    console.log('[AI Log Analysis] 响应内容（前200字符）:', content.substring(0, 200));
+    console.log('[AI Log Analysis] 响应内容（完整）:', content);
+    
+    // 解析AI返回的JSON
+    const parsed = parseAIResponse(content);
+    if (parsed) {
+      console.log('[AI Log Analysis] ✅ 解析成功');
+      return parsed;
+    }
+
+    console.error('[AI Log Analysis] ❌ 解析失败，使用本地分析');
+    // 解析失败，使用本地分析
+    return generateLocalAnalysis(logs);
+  } catch (error) {
+    console.error('[AI Log Analysis] ❌ 请求异常:', error);
+    
+    // 特定错误处理
+    if (error instanceof TypeError) {
+      if (error.message.includes('Failed to fetch')) {
+        console.error('[AI Log Analysis] 网络请求失败，可能原因：');
+        console.error('  1. API 服务不可用或网络连接问题');
+        console.error('  2. API Key 配置错误');
+        console.error('  3. 请求被浏览器阻止（CORS）');
+        console.error('  4. 网络配置变化（VPN/代理）');
+        console.error('  5. DNS 解析失败');
+      }
+    }
+    
+    throw error;
   }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new Error('AI响应内容为空');
-  }
-
-  // 解析AI返回的JSON
-  const parsed = parseAIResponse(content);
-  if (parsed) {
-    return parsed;
-  }
-
-  // 解析失败，使用本地分析
-  return generateLocalAnalysis(logs);
 }
 
 /**
  * 解析AI响应
  */
 function parseAIResponse(content: string): AILogAnalysis | null {
+  console.log('[AI Log Analysis] 开始解析响应...');
+  
   try {
+    // 清理内容
+    let cleaned = content.trim();
+    
+    // 移除 markdown 代码块标记（兼容多种格式）
+    cleaned = cleaned.replace(/^```(?:json|JSON)?\s*\n?/i, '');
+    cleaned = cleaned.replace(/\n?```\s*$/i, '');
+    cleaned = cleaned.trim();
+    
+    console.log('[AI Log Analysis] 清理后的内容（前100字符）:', cleaned.substring(0, 100));
+    
     // 尝试直接解析
-    return JSON.parse(content);
-  } catch {
-    // 尝试提取JSON部分
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    try {
+      const parsed = JSON.parse(cleaned);
+      console.log('[AI Log Analysis] 直接解析成功');
+      return parsed;
+    } catch (directError: any) {
+      console.error('[AI Log Analysis] 直接解析失败:', directError?.message || directError);
+    }
+    
+    // 如果直接解析失败，尝试提取 JSON 对象
+    console.log('[AI Log Analysis] 尝试提取 JSON 对象...');
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
-        return JSON.parse(jsonMatch[0]);
-      } catch {
-        return null;
+        const extracted = jsonMatch[0];
+        console.log('[AI Log Analysis] 提取的 JSON（前100字符）:', extracted.substring(0, 100));
+        const parsed = JSON.parse(extracted);
+        console.log('[AI Log Analysis] 提取解析成功');
+        return parsed;
+      } catch (extractError: any) {
+        console.error('[AI Log Analysis] 提取解析失败:', extractError?.message || extractError);
       }
     }
+    
+    console.error('[AI Log Analysis] 所有解析方法均失败');
+    return null;
+  } catch (error) {
+    console.error('[AI Log Analysis] 解析过程发生异常:', error);
     return null;
   }
 }

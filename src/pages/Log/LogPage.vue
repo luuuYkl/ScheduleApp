@@ -69,7 +69,7 @@
           </div>
         </section>
 
-        <!-- 第二部分：日志记录区域 -->
+        <!-- 第二部分：日志记录区域（分组+虚拟滚动） -->
         <section class="log-records-section">
           <div class="section-header">
             <h3 class="section-title">
@@ -77,7 +77,23 @@
               日志记录
             </h3>
             <div class="section-actions">
+              <div class="group-indicator" v-if="logGroups.length > 1">
+                <span class="group-badge" v-for="group in logGroups.slice(0, 3)" :key="group.period">
+                  {{ group.title }}
+                </span>
+                <span class="group-more" v-if="logGroups.length > 3">
+                  +{{ logGroups.length - 3 }}
+                </span>
+              </div>
               <span class="record-count">{{ filteredLogs.length }} 条记录</span>
+              <a-button 
+                v-if="filteredLogs.length > 0"
+                type="text" 
+                size="small"
+                @click="toggleExpandAllGroups"
+              >
+                {{ allGroupsExpanded ? '收起全部' : '展开全部' }}
+              </a-button>
             </div>
           </div>
           
@@ -93,59 +109,53 @@
               <p>加载中...</p>
             </div>
             
-            <!-- 日志列表 -->
-            <div v-else-if="filteredLogs.length > 0" class="log-list">
+            <!-- 虚拟滚动日志列表 -->
+            <div v-else-if="filteredLogs.length > 0" class="virtual-scroll-container">
               <div 
-                v-for="(log, index) in recentLogs" 
-                :key="log.id"
-                class="log-card"
-                :style="{ animationDelay: `${index * 0.05}s` }"
+                ref="virtualContainerRef"
+                class="virtual-scroll-wrapper"
               >
-                <div class="log-card-header">
-                  <div class="log-date">
-                    <span class="date-text">{{ formatDate(log.date) }}</span>
-                    <span class="date-weekday">{{ formatWeekday(log.date) }}</span>
-                  </div>
-                  <div class="log-completion" :class="getCompletionClass(log)">
-                    <div class="completion-bar">
-                      <div class="completion-fill" :style="{ width: `${log.tasks_total > 0 ? (log.tasks_done / log.tasks_total) * 100 : 0}%` }"></div>
-                    </div>
-                    <span class="completion-text">{{ log.tasks_done }}/{{ log.tasks_total }}</span>
+                <div 
+                  class="virtual-scroll-content"
+                  :style="{ height: `${virtualTotalHeight}px` }"
+                >
+                  <div 
+                    v-for="item in virtualVisibleItems"
+                    :key="item.id"
+                    class="virtual-item"
+                    :style="{ 
+                      transform: `translateY(${getVirtualItemOffset(item)}px)` 
+                    }"
+                  >
+                    <!-- 分组标题 -->
+                    <LogGroupSection
+                      v-if="item.type === 'group'"
+                      :group="{ ...(item.data as any), expanded: groupExpandedStates[(item.data as any).period] ?? false }"
+                      @toggle-group="toggleGroup((item.data as any).period)"
+                      @toggle-log="toggleLogInGroup($event, item.data)"
+                      @height-change="handleHeightChange"
+                    >
+                      <!-- 该分组下的日志卡片 -->
+                      <LogCard
+                        v-for="logItem in (item.data as any).logs"
+                        :key="logItem.log.id"
+                        :log="logItem.log"
+                        :expanded="logExpandedStates[logItem.log.id] ?? false"
+                        :efficiency-rating="logItem.efficiencyRating"
+                        :summary="logItem.summary"
+                        :tasks="getTasksForDate(logItem.log.date)"
+                        @toggle="toggleLog(logItem)"
+                        @height-change="handleHeightChange"
+                      />
+                    </LogGroupSection>
                   </div>
                 </div>
-                <div class="log-card-body">
-                  <p class="log-content">{{ truncateContent(log.content, 100) }}</p>
-                  <div class="log-tags" v-if="getLogDeviationTypes(log).length > 0">
-                    <span v-for="tag in getLogDeviationTypes(log)" :key="tag.key" class="log-tag" :class="tag.key">
-                      {{ tag.label }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 查看更多 -->
-              <div v-if="filteredLogs.length > 5" class="view-more">
-                <a-button type="text" @click="showAllLogs = !showAllLogs">
-                  {{ showAllLogs ? '收起' : `查看全部 ${filteredLogs.length} 条记录` }}
-                </a-button>
               </div>
             </div>
             
-            <!-- 空状态 -->
-            <div v-else class="empty-state">
-              <div class="empty-icon">📝</div>
-              <h4>暂无日志记录</h4>
-              <p>开始记录您的日常任务完成情况</p>
-              <div class="empty-actions">
-                <a-button type="primary" @click="goToHome">
-                  <template #icon>📅</template>
-                  查看今日计划
-                </a-button>
-                <a-button type="outline" @click="goToCreateTask">
-                  <template #icon>+</template>
-                  创建任务
-                </a-button>
-              </div>
+            <!-- 无日志：紧凑提示 -->
+            <div v-else class="empty-hint">
+              <span class="hint-text">暂无日志记录，完成任务后将自动生成 📝</span>
             </div>
           </div>
         </section>
@@ -226,7 +236,7 @@
               :key="suggestion.id"
               class="suggestion-item"
             >
-              <div class="suggestion-header" @click="suggestion.expanded = !suggestion.expanded">
+              <div class="suggestion-header" @click="toggleSuggestion(suggestion.id)">
                 <div class="suggestion-main">
                   <span class="suggestion-icon">{{ suggestion.icon }}</span>
                   <span class="suggestion-title">{{ suggestion.title }}</span>
@@ -235,14 +245,16 @@
                   <a-button 
                     type="primary" 
                     size="mini"
+                    :loading="optimizing && optimizingSuggestionId === suggestion.id"
+                    :disabled="optimizing"
                     @click.stop="executeAction(suggestion)"
                   >
                     {{ suggestion.actionLabel }}
                   </a-button>
-                  <span class="expand-icon" :class="{ expanded: suggestion.expanded }">▼</span>
+                  <span class="expand-icon" :class="{ expanded: suggestionExpandedStates[suggestion.id] }">▼</span>
                 </div>
               </div>
-              <div class="suggestion-detail" v-show="suggestion.expanded">
+              <div class="suggestion-detail" v-show="suggestionExpandedStates[suggestion.id]">
                 <div class="detail-problem">
                   <label>问题</label>
                   <p>{{ suggestion.problem }}</p>
@@ -257,11 +269,52 @@
         </section>
       </div>
     </PullToRefresh>
+
+    <!-- 确认对话框 -->
+    <a-modal
+      v-model:visible="showConfirmModal"
+      :title="confirmTitle"
+      :mask-closable="false"
+      :esc-to-close="true"
+      @cancel="cancelConfirm"
+      :footer="false"
+      class="confirm-modal"
+    >
+      <div class="confirm-content">
+        <p class="confirm-summary">{{ confirmSummary }}</p>
+        
+        <div class="confirm-changes" v-if="confirmChanges.length > 0">
+          <div class="changes-header">变更明细：</div>
+          <div class="changes-list">
+            <div 
+              v-for="(change, idx) in confirmChanges" 
+              :key="idx"
+              class="change-item"
+            >
+              <span class="change-name">{{ change.taskName }}</span>
+              <span class="change-type" :class="change.changeType === '推迟' ? 'postpone' : change.changeType === '移除' ? 'remove' : 'reschedule'">{{ change.changeType }}</span>
+              <span class="change-detail">{{ change.detail }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="confirm-actions">
+          <a-button @click="cancelConfirm">取消</a-button>
+          <a-button 
+            type="primary" 
+            :loading="optimizing"
+            @click="confirmExecute"
+          >
+            确认执行
+          </a-button>
+        </div>
+      </div>
+    </a-modal>
   </PageScaffold>
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, ref, reactive } from "vue";
+import { onMounted, computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useLogStore } from "@/store/log";
 import { useUserStore } from "@/store/user";
@@ -278,6 +331,13 @@ import { API } from "@/services/api";
 import PageScaffold from "@/components/common/PageScaffold.vue";
 import PullToRefresh from "@/components/common/PullToRefresh.vue";
 import { Message } from "@arco-design/web-vue";
+import LogGroupSection from "@/components/log/LogGroupSection.vue";
+import LogCard from "@/components/log/LogCard.vue";
+import { 
+  filterRecentLogs, 
+  groupLogsByPeriod 
+} from "@/utils/log-grouping";
+import { useVirtualScroll } from "@/composables/useVirtualScroll";
 
 const router = useRouter();
 const logStore = useLogStore();
@@ -291,6 +351,132 @@ const analysisExpanded = ref(false);
 const aiAnalysis = ref<AILogAnalysis | null>(null);
 const loadingAnalysis = ref(false);
 const optimizing = ref(false);
+const optimizingSuggestionId = ref<number | null>(null);
+
+// 建议展开状态（独立管理，避免 computed 每次重置）
+const suggestionExpandedStates = ref<Record<number, boolean>>({});
+
+function toggleSuggestion(id: number) {
+  suggestionExpandedStates.value[id] = !suggestionExpandedStates.value[id];
+}
+
+// 确认对话框状态
+const showConfirmModal = ref(false);
+const confirmTitle = ref('');
+const confirmSummary = ref('');
+const confirmChanges = ref<Array<{ taskName: string; changeType: string; detail: string }>>([]);
+const pendingActionFn = ref<(() => Promise<void>) | null>(null);
+
+function cancelConfirm() {
+  showConfirmModal.value = false;
+  confirmTitle.value = '';
+  confirmSummary.value = '';
+  confirmChanges.value = [];
+  pendingActionFn.value = null;
+}
+
+async function confirmExecute() {
+  if (pendingActionFn.value) {
+    showConfirmModal.value = false;
+    optimizing.value = true;
+    try {
+      await pendingActionFn.value();
+    } catch (error) {
+      console.error('执行确认操作失败:', error);
+      Message.error('操作失败，请稍后重试');
+    } finally {
+      optimizing.value = false;
+      optimizingSuggestionId.value = null;
+      pendingActionFn.value = null;
+    }
+  }
+}
+
+// 日志分组
+const logGroups = computed(() => {
+  const filtered = filterRecentLogs(logs.value);
+  return groupLogsByPeriod(filtered);
+});
+
+// 响应式展开状态管理
+const groupExpandedStates = ref<Record<string, boolean>>({});
+const logExpandedStates = ref<Record<number, boolean>>({});
+
+// 使用虚拟滚动 composable
+const {
+  containerRef: virtualContainerRef,
+  virtualList,
+  totalHeight: virtualTotalHeight,
+  visibleItems: virtualVisibleItems,
+  getItemOffset: getVirtualItemOffset,
+  updateItemHeight: updateVirtualLogHeight,
+  clearItemHeightCache
+} = useVirtualScroll(() => {
+  // 根据展开状态过滤分组
+  return logGroups.value.map(group => ({
+    ...group,
+    expanded: groupExpandedStates.value[group.period] ?? false,
+    logs: group.logs.map(logItem => ({
+      ...logItem,
+      expanded: logExpandedStates.value[logItem.log.id] ?? false
+    }))
+  }));
+});
+
+const allGroupsExpanded = computed(() => 
+  Object.values(groupExpandedStates.value).every(expanded => expanded)
+);
+
+// 初始化展开状态
+function initializeExpandedStates() {
+  const newGroupStates: Record<string, boolean> = {};
+  const newLogStates: Record<number, boolean> = {};
+  
+  for (const group of logGroups.value) {
+    newGroupStates[group.period] = group.expanded;
+    for (const logItem of group.logs) {
+      newLogStates[logItem.log.id] = logItem.expanded;
+    }
+  }
+  
+  groupExpandedStates.value = newGroupStates;
+  logExpandedStates.value = newLogStates;
+}
+
+// 分组控制方法
+function toggleGroup(period: string) {
+  groupExpandedStates.value[period] = !groupExpandedStates.value[period];
+}
+
+function toggleLogInGroup(logItem: any, group: any) {
+  const newState = !logExpandedStates.value[logItem.log.id];
+  logExpandedStates.value[logItem.log.id] = newState;
+  // 清除高度缓存，强制重新计算
+  clearItemHeightCache(logItem.log.id);
+}
+
+function toggleLog(logItem: any) {
+  const newState = !logExpandedStates.value[logItem.log.id];
+  logExpandedStates.value[logItem.log.id] = newState;
+  // 清除高度缓存，强制重新计算
+  clearItemHeightCache(logItem.log.id);
+}
+
+function handleHeightChange(data: { type: 'group' | 'log', id: string | number, height: number }) {
+  updateVirtualLogHeight(data.id, data.height);
+}
+
+function toggleExpandAllGroups() {
+  const expand = !allGroupsExpanded.value;
+  for (const group of logGroups.value) {
+    groupExpandedStates.value[group.period] = expand;
+  }
+}
+
+// 获取日期的任务列表
+function getTasksForDate(dateStr: string): any[] {
+  return taskStore.tasks.filter(task => task.start_date === dateStr);
+}
 
 // 今日统计数据
 const todayStats = computed(() => {
@@ -425,8 +611,7 @@ const aiSuggestions = computed(() => {
       problem: s.problem,
       advice: s.advice,
       actionLabel: s.actionLabel,
-      action: s.action,
-      expanded: false
+      action: s.action
     }));
   }
   
@@ -439,7 +624,6 @@ const aiSuggestions = computed(() => {
     advice: string;
     actionLabel: string;
     action: string;
-    expanded: boolean;
   }> = [];
   
   const totalTasks = filteredLogs.value.reduce((sum, log) => sum + log.tasks_total, 0);
@@ -454,8 +638,7 @@ const aiSuggestions = computed(() => {
       problem: '近期任务完成率低于70%，存在任务积压风险',
       advice: '建议明天减少2-3项非紧急任务，集中精力处理核心事项',
       actionLabel: '一键优化',
-      action: 'reduce_tasks',
-      expanded: false
+      action: 'reduce_tasks'
     });
   }
   
@@ -466,8 +649,7 @@ const aiSuggestions = computed(() => {
     problem: '检测到上午时段效率较高',
     advice: '建议将重要任务安排在上午，下午处理简单事务',
     actionLabel: '重新安排',
-    action: 'reschedule_tasks',
-    expanded: false
+    action: 'reschedule_tasks'
   });
   
   if (filteredLogs.value.length >= 3) {
@@ -478,8 +660,7 @@ const aiSuggestions = computed(() => {
       problem: '长时间连续工作可能导致效率下降',
       advice: '建议每工作2小时休息10-15分钟',
       actionLabel: '设置提醒',
-      action: 'add_reminders',
-      expanded: false
+      action: 'add_reminders'
     });
   }
   
@@ -536,74 +717,139 @@ function getLogDeviationTypes(log: LogEntry): Array<{key: string; label: string}
   return types;
 }
 
-// 执行AI建议（真实实现）
+// 执行AI建议（需要确认的操作先展示预览）
 async function executeAction(suggestion: any) {
-  try {
-    optimizing.value = true;
-    const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
-    
-    // 确保有任务数据
-    await taskStore.loadTasks();
-    
-    switch (suggestion.action) {
-      case 'reduce_tasks':
-        await optimizeTaskQuantity(userId);
-        break;
-      case 'reschedule_tasks':
-        await rescheduleTaskTime(userId);
-        break;
-      case 'add_reminders':
+  const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
+  
+  // 确保有任务数据
+  await taskStore.loadTasks();
+  
+  switch (suggestion.action) {
+    case 'reduce_tasks':
+      await previewReduceTasks(userId, suggestion);
+      break;
+    case 'reschedule_tasks':
+      await previewRescheduleTasks(userId, suggestion);
+      break;
+    case 'add_reminders':
+      optimizing.value = true;
+      optimizingSuggestionId.value = suggestion.id;
+      try {
         await addRestRemindersForTasks(userId);
-        break;
-      case 'improve_efficiency':
-        Message.info('请查看AI分析部分了解详细的效率提升建议');
-        break;
-      default:
-        Message.warning('功能开发中...');
-    }
-  } catch (error) {
-    console.error('执行建议失败:', error);
-    Message.error('操作失败，请稍后重试');
-  } finally {
-    optimizing.value = false;
+      } catch (error) {
+        console.error('执行建议失败:', error);
+        Message.error('操作失败，请稍后重试');
+      } finally {
+        optimizing.value = false;
+        optimizingSuggestionId.value = null;
+      }
+      break;
+    case 'improve_efficiency':
+      analysisExpanded.value = true;
+      suggestionExpandedStates.value[suggestion.id] = true;
+      Message.success('已展开AI行为分析，请查看详细效率提升建议');
+      break;
+    default:
+      Message.warning('功能开发中...');
   }
 }
 
-// 优化任务数量
-async function optimizeTaskQuantity(userId: number) {
+// 预览任务数量优化
+async function previewReduceTasks(userId: number, suggestion: any) {
   const result = await optimizeTaskQuantityFn(taskStore.tasks);
   
-  // 更新任务（如果API支持）
-  for (const task of result.optimized) {
-    await taskStore.updateTask(task.id, {
-      start_date: task.start_date,
-      end_date: task.end_date
-    });
+  // 找出发生变化的任务
+  const changes: Array<{ taskName: string; changeType: string; detail: string }> = [];
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  
+  for (const original of taskStore.tasks) {
+    if (original.start_date <= tomorrowStr && original.end_date >= tomorrowStr && original.status !== 'done') {
+      const optimized = result.optimized.find(t => t.id === original.id);
+      if (!optimized) {
+        changes.push({
+          taskName: original.title,
+          changeType: '移除',
+          detail: '低优先级重复任务已移除'
+        });
+      } else if (optimized.start_date !== original.start_date) {
+        changes.push({
+          taskName: original.title,
+          changeType: '推迟',
+          detail: `${original.start_date} → ${optimized.start_date}`
+        });
+      }
+    }
   }
   
-  Message.success(result.message);
+  if (changes.length === 0) {
+    Message.info(result.message);
+    return;
+  }
   
-  // 刷新数据
-  await refreshData(userId);
+  confirmTitle.value = '📋 确认优化任务数量';
+  confirmSummary.value = result.message;
+  confirmChanges.value = changes;
+  optimizingSuggestionId.value = suggestion.id;
+  pendingActionFn.value = async () => {
+    for (const task of result.optimized) {
+      await taskStore.updateTask(task.id, {
+        start_date: task.start_date,
+        end_date: task.end_date
+      });
+    }
+    Message.success(result.message);
+    await refreshData(userId);
+  };
+  showConfirmModal.value = true;
 }
 
-// 调整任务时间
-async function rescheduleTaskTime(userId: number) {
+// 预览任务时间调整
+async function previewRescheduleTasks(userId: number, suggestion: any) {
   const efficiencyPeriods = aiAnalysis.value?.efficiencyPeriods || ['09:00-11:00', '14:00-16:00'];
   const result = await rescheduleTasksByEfficiency(taskStore.tasks, efficiencyPeriods);
   
-  // 更新任务时间
-  for (const task of result.optimized) {
-    if (task.start_time && task.end_time) {
-      await taskStore.updateTask(task.id, {
-        start_time: task.start_time,
-        end_time: task.end_time
-      });
+  // 找出时间发生变化的任务
+  const changes: Array<{ taskName: string; changeType: string; detail: string }> = [];
+  
+  for (const original of taskStore.tasks) {
+    if (original.start_time && original.end_time) {
+      const optimized = result.optimized.find(t => t.id === original.id);
+      if (optimized && optimized.start_time && optimized.end_time && 
+          (optimized.start_time !== original.start_time || optimized.end_time !== original.end_time)) {
+        changes.push({
+          taskName: original.title,
+          changeType: '调整时间',
+          detail: `${original.start_time}-${original.end_time} → ${optimized.start_time}-${optimized.end_time}`
+        });
+      }
     }
   }
   
-  Message.success(result.message);
-  await refreshData(userId);
+  if (changes.length === 0) {
+    Message.info(result.message);
+    return;
+  }
+  
+  confirmTitle.value = '⏰ 确认调整任务时间';
+  confirmSummary.value = result.message;
+  confirmChanges.value = changes;
+  optimizingSuggestionId.value = suggestion.id;
+  pendingActionFn.value = async () => {
+    for (const task of result.optimized) {
+      if (task.start_time && task.end_time) {
+        await taskStore.updateTask(task.id, {
+          start_time: task.start_time,
+          end_time: task.end_time
+        });
+      }
+    }
+    Message.success(result.message);
+    await refreshData(userId);
+  };
+  showConfirmModal.value = true;
 }
 
 // 添加休息提醒
@@ -736,6 +982,15 @@ async function handleRefresh() {
   }
 }
 
+// 监听日志分组变化，自动初始化展开状态
+watch(
+  () => logGroups.value,
+  () => {
+    initializeExpandedStates();
+  },
+  { immediate: true, deep: true }
+);
+
 onMounted(async () => {
   loading.value = true;
   try {
@@ -771,7 +1026,7 @@ onMounted(async () => {
 
 .overview-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3);
 }
 
@@ -779,56 +1034,79 @@ onMounted(async () => {
   background: var(--bg-card);
   border: 1px solid var(--border-main);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   transition: all var(--dur-fast) var(--ease-standard);
+  position: relative;
 }
 
 .overview-card:hover {
   border-color: var(--ai-main);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .card-icon {
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-card-hover));
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .card-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .card-value {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.2;
 }
 
 .card-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 .card-trend {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-main);
+  box-shadow: var(--shadow-sm);
 }
 
-.card-trend.up { color: var(--success); }
-.card-trend.down { color: var(--error); }
-.card-trend.stable { color: var(--text-muted); }
+.card-trend.up { 
+  color: var(--success); 
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.card-trend.down { 
+  color: var(--error); 
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.card-trend.stable { 
+  color: var(--text-muted); 
+  background: rgba(156, 163, 175, 0.1);
+}
 
 /* 拖延风险卡片状态 */
 .overview-card.risk.low .card-value { color: var(--success); }
@@ -873,6 +1151,47 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+.group-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.group-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.group-badge:nth-child(1) {
+  border-color: rgba(99, 102, 241, 0.3);
+  color: var(--ai-main);
+}
+
+.group-badge:nth-child(2) {
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--success);
+}
+
+.group-badge:nth-child(3) {
+  border-color: rgba(251, 146, 60, 0.3);
+  color: var(--warning);
+}
+
+.group-more {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 6px;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  color: var(--text-muted);
 }
 
 .record-count {
@@ -928,10 +1247,32 @@ onMounted(async () => {
 }
 
 .log-records-content {
-  padding: var(--space-3);
-  border: 1px solid var(--border-main);
-  border-top: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 0;
+  border: none;
+}
+
+/* 虚拟滚动容器 */
+.virtual-scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.virtual-scroll-wrapper {
+  height: 100%;
+  width: 100%;
+}
+
+.virtual-scroll-content {
+  position: relative;
+  width: 100%;
+}
+
+.virtual-item {
+  position: absolute;
+  left: 0;
+  right: 0;
+  will-change: transform;
 }
 
 .loading-state {
@@ -1068,33 +1409,19 @@ onMounted(async () => {
   padding-top: var(--space-2);
 }
 
-/* 空状态 */
-.empty-state {
+/* 紧凑提示（无日志时） */
+.empty-hint {
+  padding: var(--space-3) var(--space-4);
   text-align: center;
-  padding: var(--space-8) var(--space-4);
+  border: 1px solid var(--border-main);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: var(--space-3);
-}
-
-.empty-state h4 {
-  margin: 0 0 var(--space-2) 0;
-  font-size: 16px;
-  color: var(--text-main);
-}
-
-.empty-state p {
-  margin: 0 0 var(--space-4) 0;
-  font-size: 14px;
+.hint-text {
+  font-size: 13px;
   color: var(--text-muted);
-}
-
-.empty-actions {
-  display: flex;
-  gap: var(--space-2);
-  justify-content: center;
+  line-height: 1.5;
 }
 
 /* ============ 第三部分：AI 行为分析 ============ */
@@ -1252,6 +1579,95 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+/* ============ 确认对话框 ============ */
+.confirm-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.confirm-summary {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.6;
+  padding: var(--space-3);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.changes-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.changes-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.change-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.change-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.change-type {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.change-type.postpone {
+  background: rgba(251, 146, 60, 0.1);
+  color: var(--warning);
+}
+
+.change-type.remove {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.change-type.reschedule {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--ai-main);
+}
+
+.change-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* ============ 按钮动画 ============ */

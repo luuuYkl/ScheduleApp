@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "session_id": "122f6-1774606995359-d05rp50l",
+  "source": "cli",
+  "pid": 29780,
+  "started_at": "2026-03-27T10:23:15.360Z",
+  "ended_at": "2026-03-27T10:23:15.432Z",
+  "exit_code": 1,
+  "status": "failed",
+  "interactive": true,
+  "provider": "zai",
+  "model": "glm-5-turbo",
+  "cwd": "C:\\Users\\ASUS\\.cline\\worktrees\\122f6\\ScheduleApp",
+  "workspace_root": "C:\\Users\\ASUS\\.cline\\worktrees\\122f6\\ScheduleApp",
+  "enable_tools": true,
+  "enable_spawn": false,
+  "enable_teams": false,
+  "prompt": "优化个人界面",
+  "metadata": {
+    "title": "优化个人界面"
+  },
+  "messages_path": "~\\.cline\\data\\sessions\\122f6-1774606995359-d05rp50l\\122f6-1774606995359-d05rp50l.messages.json"
+}

@@ -288,7 +288,7 @@
 
             <!-- 事件块 -->
             <div 
-              v-for="event in getEventsForDay(day.dateStr, 2)" 
+              v-for="event in getEventsForDay(day.dateStr || '', 2)" 
               :key="event.id"
               class="event-block"
               :class="[event.type, { completed: event.completed }]"
@@ -311,7 +311,7 @@
             </div>
 
             <!-- 空状态 -->
-            <div v-if="getEventsForDay(day.dateStr).length === 0" class="empty-state-mini">
+            <div v-if="getEventsForDay(day.dateStr || '').length === 0" class="empty-state-mini">
               <span class="empty-icon-mini">-</span>
             </div>
           </div>
@@ -740,7 +740,7 @@ const todayDate = computed(() => {
 });
 
 // 视图模式配置
-const viewModes = [
+const viewModes: { value: 'single' | 'three-day' | 'week'; label: string }[] = [
   { value: 'single', label: '今日' },
   { value: 'three-day', label: '三日' },
   { value: 'week', label: '一周' }
@@ -1115,8 +1115,11 @@ const currentTimePosition = computed(() => {
 });
 
 // ========== 三日视图：获取指定日期的事件 ==========
-function getEventsForDay(dateStr: string, maxColumns: number = MAX_VISIBLE_COLUMNS): TimelineEvent[] {
+function getEventsForDay(dateStr: string | null, maxColumns: number = MAX_VISIBLE_COLUMNS): TimelineEvent[] {
   const events: TimelineEvent[] = [];
+
+  // 如果dateStr为null，返回空数组
+  if (!dateStr) return events;
 
   // 处理日程
   scheduleStore.schedules
@@ -1945,6 +1948,7 @@ onUnmounted(() => {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   word-wrap: break-word;
 }

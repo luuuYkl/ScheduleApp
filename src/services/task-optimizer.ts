@@ -35,6 +35,9 @@ export async function optimizeTaskQuantity(tasks: Task[]): Promise<{
     };
   }
 
+  // 深拷贝，避免直接修改 Store 数组
+  const optimizedTasks = tasks.map(t => ({ ...t }));
+  
   // 优先级评分
   const scoredTasks = tomorrowTasks.map(task => ({
     task,
@@ -45,7 +48,6 @@ export async function optimizeTaskQuantity(tasks: Task[]): Promise<{
   scoredTasks.sort((a, b) => b.score - a.score);
 
   const targetCount = 6; // 目标任务数量
-  const highPriorityTasks = scoredTasks.slice(0, targetCount).map(s => s.task);
   const lowPriorityTasks = scoredTasks.slice(targetCount);
 
   // 推迟低优先级任务到后天
@@ -57,23 +59,26 @@ export async function optimizeTaskQuantity(tasks: Task[]): Promise<{
   let postponed = 0;
 
   for (const item of lowPriorityTasks) {
-    const taskIndex = tasks.findIndex(t => t.id === item.task.id);
+    const taskIndex = optimizedTasks.findIndex(t => t.id === item.task.id);
     if (taskIndex !== -1) {
       if (item.task.repeat_type === 'none') {
         // 非重复任务，推迟到后天
-        tasks[taskIndex].start_date = dayAfterTomorrowStr;
-        tasks[taskIndex].end_date = dayAfterTomorrowStr;
+        optimizedTasks[taskIndex] = {
+          ...optimizedTasks[taskIndex],
+          start_date: dayAfterTomorrowStr,
+          end_date: dayAfterTomorrowStr
+        };
         postponed++;
       } else {
-        // 重复任务，可以暂时移除
-        tasks.splice(taskIndex, 1);
+        // 重复任务，从列表中移除（不修改原 Store）
+        optimizedTasks.splice(taskIndex, 1);
         removed++;
       }
     }
   }
 
   return {
-    optimized: tasks,
+    optimized: optimizedTasks,
     removed,
     postponed,
     message: `已优化明日任务：保留 ${targetCount} 项核心任务，${postponed} 项推迟至后天，${removed} 项已移除`
@@ -124,28 +129,33 @@ export async function rescheduleTasksByEfficiency(
     return { start, end };
   });
 
+  // 深拷贝，避免直接修改 Store 数组
+  const optimizedTasks = tasks.map(t => ({ ...t }));
   let rescheduledCount = 0;
 
-  // 将高优先级任务安排在高效时段
+  // 将高优先级任务安排在高效时段的开头
   for (let i = 0; i < Math.min(prioritizedTasks.length, slots.length); i++) {
     const { task } = prioritizedTasks[i];
     const slot = slots[i];
 
-    const taskIndex = tasks.findIndex(t => t.id === task.id);
+    const taskIndex = optimizedTasks.findIndex(t => t.id === task.id);
     if (taskIndex !== -1) {
-      // 计算任务时长（默认1小时）
-      const [endHour, endMinute] = slot.end.split(':').map(Number);
-      const startHour = Math.max(Number(slot.start.split(':')[0]), endHour - 1);
-      const startMinute = endHour === startHour ? endMinute : 0;
+      // 从时段开头开始安排，默认1小时
+      const [startHour, startMinute] = slot.start.split(':').map(Number);
+      const endHour = startHour + 1;
+      const endMinute = startMinute;
 
-      tasks[taskIndex].start_time = `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`;
-      tasks[taskIndex].end_time = slot.end;
+      optimizedTasks[taskIndex] = {
+        ...optimizedTasks[taskIndex],
+        start_time: `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`,
+        end_time: `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`
+      };
       rescheduledCount++;
     }
   }
 
   return {
-    optimized: tasks,
+    optimized: optimizedTasks,
     rescheduled: rescheduledCount,
     message: `已将 ${rescheduledCount} 项重要任务调整至高效时段：${efficiencyPeriods.join('、')}`
   };
@@ -200,11 +210,14 @@ export async function addRestReminders(
 
     // 如果间隔超过阈值，添加休息提醒
     if (gapMinutes >= interval) {
-      const reminderTime = new Date();
-      reminderTime.setHours(currentEndHour, currentEndMinute + 10, 0, 0); // 任务结束后10分钟提醒休息
-
-      const reminderEnd = new Date(reminderTime);
-      reminderEnd.setMinutes(reminderEnd.getMinutes() + 15); // 休息15分钟
+      // 使用分钟计算避免溢出
+      const reminderStartMinutes = currentEndMinutes + 10; // 任务结束后10分钟
+      const reminderStartHour = Math.floor(reminderStartMinutes / 60);
+      const reminderStartMin = reminderStartMinutes % 60;
+      
+      const reminderEndMinutes = reminderStartMinutes + 15; // 休息15分钟
+      const reminderEndHour = Math.floor(reminderEndMinutes / 60);
+      const reminderEndMin = reminderEndMinutes % 60;
 
       reminders.push({
         id: Date.now() + i,
@@ -212,8 +225,8 @@ export async function addRestReminders(
         title: '休息提醒',
         description: '工作一段时间了，记得站起来活动一下，喝杯水，放松眼睛',
         date: today,
-        start_time: `${String(reminderTime.getHours()).padStart(2, '0')}:${String(reminderTime.getMinutes()).padStart(2, '0')}`,
-        end_time: `${String(reminderEnd.getHours()).padStart(2, '0')}:${String(reminderEnd.getMinutes()).padStart(2, '0')}`,
+        start_time: `${String(reminderStartHour).padStart(2, '0')}:${String(reminderStartMin).padStart(2, '0')}`,
+        end_time: `${String(reminderEndHour).padStart(2, '0')}:${String(reminderEndMin).padStart(2, '0')}`,
         completed: false,
         created_at: new Date().toISOString()
       });

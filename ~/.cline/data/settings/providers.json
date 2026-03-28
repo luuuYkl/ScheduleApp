@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "lastUsedProvider": "zai",
+  "providers": {
+    "zai": {
+      "settings": {
+        "provider": "zai",
+        "apiKey": "a337758771cf46b0a1824403a022182f.xpzqZtmGSi5oEQxA",
+        "model": "glm-5-turbo",
+        "baseUrl": "https://open.bigmodel.cn/api/coding/paas/v4",
+        "reasoning": {
+          "effort": "medium"
+        }
+      },
+      "updatedAt": "2026-03-27T10:27:06.620Z",
+      "tokenSource": "manual"
+    }
+  }
+}

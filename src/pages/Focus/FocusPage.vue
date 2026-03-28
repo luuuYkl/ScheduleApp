@@ -77,7 +77,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useTaskStore } from "@/store/tasks";
 import { useScheduleStore } from "@/store/schedules";
 import { useFocusStore } from "@/store/focus";
@@ -100,6 +100,7 @@ interface TimelineEvent {
 }
 
 // ========== 初始化 ==========
+const route = useRoute();
 const router = useRouter();
 const taskStore = useTaskStore();
 const scheduleStore = useScheduleStore();
@@ -308,6 +309,12 @@ onMounted(async () => {
   // 加载数据
   await taskStore.loadTasks();
   await scheduleStore.load(todayStr);
+  
+  // 如果从任务详情页跳转过来，自动选中对应任务
+  const taskId = route.query.taskId;
+  if (taskId) {
+    focusStore.selectTask(Number(taskId));
+  }
   
   // 每秒更新当前时间
   timerInterval = window.setInterval(() => {
