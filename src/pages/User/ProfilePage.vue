@@ -1,6 +1,5 @@
 <template>
   <PageScaffold 
-    title="个人中心" 
     :show-back="false"
     class="layer-context"
   >
@@ -48,36 +47,40 @@
         </div>
       </section>
 
-      <!-- 3. 行为分析模块 -->
-      <section class="behavior-analysis-section">
-        <h2 class="section-title">📊 行为分析</h2>
-        <div class="analysis-grid">
-          <div class="analysis-card" v-for="item in analysisItems" :key="item.key">
-            <div class="analysis-header">
-              <span class="analysis-icon">{{ item.icon }}</span>
-              <span class="analysis-title">{{ item.title }}</span>
-            </div>
-            <div class="analysis-value">{{ item.value }}</div>
-            <div class="analysis-desc">{{ item.description }}</div>
-          </div>
-          <!-- 行为趋势图 -->
-          <div class="analysis-card trend-card">
-            <div class="analysis-header">
-              <span class="analysis-icon">📈</span>
-              <span class="analysis-title">完成率趋势</span>
-            </div>
-            <div class="trend-chart">
-              <div class="trend-bar" v-for="(bar, index) in trendData" :key="index" :style="{ height: bar.height + '%' }">
-                <span class="trend-label">{{ bar.label }}</span>
+      <!-- ========== 双栏布局：行为分析 + 系统设置 ========== -->
+      <div class="dual-column-layout">
+        <!-- 左栏: 行为分析模块 -->
+        <section class="behavior-analysis-section">
+          <h2 class="section-title">📊 行为分析</h2>
+          <div class="analysis-grid">
+            <div class="analysis-card" v-for="item in analysisItems" :key="item.key">
+              <div class="analysis-header">
+                <span class="analysis-icon">{{ item.icon }}</span>
+                <span class="analysis-title">{{ item.title }}</span>
               </div>
+              <div class="analysis-value">{{ item.value }}</div>
+              <div class="analysis-desc">{{ item.description }}</div>
             </div>
-            <div class="analysis-desc">最近7天完成率变化</div>
+            <!-- 行为趋势图 -->
+            <div class="analysis-card trend-card">
+              <div class="analysis-header">
+                <span class="analysis-icon">📈</span>
+                <span class="analysis-title">完成率趋势</span>
+              </div>
+              <div class="trend-chart">
+                <div class="trend-bar" v-for="(bar, index) in trendData" :key="index" :style="{ height: bar.height + '%' }">
+                  <span class="trend-label">{{ bar.label }}</span>
+                </div>
+              </div>
+              <div class="analysis-desc">最近7天完成率变化</div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- 4. 系统设置模块 -->
-      <section class="system-settings-section">
+        <!-- 右栏: 系统设置 + 账户管理 -->
+        <div class="right-column">
+          <!-- 4. 系统设置模块 -->
+          <section class="system-settings-section">
         <h2 class="section-title">⚙️ 系统设置</h2>
 
         <!-- 4.1 提醒偏好 -->
@@ -226,22 +229,24 @@
             </div>
           </Transition>
         </div>
-      </section>
+          </section>
 
-      <!-- 5. 账户管理模块 -->
-      <section class="account-management-section">
-        <div class="account-actions">
-          <Button variant="outline" size="small" @click="exportData" class="account-btn">
-            <span class="btn-icon">📦</span> 导出数据
-          </Button>
-          <Button variant="outline" size="small" @click="showPrivacy" class="account-btn">
-            <span class="btn-icon">🔒</span> 隐私设置
-          </Button>
-          <Button variant="danger" size="small" @click="logout" class="account-btn logout-btn">
-            <span class="btn-icon">🚪</span> 退出登录
-          </Button>
-        </div>
-      </section>
+          <!-- 5. 账户管理模块 -->
+          <section class="account-management-section">
+            <div class="account-actions">
+              <Button variant="outline" size="small" @click="exportData" class="account-btn">
+                <span class="btn-icon">📦</span> 导出数据
+              </Button>
+              <Button variant="outline" size="small" @click="showPrivacy" class="account-btn">
+                <span class="btn-icon">🔒</span> 隐私设置
+              </Button>
+              <Button variant="danger" size="small" @click="logout" class="account-btn logout-btn">
+                <span class="btn-icon">🚪</span> 退出登录
+              </Button>
+            </div>
+          </section>
+        </div><!-- /.right-column -->
+      </div><!-- /.dual-column-layout -->
     </div>
     </PullToRefresh>
   </PageScaffold>
@@ -861,9 +866,25 @@ onMounted(async () => {
   margin: 0 0 var(--space-3) 0;
 }
 
+/* ========== 双栏布局 ========== */
+.dual-column-layout {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.right-column {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .analysis-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3);
 }
 
@@ -911,9 +932,9 @@ onMounted(async () => {
   color: var(--text-muted);
 }
 
-/* 趋势图卡片 */
+/* 趋势图卡片 — 占满整行 */
 .trend-card {
-  grid-column: span 1;
+  grid-column: 1 / -1;
 }
 
 .trend-chart {
@@ -1229,5 +1250,30 @@ onMounted(async () => {
   background: var(--error-bg) !important;
   border-color: var(--error) !important;
   color: var(--error) !important;
+}
+
+/* ========== 响应式：小屏回退单列 ========== */
+@media (max-width: 1023px) {
+  .dual-column-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .right-column {
+    position: static;
+  }
+
+  .analysis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .behavior-stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .profile-container {
+    padding: var(--space-2);
+  }
 }
 </style>

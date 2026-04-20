@@ -72,10 +72,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: var(--focus-exit-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--focus-exit-border, rgba(255, 255, 255, 0.1));
-  border-radius: 8px;
-  color: var(--focus-text-secondary, rgba(229, 231, 235, 0.7));
+  background: var(--focus-exit-bg);
+  border: 1px solid var(--focus-exit-border);
+  border-radius: var(--radius-sm);
+  color: var(--focus-text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -85,9 +85,9 @@ onUnmounted(() => {
 }
 
 .exit-btn:hover {
-  background: var(--focus-exit-hover, rgba(239, 68, 68, 0.2));
-  border-color: var(--focus-exit-hover-border, rgba(239, 68, 68, 0.5));
-  color: var(--focus-exit-hover-text, #ef4444);
+  background: var(--focus-exit-hover-bg);
+  border-color: var(--focus-exit-hover-border);
+  color: var(--focus-exit-hover-text);
   transform: translateY(-1px);
 }
 

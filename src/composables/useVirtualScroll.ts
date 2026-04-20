@@ -57,7 +57,7 @@ export function useVirtualScroll(groups: () => LogGroup[]) {
       
       if (group.expanded) {
         for (const logItem of group.logs) {
-          const actualHeight = itemHeights.value.get(logItem.log.id);
+          const actualHeight = itemHeights.value.get(`log-${logItem.log.id}`);
           height += actualHeight || 
             (logItem.expanded 
               ? VIRTUAL_CONFIG.expandedHeight 
@@ -210,8 +210,12 @@ export function useVirtualScroll(groups: () => LogGroup[]) {
   // 清理函数引用
   let cleanupFn: (() => void) | null = null;
 
-  // 监听分组变化，重置高度
-  watch(groups, () => {
+  // 仅在分组数量或日志数量变化时清除高度缓存
+  // 避免展开/折叠操作频繁清除缓存
+  watch(() => {
+    const gs = groups();
+    return gs.map(g => `${g.period}:${g.logs.length}`).join('|');
+  }, () => {
     itemHeights.value.clear();
   });
 

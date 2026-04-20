@@ -1,7 +1,5 @@
 <template>
   <PageScaffold
-    title="编辑任务"
-    :subtitle="task ? task.title : '加载中…'"
   >
     <template #actions>
       <Button variant="ghost" size="small" @click="goBack">

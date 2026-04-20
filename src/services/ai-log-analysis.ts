@@ -649,18 +649,8 @@ function generatePersonalizedSuggestions(
     });
   }
 
-  // 如果没有特殊建议，添加通用建议
-  if (suggestions.length === 0) {
-    suggestions.push({
-      id: 5,
-      icon: '📊',
-      title: '保持良好习惯',
-      problem: '当前表现良好',
-      advice: '继续保持当前的工作节奏，可以尝试逐步增加任务难度或设定更高的目标',
-      actionLabel: '查看详情',
-      action: 'improve_efficiency'
-    });
-  }
+  // 如果没有特殊建议，不添加无意义的兜底建议
+  // 让 UI 层根据真实任务数据决定是否显示建议
 
   return suggestions;
 }

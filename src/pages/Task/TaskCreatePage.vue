@@ -1,7 +1,5 @@
 <template>
   <PageScaffold
-    title="创建任务"
-    subtitle="添加新的任务到你的日程"
     show-back-button
     @back="goBack"
   >

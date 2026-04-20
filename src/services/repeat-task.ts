@@ -45,6 +45,14 @@ export function generateRepeatDates(
       dates.push(formatDate(current));
       current.setDate(current.getDate() + 1);
     }
+  } else if (repeatType === "weekly") {
+    // 每周重复：从开始日期起，每7天生成一次
+    const startDayOfWeek = start.getDay(); // 记录开始日期是星期几
+    current.setDate(current.getDate() + 7);
+    while (current <= normalizedEnd) {
+      dates.push(formatDate(current));
+      current.setDate(current.getDate() + 7);
+    }
   } else if (repeatType === "monthly") {
     // 使用固定锚点日的月度重复算法
     while (true) {
@@ -107,10 +115,14 @@ export function generateRepeatTaskPayloads(
   const groupId = Date.now(); // 生成组ID，所有重复任务共享
 
   // 为每个日期创建一个任务 payload
+  // 注意：拆分后的每个实例都是独立任务，不再标记为重复
+  // 仅保留 repeat_group_id 用于关联标识
   return dates.map((date) => ({
     ...basePayload,
     start_date: date,
     end_date: date,
+    repeat_type: "none" as const,
+    repeat_end_date: null,
     repeat_group_id: groupId,
   }));
 }

@@ -1,7 +1,5 @@
 <template>
   <PageScaffold 
-    title="日志记录" 
-    subtitle="查看历史日志和AI智能分析"
     class="layer-context"
   >
     <template #actions>
@@ -69,7 +67,7 @@
           </div>
         </section>
 
-        <!-- 第二部分：日志记录区域（分组+虚拟滚动） -->
+        <!-- 第二部分：日志记录区域（分组展示） -->
         <section class="log-records-section">
           <div class="section-header">
             <h3 class="section-title">
@@ -109,48 +107,27 @@
               <p>加载中...</p>
             </div>
             
-            <!-- 虚拟滚动日志列表 -->
-            <div v-else-if="filteredLogs.length > 0" class="virtual-scroll-container">
-              <div 
-                ref="virtualContainerRef"
-                class="virtual-scroll-wrapper"
+            <!-- 日志分组列表（直接渲染） -->
+            <div v-else-if="filteredLogs.length > 0" class="log-groups-list">
+              <LogGroupSection
+                v-for="group in logGroups"
+                :key="group.period"
+                :group="{ ...group, expanded: groupExpandedStates[group.period] ?? false }"
+                @toggle-group="toggleGroup(group.period)"
+                @toggle-expand-all="handleToggleExpandAll(group.period)"
               >
-                <div 
-                  class="virtual-scroll-content"
-                  :style="{ height: `${virtualTotalHeight}px` }"
-                >
-                  <div 
-                    v-for="item in virtualVisibleItems"
-                    :key="item.id"
-                    class="virtual-item"
-                    :style="{ 
-                      transform: `translateY(${getVirtualItemOffset(item)}px)` 
-                    }"
-                  >
-                    <!-- 分组标题 -->
-                    <LogGroupSection
-                      v-if="item.type === 'group'"
-                      :group="{ ...(item.data as any), expanded: groupExpandedStates[(item.data as any).period] ?? false }"
-                      @toggle-group="toggleGroup((item.data as any).period)"
-                      @toggle-log="toggleLogInGroup($event, item.data)"
-                      @height-change="handleHeightChange"
-                    >
-                      <!-- 该分组下的日志卡片 -->
-                      <LogCard
-                        v-for="logItem in (item.data as any).logs"
-                        :key="logItem.log.id"
-                        :log="logItem.log"
-                        :expanded="logExpandedStates[logItem.log.id] ?? false"
-                        :efficiency-rating="logItem.efficiencyRating"
-                        :summary="logItem.summary"
-                        :tasks="getTasksForDate(logItem.log.date)"
-                        @toggle="toggleLog(logItem)"
-                        @height-change="handleHeightChange"
-                      />
-                    </LogGroupSection>
-                  </div>
-                </div>
-              </div>
+                <!-- 该分组下的日志卡片 -->
+                <LogCard
+                  v-for="logItem in group.logs"
+                  :key="logItem.log.id"
+                  :log="logItem.log"
+                  :expanded="logExpandedStates[logItem.log.id] ?? false"
+                  :efficiency-rating="logItem.efficiencyRating"
+                  :summary="logItem.summary"
+                  :tasks="getTasksForDate(logItem.log.date)"
+                  @toggle="toggleLog(logItem)"
+                />
+              </LogGroupSection>
             </div>
             
             <!-- 无日志：紧凑提示 -->
@@ -227,10 +204,12 @@
               <span class="title-icon">💡</span>
               AI 行动建议
             </h3>
-            <span class="suggestions-count">{{ aiSuggestions.length }} 条建议</span>
+            <span class="suggestions-count">
+              {{ aiSuggestions.length > 0 ? `${aiSuggestions.length} 条建议` : '暂无建议' }}
+            </span>
           </div>
           
-          <div class="suggestions-list">
+          <div class="suggestions-list" v-if="aiSuggestions.length > 0">
             <div 
               v-for="suggestion in aiSuggestions" 
               :key="suggestion.id"
@@ -265,6 +244,10 @@
                 </div>
               </div>
             </div>
+          </div>
+          <div class="suggestions-empty" v-else>
+            <span class="empty-icon">✨</span>
+            <span class="empty-text">当前状态良好，暂无需要优化的建议</span>
           </div>
         </section>
       </div>
@@ -337,7 +320,6 @@ import {
   filterRecentLogs, 
   groupLogsByPeriod 
 } from "@/utils/log-grouping";
-import { useVirtualScroll } from "@/composables/useVirtualScroll";
 
 const router = useRouter();
 const logStore = useLogStore();
@@ -402,26 +384,6 @@ const logGroups = computed(() => {
 const groupExpandedStates = ref<Record<string, boolean>>({});
 const logExpandedStates = ref<Record<number, boolean>>({});
 
-// 使用虚拟滚动 composable
-const {
-  containerRef: virtualContainerRef,
-  virtualList,
-  totalHeight: virtualTotalHeight,
-  visibleItems: virtualVisibleItems,
-  getItemOffset: getVirtualItemOffset,
-  updateItemHeight: updateVirtualLogHeight,
-  clearItemHeightCache
-} = useVirtualScroll(() => {
-  // 根据展开状态过滤分组
-  return logGroups.value.map(group => ({
-    ...group,
-    expanded: groupExpandedStates.value[group.period] ?? false,
-    logs: group.logs.map(logItem => ({
-      ...logItem,
-      expanded: logExpandedStates.value[logItem.log.id] ?? false
-    }))
-  }));
-});
 
 const allGroupsExpanded = computed(() => 
   Object.values(groupExpandedStates.value).every(expanded => expanded)
@@ -448,22 +410,19 @@ function toggleGroup(period: string) {
   groupExpandedStates.value[period] = !groupExpandedStates.value[period];
 }
 
-function toggleLogInGroup(logItem: any, group: any) {
-  const newState = !logExpandedStates.value[logItem.log.id];
-  logExpandedStates.value[logItem.log.id] = newState;
-  // 清除高度缓存，强制重新计算
-  clearItemHeightCache(logItem.log.id);
-}
-
 function toggleLog(logItem: any) {
   const newState = !logExpandedStates.value[logItem.log.id];
   logExpandedStates.value[logItem.log.id] = newState;
-  // 清除高度缓存，强制重新计算
-  clearItemHeightCache(logItem.log.id);
 }
 
-function handleHeightChange(data: { type: 'group' | 'log', id: string | number, height: number }) {
-  updateVirtualLogHeight(data.id, data.height);
+// 分组内"展开/收起全部日志"
+function handleToggleExpandAll(groupPeriod: string) {
+  const group = logGroups.value.find(g => g.period === groupPeriod);
+  if (!group) return;
+  const expand = !group.logs.every(l => logExpandedStates.value[l.log.id]);
+  for (const logItem of group.logs) {
+    logExpandedStates.value[logItem.log.id] = expand;
+  }
 }
 
 function toggleExpandAllGroups() {
@@ -526,6 +485,64 @@ const recentLogs = computed(() => {
 
 // AI 建议数量
 const aiSuggestionsCount = computed(() => aiSuggestions.value.length);
+
+// ====== 真实数据条件检查（用于过滤建议） ======
+
+/** 明天待完成任务数量 */
+const tomorrowPendingTasksCount = computed(() => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  return taskStore.tasks.filter(t =>
+    t.start_date <= tomorrowStr && t.end_date >= tomorrowStr && t.status !== 'done'
+  ).length;
+});
+
+/** 今天有时间段的任务 */
+const todayTasksWithTime = computed(() => {
+  const today = new Date().toISOString().slice(0, 10);
+  return taskStore.tasks.filter(t =>
+    t.start_date <= today && t.end_date >= today && t.status !== 'done'
+    && t.start_time && t.end_time
+  );
+});
+
+/** 是否存在连续工作时段（间隔<30分钟的任务链，总时长≥2小时） */
+const hasLongContinuousWork = computed(() => {
+  const tasks = todayTasksWithTime.value;
+  if (tasks.length < 2) return false;
+  
+  // 按开始时间排序
+  const sorted = [...tasks].sort((a, b) => a.start_time!.localeCompare(b.start_time!));
+  
+  // 计算连续工作时长
+  let chainStart = parseTimeToMinutes(sorted[0].start_time!);
+  let chainEnd = parseTimeToMinutes(sorted[0].end_time!);
+  
+  for (let i = 1; i < sorted.length; i++) {
+    const nextStart = parseTimeToMinutes(sorted[i].start_time!);
+    const gap = nextStart - chainEnd;
+    
+    if (gap <= 30) {
+      // 连续工作，延长链结束时间
+      chainEnd = parseTimeToMinutes(sorted[i].end_time!);
+    } else {
+      // 间隔过大，检查前一段是否已≥2小时
+      if (chainEnd - chainStart >= 120) return true;
+      // 开始新链
+      chainStart = nextStart;
+      chainEnd = parseTimeToMinutes(sorted[i].end_time!);
+    }
+  }
+  
+  return (chainEnd - chainStart) >= 120;
+});
+
+/** 将 "HH:MM" 转换为分钟数 */
+function parseTimeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
 
 // AI 行为分析数据（使用真实AI分析）
 const analysisData = computed(() => {
@@ -601,21 +618,46 @@ const analysisData = computed(() => {
   };
 });
 
-// AI 行动建议（使用真实AI分析结果）
+/** 检查某个建议 action 是否真的需要执行 */
+function isActionNeeded(action: string): boolean {
+  switch (action) {
+    case 'reduce_tasks':
+      // 只有明天待完成任务 > 8 个时才需要优化
+      return tomorrowPendingTasksCount.value > 8;
+    case 'reschedule_tasks':
+      // 只有今天有 ≥ 2个带时间段的任务时才需要调整
+      return todayTasksWithTime.value.length >= 2;
+    case 'add_reminders':
+      // 只有存在连续工作≥2小时的时段才需要休息提醒
+      return hasLongContinuousWork.value;
+    case 'improve_efficiency':
+    case 'view_analysis':
+      // 查看类建议始终允许
+      return true;
+    default:
+      return true;
+  }
+}
+
+// AI 行动建议（使用真实AI分析结果，过滤掉不需要的建议）
 const aiSuggestions = computed(() => {
+  // AI 分析返回的建议
   if (aiAnalysis.value && aiAnalysis.value.personalizedSuggestions.length > 0) {
-    return aiAnalysis.value.personalizedSuggestions.map(s => ({
-      id: s.id,
-      icon: s.icon,
-      title: s.title,
-      problem: s.problem,
-      advice: s.advice,
-      actionLabel: s.actionLabel,
-      action: s.action
-    }));
+    const filtered = aiAnalysis.value.personalizedSuggestions
+      .filter(s => isActionNeeded(s.action))
+      .map(s => ({
+        id: s.id,
+        icon: s.icon,
+        title: s.title,
+        problem: s.problem,
+        advice: s.advice,
+        actionLabel: s.actionLabel,
+        action: s.action
+      }));
+    if (filtered.length > 0) return filtered;
   }
   
-  // 降级到本地建议
+  // 降级到本地建议（同样基于真实数据条件）
   const suggestions: Array<{
     id: number;
     icon: string;
@@ -626,39 +668,40 @@ const aiSuggestions = computed(() => {
     action: string;
   }> = [];
   
-  const totalTasks = filteredLogs.value.reduce((sum, log) => sum + log.tasks_total, 0);
-  const doneTasks = filteredLogs.value.reduce((sum, log) => sum + log.tasks_done, 0);
-  const avgCompletion = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-  
-  if (avgCompletion < 70) {
+  // 优化任务数量：明天任务真的过多时才建议
+  if (tomorrowPendingTasksCount.value > 8) {
     suggestions.push({
       id: 1,
       icon: '📋',
       title: '优化任务数量',
-      problem: '近期任务完成率低于70%，存在任务积压风险',
-      advice: '建议明天减少2-3项非紧急任务，集中精力处理核心事项',
+      problem: `明天有 ${tomorrowPendingTasksCount.value} 项待完成任务，超出合理范围（6-8项）`,
+      advice: '建议减少2-3项非紧急任务，集中精力处理核心事项',
       actionLabel: '一键优化',
       action: 'reduce_tasks'
     });
   }
   
-  suggestions.push({
-    id: 2,
-    icon: '⏰',
-    title: '调整任务时间',
-    problem: '检测到上午时段效率较高',
-    advice: '建议将重要任务安排在上午，下午处理简单事务',
-    actionLabel: '重新安排',
-    action: 'reschedule_tasks'
-  });
+  // 调整任务时间：有可调整的任务时才建议
+  if (todayTasksWithTime.value.length >= 2) {
+    suggestions.push({
+      id: 2,
+      icon: '⏰',
+      title: '调整任务时间',
+      problem: `今天有 ${todayTasksWithTime.value.length} 项带时间安排的任务可以优化`,
+      advice: '建议将重要任务安排在高效时段（如上午），下午处理简单事务',
+      actionLabel: '重新安排',
+      action: 'reschedule_tasks'
+    });
+  }
   
-  if (filteredLogs.value.length >= 3) {
+  // 增加休息提醒：有连续工作时段时才建议
+  if (hasLongContinuousWork.value) {
     suggestions.push({
       id: 3,
       icon: '☕',
       title: '增加休息提醒',
-      problem: '长时间连续工作可能导致效率下降',
-      advice: '建议每工作2小时休息10-15分钟',
+      problem: '检测到今天有连续工作超过2小时的时段',
+      advice: '建议每工作2小时休息10-15分钟，保持良好工作节奏',
       actionLabel: '设置提醒',
       action: 'add_reminders'
     });
@@ -1247,32 +1290,16 @@ onMounted(async () => {
 }
 
 .log-records-content {
-  padding: 0;
-  border: none;
+  padding: var(--space-3);
+  border: 1px solid var(--border-main);
+  border-top: none;
 }
 
-/* 虚拟滚动容器 */
-.virtual-scroll-container {
-  overflow-y: auto;
-  overflow-x: hidden;
-  position: relative;
-}
-
-.virtual-scroll-wrapper {
-  height: 100%;
-  width: 100%;
-}
-
-.virtual-scroll-content {
-  position: relative;
-  width: 100%;
-}
-
-.virtual-item {
-  position: absolute;
-  left: 0;
-  right: 0;
-  will-change: transform;
+/* 日志分组列表 */
+.log-groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .loading-state {
@@ -1579,6 +1606,27 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+/* 建议为空时的提示 */
+.suggestions-empty {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  border: 1px solid var(--border-main);
+  border-top: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.suggestions-empty .empty-icon {
+  font-size: 32px;
+}
+
+.suggestions-empty .empty-text {
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
 /* ============ 确认对话框 ============ */

@@ -1,7 +1,5 @@
 <template>
   <PageScaffold
-    :title="pageTitle"
-    :subtitle="pageSubtitle"
     show-back-button
     @back="goBack"
   >

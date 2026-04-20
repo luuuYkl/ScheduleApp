@@ -68,7 +68,8 @@
     border-color var(--dur-fast) var(--ease-standard),
     color var(--dur-fast) var(--ease-standard),
     transform var(--dur-fast) var(--ease-standard),
-    box-shadow var(--dur-fast) var(--ease-standard);
+    box-shadow var(--dur-fast) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard);
   outline: none;
   text-decoration: none;
   white-space: nowrap;
@@ -78,7 +79,7 @@
   box-shadow: 0 0 0 3px var(--ring-color);
 }
 
-/* 主要按钮 - 状态矩阵 */
+/* 主要按钮 - Raycast 风格：opacity 过渡 */
 .btn--primary {
   background: var(--color-brand-500);
   color: #FFFFFF;
@@ -86,15 +87,13 @@
 }
 
 .btn--primary:hover {
-  background: var(--color-brand-600);
-  border-color: var(--color-brand-600);
+  opacity: 0.85;
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
 .btn--primary:active {
-  background: var(--color-brand-700);
-  border-color: var(--color-brand-700);
+  opacity: 0.75;
   transform: translateY(0);
 }
 
@@ -108,22 +107,21 @@
   opacity: 1;
 }
 
-/* 次要按钮 */
+/* 次要按钮 - Raycast 风格：微透明白边框 */
 .btn--secondary {
   background: transparent;
   color: var(--text-main);
-  border-color: var(--border-main);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .btn--secondary:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-emphasis);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-xs);
 }
 
 .btn--secondary:active {
-  background: var(--bg-elevated);
+  background: rgba(255, 255, 255, 0.08);
   transform: translateY(0);
 }
 
@@ -136,7 +134,7 @@
   box-shadow: none;
 }
 
-/* 幽灵按钮 */
+/* 幽灵按钮 - Raycast 风格：灰色→白色 hover */
 .btn--ghost {
   background: transparent;
   color: var(--text-secondary);
@@ -144,13 +142,12 @@
 }
 
 .btn--ghost:hover {
-  background: var(--bg-card);
   color: var(--text-main);
-  border-color: var(--border-main);
+  opacity: 0.8;
 }
 
 .btn--ghost:active {
-  background: var(--bg-card-hover);
+  opacity: 0.7;
 }
 
 .btn--ghost:disabled {
@@ -329,13 +326,14 @@ textarea:hover {
   background: var(--bg-card);
 }
 
+/* Focus: 蓝色辉光替代实线 ring */
 .input:focus,
 select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--ai-main);
   background: var(--bg-card);
-  box-shadow: 0 0 0 3px var(--ai-bg);
+  box-shadow: 0 0 0 3px hsla(202, 100%, 47%, 0.15);
 }
 
 .input::placeholder,
@@ -361,7 +359,7 @@ textarea:read-only {
    🎯 Navigation 组件
    ======================================== */
 
-/* 通用导航项样式 */
+/* 通用导航项样式 - Raycast 风格：灰色→白色 hover + opacity */
 .nav-item {
   display: flex;
   align-items: center;
@@ -372,7 +370,8 @@ textarea:read-only {
   transition: 
     color var(--dur-fast) var(--ease-standard),
     background-color var(--dur-fast) var(--ease-standard),
-    box-shadow var(--dur-fast) var(--ease-standard);
+    box-shadow var(--dur-fast) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard);
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   min-height: 40px;
@@ -381,7 +380,7 @@ textarea:read-only {
 
 .nav-item:hover {
   color: var(--text-main);
-  background: var(--bg-card-hover);
+  opacity: 0.85;
 }
 
 .nav-item:focus-visible {
@@ -389,16 +388,16 @@ textarea:read-only {
   outline-offset: 2px;
 }
 
-/* 激活态样式 */
+/* 激活态样式 - 品牌色高亮 */
 .nav-item.router-link-active,
 .nav-item.active {
   color: var(--ai-main);
-  background: var(--ai-bg);
+  opacity: 1;
 }
 
 .nav-item.router-link-active:hover,
 .nav-item.active:hover {
-  background: var(--ai-bg);
+  opacity: 0.85;
 }
 
 /* 图标样式 */
@@ -454,6 +453,8 @@ textarea:read-only {
 
 .nav-bottom .nav-item.router-link-active,
 .nav-bottom .nav-item.active {
+  color: var(--ai-main);
+  opacity: 1;
   box-shadow: inset 0 -2px 0 var(--ai-main);
 }
 

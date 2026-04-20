@@ -12,8 +12,9 @@
    * 所有尺寸使用 px，整体等比例缩放
    */
   
-  /* 📝 字体系统 - 2026 最佳系统无衬线字体栈 */
+  /* 📝 字体系统 - Raycast Design: Inter 为首选字体 */
   --font-sans: 
+    "Inter",
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
@@ -77,12 +78,14 @@
   --max-content-width: 1200px;
   
   /* 🔘 圆角系统 */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
+  --radius-2xs: 6px;      /* 小组件内部元素、事件块、badge */
+  --radius-xs: 4px;       /* 极小元素 */
+  --radius-sm: 8px;       /* 按钮、输入框 */
+  --radius-md: 12px;      /* 中等卡片 */
+  --radius-lg: 16px;      /* 大卡片 */
+  --radius-xl: 24px;      /* 模态/弹窗 */
+  --radius-2xl: 32px;     /* 页面级容器 */
+  --radius-full: 9999px;  /* 全圆 */
   
   
   /* 🎭 动效系统 */
@@ -169,25 +172,25 @@
    ======================================== */
 html[data-theme='dark'],
 html:not([data-theme]) {
-  /* 🎨 Neutral 中性色系统（简约黑白灰）*/
-  --color-bg-page: #0B0F14;        /* 页面背景 - 最深 */
-  --color-bg-card: #111827;        /* 卡片背景 */
-  --color-bg-elevated: #1F2937;    /* 浮层/抬升层 */
-  --color-bg-input: #0B0F14;       /* 输入框背景 */
-  --color-bg-overlay: rgba(11, 15, 20, 0.85); /* 遮罩层 */
+  /* 🎨 Neutral 中性色系统 - Raycast 色板 */
+  --color-bg-page: #07080a;        /* 页面背景 - 近黑蓝冷调 */
+  --color-bg-card: #101111;        /* 卡片背景 - Surface 100 */
+  --color-bg-elevated: #1b1c1e;    /* 浮层/抬升层 - Card Surface */
+  --color-bg-input: #07080a;       /* 输入框背景 - 与页面同色 */
+  --color-bg-overlay: rgba(7, 8, 10, 0.85); /* 遮罩层 */
   
-  --color-text-primary: #F9FAFB;   /* 主文本 - 接近白 */
-  --color-text-secondary: #9CA3AF; /* 次文本 */
-  --color-text-muted: #6B7280;     /* 说明文本 */
+  --color-text-primary: #f9f9f9;   /* 主文本 - Near White */
+  --color-text-secondary: #cecece; /* 次文本 - Light Gray */
+  --color-text-muted: #9c9c9d;     /* 说明文本 - Medium Gray */
   --color-text-emphasis: #FFFFFF;  /* 强调文本 - 纯白 */
-  --color-text-inverse: #0F172A;   /* 反色文本 */
+  --color-text-inverse: #07080a;   /* 反色文本 */
   
-  --color-border-primary: rgba(255, 255, 255, 0.10);  /* 主边框 */
-  --color-border-subtle: rgba(255, 255, 255, 0.05);   /* 细边框 */
-  --color-border-emphasis: rgba(255, 255, 255, 0.15); /* 强调边框 */
+  --color-border-primary: rgba(255, 255, 255, 0.06);  /* 主边框 - 微透明白 */
+  --color-border-subtle: rgba(255, 255, 255, 0.04);   /* 细边框 - 更微妙 */
+  --color-border-emphasis: rgba(255, 255, 255, 0.10); /* 强调边框 */
   
   /* 🎯 Surface 组件表面色 */
-  --color-surface-card-hover: #1F2937;  /* 卡片悬停 */
+  --color-surface-card-hover: #18191a;  /* 卡片悬停 */
   
   /* 🌟 交互状态色 */
   --color-interactive-hover: var(--color-brand-600);
@@ -243,6 +246,49 @@ html:not([data-theme]) {
   --info-border: rgba(59, 130, 246, 0.25);
   
   --ring-color: var(--color-focus-ring);
+  
+  /* 🎯 专注模式色彩 - Raycast 深度暗色调 */
+  --focus-bg: #050506;             /* 页面背景 - 极深沉浸 */
+  --focus-bg-gradient: radial-gradient(ellipse at 50% 0%, rgba(96, 165, 250, 0.03) 0%, transparent 60%);
+  --focus-text: #f9f9f9;
+  --focus-text-secondary: #cecece;
+  --focus-text-muted: #9c9c9d;
+  --focus-card: #101111;
+  --focus-card-border: rgba(255, 255, 255, 0.06);
+  --focus-card-hover: #1b1c1e;
+  --focus-border: rgba(255, 255, 255, 0.06);
+  --focus-accent: #60A5FA;
+  --focus-accent-bg: rgba(96, 165, 250, 0.12);
+  --focus-timer: #f9f9f9;
+  --focus-timer-glow: rgba(96, 165, 250, 0.3);
+  
+  /* 🎯 专注模式 - 时间轴事件色 */
+  --focus-events-bg: rgba(255, 255, 255, 0.015);
+  --focus-event-task-bg: rgba(37, 99, 235, 0.12);
+  --focus-event-task-border: rgba(37, 99, 235, 0.5);
+  --focus-event-schedule-bg: rgba(168, 85, 247, 0.12);
+  --focus-event-schedule-border: rgba(168, 85, 247, 0.5);
+  --focus-event-focus-bg: rgba(239, 68, 68, 0.12);
+  --focus-event-focus-border: rgba(239, 68, 68, 0.5);
+  --focus-event-meal-bg: rgba(245, 158, 11, 0.12);
+  --focus-event-meal-border: rgba(245, 158, 11, 0.5);
+  --focus-event-break-bg: rgba(34, 197, 94, 0.12);
+  --focus-event-break-border: rgba(34, 197, 94, 0.5);
+  
+  /* 🎯 专注模式 - UI 元素 */
+  --focus-exit-bg: rgba(255, 255, 255, 0.04);
+  --focus-exit-border: rgba(255, 255, 255, 0.08);
+  --focus-exit-hover-bg: rgba(239, 68, 68, 0.15);
+  --focus-exit-hover-border: rgba(239, 68, 68, 0.4);
+  --focus-exit-hover-text: #ef4444;
+  --focus-button-bg: rgba(96, 165, 250, 0.08);
+  --focus-button-border: rgba(96, 165, 250, 0.25);
+  --focus-button-hover-bg: rgba(96, 165, 250, 0.18);
+  --focus-button-hover-border: rgba(96, 165, 250, 0.45);
+  --focus-scrollbar: rgba(255, 255, 255, 0.15);
+  --focus-scrollbar-hover: rgba(255, 255, 255, 0.25);
+  --focus-current-time: #ef4444;
+  --focus-current-time-glow: rgba(239, 68, 68, 0.4);
 }
 
 /* ========================================
@@ -323,4 +369,47 @@ html[data-theme='light'] {
   --info-border: rgba(37, 99, 235, 0.2);
   
   --ring-color: var(--color-focus-ring);
+  
+  /* 🎯 专注模式色彩（浅色主题下保持深色沉浸感） */
+  --focus-bg: #0F172A;
+  --focus-bg-gradient: radial-gradient(ellipse at 50% 0%, rgba(96, 165, 250, 0.04) 0%, transparent 60%);
+  --focus-text: #E5E7EB;
+  --focus-text-secondary: #9CA3AF;
+  --focus-text-muted: #6B7280;
+  --focus-card: #1E293B;
+  --focus-card-border: rgba(255, 255, 255, 0.08);
+  --focus-card-hover: #334155;
+  --focus-border: rgba(255, 255, 255, 0.08);
+  --focus-accent: #60A5FA;
+  --focus-accent-bg: rgba(96, 165, 250, 0.12);
+  --focus-timer: #F9FAFB;
+  --focus-timer-glow: rgba(96, 165, 250, 0.25);
+  
+  /* 🎯 专注模式 - 时间轴事件色（浅色主题） */
+  --focus-events-bg: rgba(255, 255, 255, 0.03);
+  --focus-event-task-bg: rgba(37, 99, 235, 0.15);
+  --focus-event-task-border: rgba(37, 99, 235, 0.5);
+  --focus-event-schedule-bg: rgba(168, 85, 247, 0.15);
+  --focus-event-schedule-border: rgba(168, 85, 247, 0.5);
+  --focus-event-focus-bg: rgba(239, 68, 68, 0.15);
+  --focus-event-focus-border: rgba(239, 68, 68, 0.5);
+  --focus-event-meal-bg: rgba(245, 158, 11, 0.15);
+  --focus-event-meal-border: rgba(245, 158, 11, 0.5);
+  --focus-event-break-bg: rgba(34, 197, 94, 0.15);
+  --focus-event-break-border: rgba(34, 197, 94, 0.5);
+  
+  /* 🎯 专注模式 - UI 元素（浅色主题） */
+  --focus-exit-bg: rgba(255, 255, 255, 0.06);
+  --focus-exit-border: rgba(255, 255, 255, 0.10);
+  --focus-exit-hover-bg: rgba(239, 68, 68, 0.18);
+  --focus-exit-hover-border: rgba(239, 68, 68, 0.45);
+  --focus-exit-hover-text: #ef4444;
+  --focus-button-bg: rgba(96, 165, 250, 0.10);
+  --focus-button-border: rgba(96, 165, 250, 0.30);
+  --focus-button-hover-bg: rgba(96, 165, 250, 0.20);
+  --focus-button-hover-border: rgba(96, 165, 250, 0.50);
+  --focus-scrollbar: rgba(255, 255, 255, 0.18);
+  --focus-scrollbar-hover: rgba(255, 255, 255, 0.30);
+  --focus-current-time: #ef4444;
+  --focus-current-time-glow: rgba(239, 68, 68, 0.4);
 }

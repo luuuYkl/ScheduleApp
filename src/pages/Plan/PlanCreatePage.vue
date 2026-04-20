@@ -1,7 +1,5 @@
 <template>
   <PageScaffold
-    :title="editId ? '编辑计划' : '创建新计划'"
-    :subtitle="editId ? '修改现有计划配置' : '规划你的下一个重要目标'"
     show-back-button
     @back="goBack"
   >
@@ -22,6 +20,43 @@
       <div class="form-section">
         <Card class="form-card">
           <form class="plan-form" @submit.prevent="createPlan" novalidate>
+            <!-- 🤖 AI 一句话生成 -->
+            <div class="ai-generate-section">
+              <div class="ai-generate-header">
+                <span class="ai-generate-icon">🤖</span>
+                <span class="ai-generate-title">AI 智能生成</span>
+                <span class="ai-generate-desc">描述你的目标，AI 帮你制定计划</span>
+              </div>
+              <div class="ai-generate-input-row">
+                <a-textarea
+                  v-model="aiGenerateText"
+                  placeholder="例如：我想在接下来的两周学习 Vue3 框架..."
+                  :auto-size="{ minRows: 2, maxRows: 4 }"
+                  :disabled="aiGenerateLoading"
+                  allow-clear
+                  class="ai-generate-input"
+                />
+                <Button
+                  variant="ai"
+                  @click="handleAIGenerate"
+                  :loading="aiGenerateLoading"
+                  :disabled="!aiGenerateText.trim()"
+                  class="ai-generate-btn"
+                >
+                  <template #icon><span>🚀</span></template>
+                  {{ aiGenerateLoading ? '生成中...' : '生成' }}
+                </Button>
+              </div>
+              <!-- 生成结果简洁提示 -->
+              <div class="ai-generate-result" v-if="aiGenerateDone">
+                <span class="ai-result-icon">✅</span>
+                <span>已填充计划信息</span>
+                <span class="ai-result-divider">·</span>
+                <span>已生成 <strong>{{ pendingTasks.length }}</strong> 个推荐任务</span>
+                <button class="ai-result-clear" @click="resetAIGenerate">清空重来</button>
+              </div>
+            </div>
+
             <a-form-item label="📝 计划标题 *" :error="errors.title">
               <a-input
                 v-model.trim="form.title"
@@ -194,6 +229,37 @@
             </div>
           </div>
         </Card>
+
+        <!-- 空状态引导（没有任何预览内容时显示） -->
+        <Card class="empty-state-card" v-if="!hasPreviewContent">
+          <div class="empty-state-content">
+            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-title">开始创建你的计划</div>
+            <div class="empty-state-subtitle">在左侧填写信息，这里会实时预览</div>
+            <div class="empty-state-steps">
+              <div class="empty-step">
+                <span class="empty-step-num">1</span>
+                <span class="empty-step-text">输入计划标题</span>
+              </div>
+              <div class="empty-step">
+                <span class="empty-step-num">2</span>
+                <span class="empty-step-text">选择起止日期</span>
+              </div>
+              <div class="empty-step">
+                <span class="empty-step-num">3</span>
+                <span class="empty-step-text">添加详细描述</span>
+              </div>
+              <div class="empty-step">
+                <span class="empty-step-num">4</span>
+                <span class="empty-step-text">点击创建完成</span>
+              </div>
+            </div>
+            <div class="empty-state-tip">
+              <span class="empty-tip-icon">💡</span>
+              <span>也可以使用 <strong>AI 智能生成</strong>，一句话自动填充表单和推荐任务</span>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
     </PullToRefresh>
@@ -207,7 +273,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Message } from "@arco-design/web-vue";
 import { usePlanStore } from "@/store/plans";
 import { useUserStore } from "@/store/user";
-import { optimizePlanWithAI, optimizePlanWithAIStream, quickValidatePlan } from "@/services/ai";
+import { optimizePlanWithAI, optimizePlanWithAIStream, quickValidatePlan, generatePlanFromTextStream } from "@/services/ai";
 import type {
   AIOptimizePlanResponse,
   AIRecommendedTask,
@@ -278,9 +344,21 @@ const aiResponse = ref<AIOptimizePlanResponse | null>(null);
 const streamContent = ref(""); // 流式输出的内容
 const pendingTasks = ref<AIRecommendedTask[]>([]); // 用户选择要创建的推荐任务（含时间/重复/描述）
 
+// AI 一句话生成相关状态
+const aiGenerateText = ref("");
+const aiGenerateLoading = ref(false);
+const aiGenerateDone = ref(false);
+
 // 是否可以进行 AI 优化（基本字段已填写）
 const canOptimize = computed(() => {
   return form.title.trim().length >= 2 && form.start_date && form.end_date;
+});
+
+// 右侧是否有预览内容
+const hasPreviewContent = computed(() => {
+  return aiLoading.value || streamContent.value.length > 0 || aiResponse.value
+    || pendingTasks.value.length > 0
+    || form.title;
 });
 
 // 辅助方法
@@ -492,6 +570,72 @@ function clearAISuggestions() {
   streamContent.value = "";
 }
 
+// AI 一句话生成计划
+async function handleAIGenerate() {
+  if (!aiGenerateText.value.trim()) return;
+  aiGenerateLoading.value = true;
+  aiGenerateDone.value = false;
+
+  try {
+    let fullContent = "";
+    const stream = generatePlanFromTextStream({
+      text: aiGenerateText.value.trim(),
+      user_context: `用户ID: ${userStore.user?.id}, 用户名: ${userStore.user?.username}`,
+    });
+
+    for await (const chunk of stream) {
+      fullContent += chunk;
+    }
+
+    // 解析 AI 返回的 JSON
+    const trimmed = fullContent.trim()
+      .replace(/^```(?:json)?\s*/gm, "")
+      .replace(/```$/gm, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      // 填充表单
+      if (parsed.optimized_plan) {
+        const plan = parsed.optimized_plan;
+        if (plan.title) form.title = plan.title;
+        if (plan.description) form.description = plan.description;
+        if (plan.start_date) form.start_date = plan.start_date;
+        if (plan.end_date) form.end_date = plan.end_date;
+        // 添加推荐任务
+        if (plan.recommended_tasks) {
+          pendingTasks.value = [];
+          plan.recommended_tasks.forEach((task: AIRecommendedTask) => {
+            pendingTasks.value.push({
+              ...task,
+              task_date: task.task_date || plan.start_date || "",
+            });
+          });
+        }
+      }
+      aiGenerateDone.value = true;
+      Message.success("AI 已生成计划方案！");
+    }
+  } catch (error) {
+    console.error("AI 生成计划失败:", error);
+    Message.error("AI 生成失败，请稍后重试");
+  } finally {
+    aiGenerateLoading.value = false;
+  }
+}
+
+function resetAIGenerate() {
+  aiGenerateText.value = "";
+  aiGenerateDone.value = false;
+  pendingTasks.value = [];
+  form.title = "";
+  form.description = "";
+  form.start_date = "";
+  form.end_date = "";
+}
+
 function isSameTask(a: AIRecommendedTask, b: AIRecommendedTask) {
   return (
     a.title === b.title &&
@@ -608,11 +752,13 @@ async function createRecommendedTasks(planId: number) {
 
   for (const task of pendingTasks.value) {
     try {
+      const taskDate = task.task_date || form.start_date;
       const taskPayload: CreateTaskPayload = {
         plan_id: planId,
         user_id: userStore.user.id,
         title: task.title,
-        task_date: task.task_date || form.start_date, // 默认从计划开始日期开始
+        start_date: taskDate,
+        end_date: task.end_date || taskDate,
         start_time: task.start_time,
         end_time: task.end_time,
         status: "pending",
@@ -995,6 +1141,178 @@ onMounted(async () => {
   border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 500;
+}
+
+/* AI 一句话生成区域 */
+.ai-generate-section {
+  background: linear-gradient(135deg, var(--ai-bg, rgba(99, 102, 241, 0.06)), rgba(139, 92, 246, 0.04));
+  border: 1px solid var(--ai-border, rgba(99, 102, 241, 0.15));
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.ai-generate-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.ai-generate-icon {
+  font-size: 20px;
+}
+
+.ai-generate-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.ai-generate-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-left: var(--space-1, 4px);
+}
+
+.ai-generate-input-row {
+  display: flex;
+  gap: var(--space-3, 12px);
+  align-items: flex-end;
+}
+
+.ai-generate-input {
+  flex: 1;
+}
+
+.ai-generate-btn {
+  flex-shrink: 0;
+  min-width: 90px;
+  white-space: nowrap;
+}
+
+.ai-generate-result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: var(--bg-main, #fff);
+  border-radius: var(--radius-md, 8px);
+}
+
+.ai-result-icon {
+  font-size: 14px;
+}
+
+.ai-result-divider {
+  color: var(--border-main, #e5e7eb);
+}
+
+.ai-result-clear {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--error, #ef4444);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  transition: background 0.2s;
+}
+
+.ai-result-clear:hover {
+  background: var(--error-bg, rgba(239, 68, 68, 0.1));
+}
+
+/* 空状态引导卡片 */
+.empty-state-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8, 32px) var(--space-6, 24px);
+  box-shadow: var(--shadow-sm);
+  border: 2px dashed var(--border-main, #e5e7eb);
+}
+
+.empty-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4, 16px);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  opacity: 0.7;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.empty-state-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: -8px;
+}
+
+.empty-state-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  width: 100%;
+  padding: var(--space-4, 16px);
+  background: var(--bg-main, #f9fafb);
+  border-radius: var(--radius-md, 8px);
+  margin-top: var(--space-2, 8px);
+}
+
+.empty-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.empty-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ai-main, #6366f1);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.empty-step-text {
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.empty-state-tip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: var(--space-3, 12px);
+  background: var(--ai-bg, rgba(99, 102, 241, 0.06));
+  border-radius: var(--radius-md, 8px);
+  width: 100%;
+  text-align: left;
+}
+
+.empty-tip-icon {
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 /* 响应式设计 */

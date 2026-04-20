@@ -315,9 +315,12 @@
               <ul class="task-list">
                 <li
                   v-for="task in group.tasks"
-                  :key="task.id"
+                  :key="task.isMerged ? 'merged-' + task.repeat_group_id : task.id"
                   class="task-item"
-                  :class="{ completed: task.status === 'done' }"
+                  :class="{
+                    completed: task.isMerged ? task.doneCount === task.totalCount : task.status === 'done',
+                    'merged-task': task.isMerged
+                  }"
                 >
                   <!-- 编辑态 -->
                   <template v-if="editingId === task.id">
@@ -335,22 +338,36 @@
                     <input
                       type="checkbox"
                       class="task-checkbox"
-                      :checked="task.status === 'done'"
+                      :checked="task.isMerged ? task.doneCount === task.totalCount : task.status === 'done'"
                       @change="toggleTask(task)"
                     />
-                    <span class="task-status-dot" :class="task.status"></span>
+                    <span class="task-status-dot" :class="task.isMerged ? (task.doneCount === task.totalCount ? 'done' : 'partial') : task.status"></span>
                     <div class="task-content">
-                      <span class="task-title">{{ task.title }}</span>
+                      <span class="task-title">
+                        {{ task.title }}
+                        <span v-if="task.isMerged" class="merged-badge">
+                          🔄 {{ task.repeat_type === 'daily' ? '每日' : task.repeat_type === 'weekly' ? '每周' : '每月' }}
+                        </span>
+                      </span>
                       <div class="task-meta">
                         <span class="task-date">
                           {{ formatDateShort(task.start_date) }}
                           <span v-if="task.start_date !== task.end_date">
                             - {{ formatDateShort(task.end_date) }}
-                            <span class="task-duration">📅 {{ calculateDuration(task.start_date, task.end_date) }}天</span>
                           </span>
                         </span>
-                        <span v-if="task.repeat_type && task.repeat_type !== 'none'" class="task-repeat">
-                          {{ task.repeat_type === 'daily' ? '📅 每日' : '📆 每月' }}
+                        <!-- 合并任务进度 -->
+                        <span v-if="task.isMerged" class="task-progress">
+                          <span class="progress-bar">
+                            <span class="progress-fill" :style="{ width: (task.doneCount / task.totalCount * 100) + '%' }"></span>
+                          </span>
+                          <span class="progress-text">{{ task.doneCount }}/{{ task.totalCount }}</span>
+                        </span>
+                        <span v-else-if="task.start_date !== task.end_date" class="task-duration">
+                          {{ calculateDuration(task.start_date, task.end_date) }}天
+                        </span>
+                        <span v-if="!task.isMerged && task.repeat_type && task.repeat_type !== 'none'" class="task-repeat">
+                          {{ task.repeat_type === 'daily' ? '📅 每日' : task.repeat_type === 'weekly' ? '📆 每周' : '📆 每月' }}
                         </span>
                         <span v-if="task.note" class="task-note">{{ task.note }}</span>
                       </div>
@@ -426,11 +443,55 @@ const editForm = reactive({
   end_date: "",
 });
 
-// 筛选选项
+// 合并重复任务 - 相同 repeat_group_id 的任务合并为一条显示
+const mergedTaskList = computed(() => {
+  const tasks = taskStore.tasks.filter(t => t.plan_id === planId);
+  const result: any[] = [];
+  const groupMap = new Map<number, any[]>();
+
+  for (const task of tasks) {
+    if (task.repeat_group_id) {
+      if (!groupMap.has(task.repeat_group_id)) {
+        groupMap.set(task.repeat_group_id, []);
+      }
+      groupMap.get(task.repeat_group_id)!.push({ ...task });
+    } else {
+      result.push({ ...task, isMerged: false });
+    }
+  }
+
+  for (const [, group] of groupMap) {
+    const sorted = [...group].sort((a, b) => a.start_date.localeCompare(b.start_date));
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const doneCount = sorted.filter(t => t.status === 'done').length;
+    const totalCount = sorted.length;
+
+    result.push({
+      id: first.id,
+      title: first.title,
+      plan_id: first.plan_id,
+      start_date: first.start_date,
+      end_date: last.end_date,
+      status: doneCount === totalCount ? 'done' : 'partial',
+      repeat_type: first.repeat_type,
+      repeat_group_id: first.repeat_group_id,
+      note: first.note,
+      isMerged: true,
+      totalCount,
+      doneCount,
+      subTasks: sorted,
+    });
+  }
+
+  return result;
+});
+
+// 筛选选项（基于合并后的任务列表）
 const statusFilters = computed(() => [
-  { key: 'all', label: '全部', count: taskStore.tasks.filter(t => t.plan_id === planId).length },
-  { key: 'pending', label: '待完成', count: taskStore.tasks.filter(t => t.plan_id === planId && t.status !== 'done').length },
-  { key: 'done', label: '已完成', count: taskStore.tasks.filter(t => t.plan_id === planId && t.status === 'done').length },
+  { key: 'all', label: '全部', count: mergedTaskList.value.length },
+  { key: 'pending', label: '待完成', count: mergedTaskList.value.filter(t => t.isMerged ? t.doneCount < t.totalCount : t.status !== 'done').length },
+  { key: 'done', label: '已完成', count: mergedTaskList.value.filter(t => t.isMerged ? t.doneCount === t.totalCount : t.status === 'done').length },
 ]);
 
 // ========== 计算属性 ==========
@@ -476,32 +537,43 @@ const weeklyStats = computed(() => {
   return { completed, total, completionRate, remaining: total - completed };
 });
 
-// 任务分组
+// 辅助函数：判断合并任务是否属于某日期范围（用于分组）
+function isTaskInDateRange(task: any, rangeStart: string, rangeEnd: string): boolean {
+  if (task.isMerged) {
+    // 合并任务：只要子任务中有任何一天在范围内就属于该分组
+    return task.subTasks.some((st: any) =>
+      st.start_date >= rangeStart && st.start_date <= rangeEnd
+    );
+  }
+  return task.start_date >= rangeStart && task.start_date <= rangeEnd;
+}
+
+// 辅助函数：判断合并任务的分组日期（用于排除逻辑）
+function getTaskGroupDate(task: any): string {
+  if (task.isMerged) {
+    // 合并任务：用第一个未完成子任务的日期作为分组依据
+    const undone = task.subTasks.find((st: any) => st.status !== 'done');
+    return undone ? undone.start_date : task.start_date;
+  }
+  return task.start_date;
+}
+
+// 辅助函数：判断任务是否已完成
+function isTaskDone(task: any): boolean {
+  if (task.isMerged) return task.doneCount === task.totalCount;
+  return task.status === 'done';
+}
+
+// 任务分组（基于合并后的任务列表）
 const filteredGroups = computed(() => {
-  console.log('[PlanTasksPage] ========== 开始计算任务分组 ==========');
-  console.log('[PlanTasksPage] planId:', planId);
-  console.log('[PlanTasksPage] 所有任务数量:', taskStore.tasks.length);
-  console.log('[PlanTasksPage] 所有任务:', JSON.stringify(taskStore.tasks));
-  
-  let tasks = taskStore.tasks.filter(t => t.plan_id === planId);
-  console.log('[PlanTasksPage] 筛选后的任务数量:', tasks.length);
-  console.log('[PlanTasksPage] 筛选后的任务:', JSON.stringify(tasks));
-  
-  // 检查任务是否有必要的字段
-  tasks.forEach((task, idx) => {
-    if (!task.start_date || !task.end_date) {
-      console.warn(`[PlanTasksPage] ⚠️ 任务 ${task.id} 缺少日期字段:`, task);
-    }
-  });
+  let tasks = [...mergedTaskList.value];
 
   // 状态筛选
   if (activeFilter.value === 'pending') {
-    tasks = tasks.filter(t => t.status !== 'done');
+    tasks = tasks.filter(t => !isTaskDone(t));
   } else if (activeFilter.value === 'done') {
-    tasks = tasks.filter(t => t.status === 'done');
+    tasks = tasks.filter(t => isTaskDone(t));
   }
-  
-  console.log('[PlanTasksPage] 状态筛选后的任务数量:', tasks.length);
 
   if (viewMode.value === 'flat') {
     return [{
@@ -517,7 +589,7 @@ const filteredGroups = computed(() => {
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   
-  // 正确计算本周开始和结束日期
+  // 计算本周开始和结束日期
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - now.getDay());
@@ -526,40 +598,45 @@ const filteredGroups = computed(() => {
   
   const weekStartStr = weekStart.toISOString().slice(0, 10);
   const weekEndStr = weekEnd.toISOString().slice(0, 10);
-  
-  console.log('[PlanTasksPage] 日期范围:', { today, tomorrow, weekStartStr, weekEndStr });
 
-  // 今天：精确匹配 start_date
-  const todayTasks = tasks.filter(t => 
-    t.start_date === today
-  );
-  console.log('[PlanTasksPage] 今天任务数量:', todayTasks.length);
-  console.log('[PlanTasksPage] 今天任务:', JSON.stringify(todayTasks));
+  // 今天：任务覆盖今天
+  const todayTasks = tasks.filter(t => {
+    const groupDate = getTaskGroupDate(t);
+    if (t.isMerged) {
+      // 合并任务：子任务中有今天的
+      return t.subTasks.some((st: any) => st.start_date === today);
+    }
+    return groupDate === today;
+  });
   if (todayTasks.length > 0) {
     groups.push({ key: 'today', type: 'today', icon: '📌', title: '今天', tasks: todayTasks });
   }
 
-  // 明天：精确匹配 start_date
-  const tomorrowTasks = tasks.filter(t => 
-    t.start_date === tomorrow
-  );
+  // 明天
+  const tomorrowTasks = tasks.filter(t => {
+    if (t.isMerged) {
+      return t.subTasks.some((st: any) => st.start_date === tomorrow) &&
+             !t.subTasks.some((st: any) => st.start_date === today);
+    }
+    return getTaskGroupDate(t) === tomorrow;
+  });
   if (tomorrowTasks.length > 0) {
     groups.push({ key: 'tomorrow', type: 'future', icon: '📅', title: '明天', tasks: tomorrowTasks });
   }
 
-  // 本周：start_date 在本周范围内（排除今天和明天）
+  // 本周（排除今天和明天）
   const weekTasks = tasks.filter(t => {
-    const taskStart = new Date(t.start_date);
-    const weekStart = new Date(weekStartStr);
-    const weekEnd = new Date(weekEndStr);
-    
-    // 排除今天和明天
-    const isToday = t.start_date === today;
-    const isTomorrow = t.start_date === tomorrow;
-    
-    return !isToday && !isTomorrow &&
-           taskStart >= weekStart &&
-           taskStart <= weekEnd;
+    if (t.isMerged) {
+      const hasToday = t.subTasks.some((st: any) => st.start_date === today);
+      const hasTomorrow = t.subTasks.some((st: any) => st.start_date === tomorrow);
+      const hasWeekTask = t.subTasks.some((st: any) =>
+        st.start_date >= weekStartStr && st.start_date <= weekEndStr
+      );
+      return hasWeekTask && !hasToday && !hasTomorrow;
+    }
+    const groupDate = getTaskGroupDate(t);
+    return groupDate !== today && groupDate !== tomorrow &&
+           groupDate >= weekStartStr && groupDate <= weekEndStr;
   });
   if (weekTasks.length > 0) {
     groups.push({
@@ -571,10 +648,13 @@ const filteredGroups = computed(() => {
     });
   }
 
-  // 逾期：任务结束日期早于今天且未完成
-  const overdueTasks = tasks.filter(t => 
-    t.end_date < today && t.status !== 'done'
-  );
+  // 逾期：合并任务中有未完成且结束日期早于今天的子任务
+  const overdueTasks = tasks.filter(t => {
+    if (t.isMerged) {
+      return t.subTasks.some((st: any) => st.end_date < today && st.status !== 'done');
+    }
+    return t.end_date < today && t.status !== 'done';
+  });
   if (overdueTasks.length > 0) {
     groups.push({
       key: 'overdue',
@@ -586,9 +666,12 @@ const filteredGroups = computed(() => {
   }
 
   // 未来：任务开始日期晚于本周
-  const futureTasks = tasks.filter(t => 
-    t.start_date > weekEndStr
-  );
+  const futureTasks = tasks.filter(t => {
+    if (t.isMerged) {
+      return t.subTasks.every((st: any) => st.start_date > weekEndStr);
+    }
+    return getTaskGroupDate(t) > weekEndStr;
+  });
   if (futureTasks.length > 0) {
     groups.push({
       key: 'future',
@@ -599,9 +682,6 @@ const filteredGroups = computed(() => {
     });
   }
 
-  console.log('[PlanTasksPage] 最终分组数量:', groups.length);
-  console.log('[PlanTasksPage] 最终分组:', JSON.stringify(groups));
-  console.log('[PlanTasksPage] ========== 分组计算完成 ==========');
   return groups;
 });
 
@@ -615,10 +695,11 @@ const calendarDays = computed(() => {
   
   for (let day = 1; day <= lastDay; day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    // 精确匹配：只查找当天开始的任务
+    // 范围匹配：查找覆盖当天的所有任务（start_date <= dateStr <= end_date）
     const tasks = taskStore.tasks.filter(t => 
       t.plan_id === planId && 
-      t.start_date === dateStr
+      t.start_date <= dateStr &&
+      t.end_date >= dateStr
     );
     const allDone = tasks.length > 0 && tasks.every(t => t.status === 'done');
     
@@ -786,7 +867,17 @@ async function quickAddTask() {
 
 // 切换任务状态
 async function toggleTask(task: any) {
-  await taskStore.toggleTaskStatus(task.id);
+  if (task.isMerged) {
+    // 合并任务：切换今天的子任务，如果没有则切换第一个未完成的
+    const today = new Date().toISOString().slice(0, 10);
+    const todaySub = task.subTasks.find((st: any) => st.start_date === today);
+    const target = todaySub || task.subTasks.find((st: any) => st.status !== 'done');
+    if (target) {
+      await taskStore.toggleTaskStatus(target.id);
+    }
+  } else {
+    await taskStore.toggleTaskStatus(task.id);
+  }
   await taskStore.loadTasks(planId);
 }
 
@@ -817,8 +908,17 @@ async function saveEdit() {
 
 // 删除任务
 async function deleteTask(task: any) {
-  if (!confirm(`确认删除任务「${task.title}」？`)) return;
-  await taskStore.deleteTask(task.id);
+  if (task.isMerged) {
+    const totalCount = task.totalCount;
+    if (!confirm(`确认删除重复任务「${task.title}」及其所有 ${totalCount} 个子任务？`)) return;
+    // 删除所有子任务
+    for (const sub of task.subTasks) {
+      await taskStore.deleteTask(sub.id);
+    }
+  } else {
+    if (!confirm(`确认删除任务「${task.title}」？`)) return;
+    await taskStore.deleteTask(task.id);
+  }
   await taskStore.loadTasks(planId);
 }
 
@@ -1515,6 +1615,66 @@ onMounted(async () => {
 
 .task-status-dot.done {
   background: var(--success);
+}
+
+.task-status-dot.partial {
+  background: linear-gradient(135deg, var(--success), var(--warning));
+}
+
+/* ========== 合并任务样式 ========== */
+.task-item.merged-task {
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--ai-main);
+  background: var(--ai-bg);
+  border-radius: var(--radius-sm);
+}
+
+.task-item.merged-task:hover {
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.merged-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ai-main);
+  background: rgba(79, 70, 229, 0.1);
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}
+
+/* 任务进度条 */
+.task-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 11px;
+}
+
+.progress-bar {
+  width: 60px;
+  height: 6px;
+  background: rgba(120, 120, 120, 0.15);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ai-main), var(--success));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .task-content {

@@ -49,7 +49,7 @@ const formattedDuration = computed(() => {
 .timer-label {
   font-size: 14px;
   font-weight: 400;
-  color: var(--focus-text-secondary, rgba(229, 231, 235, 0.7));
+  color: var(--focus-text-secondary);
   letter-spacing: 2px;
   text-transform: uppercase;
 }
@@ -57,11 +57,12 @@ const formattedDuration = computed(() => {
 .timer-value {
   font-size: 48px;
   font-weight: 600;
-  color: var(--focus-text, #e5e7eb);
+  color: var(--focus-timer);
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: 2px;
   line-height: 1;
+  text-shadow: 0 0 20px var(--focus-timer-glow), 0 0 60px var(--focus-timer-glow);
 }
 
 /* 响应式 */

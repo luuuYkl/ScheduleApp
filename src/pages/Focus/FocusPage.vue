@@ -230,7 +230,7 @@ const currentTimePosition = computed(() => {
 });
 
 // ========== 辅助函数 ==========
-function parseTimeToHour(timeStr?: string): number {
+function parseTimeToHour(timeStr?: string | null): number {
   if (!timeStr) return 0;
   const [h, m] = timeStr.split(':').map(Number);
   return h + (m || 0) / 60;
@@ -335,8 +335,9 @@ onUnmounted(() => {
 .focus-page {
   width: 100vw;
   height: 100vh;
-  background: var(--focus-bg, #1a1a1a);
-  color: var(--focus-text, #e5e7eb);
+  background: var(--focus-bg);
+  background-image: var(--focus-bg-gradient);
+  color: var(--focus-text);
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -1,7 +1,5 @@
 <template>
   <PageScaffold
-    title="日历"
-    :subtitle="selectedPlanTitle || '选择计划查看日历'"
     show-back-button
     @back="goBack"
     class="layer-context"

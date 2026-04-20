@@ -213,7 +213,7 @@ onMounted(() => {
 
 .hour-label {
   font-size: 10px;
-  color: var(--focus-text-muted, rgba(229, 231, 235, 0.4));
+  color: var(--focus-text-muted);
   font-variant-numeric: tabular-nums;
   width: 32px;
   text-align: right;
@@ -223,16 +223,16 @@ onMounted(() => {
 .hour-line {
   flex: 1;
   height: 1px;
-  background: var(--focus-border, rgba(255, 255, 255, 0.1));
+  background: var(--focus-border);
 }
 
 .hour-mark.current-hour .hour-label {
-  color: var(--focus-accent, #3b82f6);
+  color: var(--focus-accent);
   font-weight: 600;
 }
 
 .hour-mark.current-hour .hour-line {
-  background: var(--focus-accent, #3b82f6);
+  background: var(--focus-accent);
   height: 1px;
 }
 
@@ -240,8 +240,8 @@ onMounted(() => {
 .events-area {
   flex: 1;
   position: relative;
-  background: var(--focus-events-bg, rgba(255, 255, 255, 0.02));
-  border-radius: 8px;
+  background: var(--focus-events-bg);
+  border-radius: var(--radius-sm);
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 100%;
@@ -249,7 +249,7 @@ onMounted(() => {
   padding: var(--space-2);
   /* 自定义滚动条 */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: var(--focus-scrollbar) transparent;
 }
 
 .events-area::-webkit-scrollbar {
@@ -261,12 +261,12 @@ onMounted(() => {
 }
 
 .events-area::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  background: var(--focus-scrollbar);
+  border-radius: var(--radius-xs);
 }
 
 .events-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--focus-scrollbar-hover);
 }
 
 /* 当前时间指示器 */
@@ -285,15 +285,15 @@ onMounted(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--focus-current-time, #ef4444);
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+  background: var(--focus-current-time);
+  box-shadow: 0 0 6px var(--focus-current-time-glow);
   flex-shrink: 0;
 }
 
 .indicator-line {
   flex: 1;
   height: 2px;
-  background: linear-gradient(90deg, var(--focus-current-time, #ef4444), transparent);
+  background: linear-gradient(90deg, var(--focus-current-time), transparent);
 }
 
 /* 事件块 */
@@ -305,7 +305,7 @@ onMounted(() => {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border-radius: 6px;
+  border-radius: var(--radius-2xs);
   min-height: 24px;
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
@@ -313,35 +313,35 @@ onMounted(() => {
 
 /* 事件类型颜色 */
 .event-block.task {
-  background: rgba(37, 99, 235, 0.15);
-  border-left: 2px solid rgba(37, 99, 235, 0.6);
+  background: var(--focus-event-task-bg);
+  border-left: 2px solid var(--focus-event-task-border);
 }
 
 .event-block.schedule {
-  background: rgba(168, 85, 247, 0.15);
-  border-left: 2px solid rgba(168, 85, 247, 0.6);
+  background: var(--focus-event-schedule-bg);
+  border-left: 2px solid var(--focus-event-schedule-border);
 }
 
 .event-block.focus {
-  background: rgba(239, 68, 68, 0.15);
-  border-left: 2px solid rgba(239, 68, 68, 0.6);
+  background: var(--focus-event-focus-bg);
+  border-left: 2px solid var(--focus-event-focus-border);
 }
 
 .event-block.meal {
-  background: rgba(245, 158, 11, 0.15);
-  border-left: 2px solid rgba(245, 158, 11, 0.6);
+  background: var(--focus-event-meal-bg);
+  border-left: 2px solid var(--focus-event-meal-border);
 }
 
 .event-block.break {
-  background: rgba(34, 197, 94, 0.15);
-  border-left: 2px solid rgba(34, 197, 94, 0.6);
+  background: var(--focus-event-break-bg);
+  border-left: 2px solid var(--focus-event-break-border);
 }
 
 /* 当前事件高亮 */
 .event-block.is-current {
   opacity: 1;
   transform: scale(1.02);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* 非当前事件降低透明度 */
@@ -368,7 +368,7 @@ onMounted(() => {
 .event-title {
   font-size: 12px;
   font-weight: 500;
-  color: var(--focus-text, #e5e7eb);
+  color: var(--focus-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -394,7 +394,7 @@ onMounted(() => {
 
 .empty-text {
   font-size: 12px;
-  color: var(--focus-text-muted, rgba(229, 231, 235, 0.4));
+  color: var(--focus-text-muted);
 }
 
 /* 响应式 */

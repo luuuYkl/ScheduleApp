@@ -143,24 +143,25 @@ function getTaskIcon(event: TimelineEvent): string {
 /* 冲突任务提示 */
 .conflict-hint {
   font-size: 12px;
-  color: var(--focus-text-secondary, rgba(229, 231, 235, 0.6));
+  color: var(--focus-text-secondary);
   padding: 6px 12px;
-  background: rgba(59, 130, 246, 0.1);
-  border-radius: 20px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: var(--focus-accent-bg);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--focus-button-border);
 }
 
 /* 任务卡片 */
 .task-card {
   width: 100%;
   padding: 32px;
-  background: var(--focus-card-bg, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--focus-card-border, rgba(255, 255, 255, 0.1));
-  border-radius: 16px;
+  background: var(--focus-card);
+  border: 1px solid var(--focus-card-border);
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   gap: 20px;
   backdrop-filter: blur(10px);
+  box-shadow: 0 0 40px rgba(96, 165, 250, 0.03);
 }
 
 .task-header {
@@ -177,7 +178,7 @@ function getTaskIcon(event: TimelineEvent): string {
 .task-title {
   font-size: 26px;
   font-weight: 600;
-  color: var(--focus-text, #e5e7eb);
+  color: var(--focus-text);
   line-height: 1.3;
   flex: 1;
   word-break: break-word;
@@ -190,7 +191,7 @@ function getTaskIcon(event: TimelineEvent): string {
   font-size: 16px;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   font-variant-numeric: tabular-nums;
-  color: var(--focus-text-secondary, rgba(229, 231, 235, 0.7));
+  color: var(--focus-text-secondary);
 }
 
 .time-start,
@@ -199,7 +200,7 @@ function getTaskIcon(event: TimelineEvent): string {
 }
 
 .time-separator {
-  color: var(--focus-text-muted, rgba(229, 231, 235, 0.4));
+  color: var(--focus-text-muted);
 }
 
 .task-remaining {
@@ -207,18 +208,18 @@ function getTaskIcon(event: TimelineEvent): string {
   align-items: center;
   gap: 8px;
   padding-top: 16px;
-  border-top: 1px solid var(--focus-card-border, rgba(255, 255, 255, 0.1));
+  border-top: 1px solid var(--focus-card-border);
 }
 
 .remaining-label {
   font-size: 14px;
-  color: var(--focus-text-secondary, rgba(229, 231, 235, 0.7));
+  color: var(--focus-text-secondary);
 }
 
 .remaining-value {
   font-size: 18px;
   font-weight: 600;
-  color: var(--focus-accent, #3b82f6);
+  color: var(--focus-accent);
   font-variant-numeric: tabular-nums;
 }
 
@@ -229,16 +230,16 @@ function getTaskIcon(event: TimelineEvent): string {
   align-items: center;
   gap: 24px;
   padding: 32px;
-  background: var(--focus-card-bg, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--focus-card-border, rgba(255, 255, 255, 0.08));
-  border-radius: 16px;
+  background: var(--focus-card);
+  border: 1px solid var(--focus-card-border);
+  border-radius: var(--radius-lg);
   backdrop-filter: blur(10px);
 }
 
 .no-task-text {
   font-size: 18px;
   font-weight: 500;
-  color: var(--focus-text-secondary, rgba(229, 231, 235, 0.6));
+  color: var(--focus-text-secondary);
 }
 
 .no-task-actions {
@@ -251,10 +252,10 @@ function getTaskIcon(event: TimelineEvent): string {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: var(--focus-button-bg, rgba(59, 130, 246, 0.1));
-  border: 1px solid var(--focus-button-border, rgba(59, 130, 246, 0.3));
-  border-radius: 10px;
-  color: var(--focus-text, #e5e7eb);
+  background: var(--focus-button-bg);
+  border: 1px solid var(--focus-button-border);
+  border-radius: var(--radius-md);
+  color: var(--focus-text);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -263,8 +264,8 @@ function getTaskIcon(event: TimelineEvent): string {
 }
 
 .action-btn:hover {
-  background: var(--focus-button-hover, rgba(59, 130, 246, 0.2));
-  border-color: var(--focus-button-border-hover, rgba(59, 130, 246, 0.5));
+  background: var(--focus-button-hover-bg);
+  border-color: var(--focus-button-hover-border);
   transform: translateY(-1px);
 }
 

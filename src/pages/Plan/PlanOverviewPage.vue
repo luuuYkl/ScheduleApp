@@ -14,7 +14,7 @@
   └────────────────────────────────────────────────────────────────────┘
 -->
 <template>
-  <PageScaffold title="计划" subtitle="管理你的所有计划">
+  <PageScaffold>
     <template #actions>
       <Button variant="primary" size="sm" @click="goCreatePlan">
         + 新建计划
@@ -199,12 +199,14 @@
           </div>
 
           <!-- 空状态 -->
-          <div v-if="filteredPlans.length === 0" class="empty-state">
-            <div class="empty-icon">📋</div>
-            <p>暂无符合条件的计划</p>
-            <p class="empty-hint">尝试调整筛选条件或创建新计划</p>
-            <Button @click="goCreatePlan" variant="outline"> 创建第一个计划 </Button>
-          </div>
+          <EmptyState
+            v-if="filteredPlans.length === 0"
+            icon="📋"
+            title="暂无符合条件的计划"
+            description="尝试调整筛选条件或创建新计划"
+            action="创建第一个计划"
+            @action-click="goCreatePlan"
+          />
         </div>
       </div>
 
@@ -320,6 +322,7 @@ import { useRouter } from "vue-router";
 import { usePlanStore } from "@/store/plans";
 import PageScaffold from "@/components/common/PageScaffold.vue";
 import Button from "@/components/common/Button.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
 
 interface Plan {
   id: string;

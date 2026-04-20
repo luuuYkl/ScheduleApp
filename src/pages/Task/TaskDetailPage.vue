@@ -1,7 +1,5 @@
 <template>
   <PageScaffold
-    :title="pageTitle"
-    :subtitle="pageSubtitle"
     class="layer-context"
   >
     <template #actions>

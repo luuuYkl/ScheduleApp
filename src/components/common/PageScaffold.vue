@@ -53,7 +53,7 @@
 import { ref, useSlots } from 'vue';
 
 interface Props {
-  title: string;
+  title?: string;
   subtitle?: string;
   collapsibleHeader?: boolean;
 }

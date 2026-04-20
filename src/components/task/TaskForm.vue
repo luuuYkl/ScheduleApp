@@ -157,6 +157,7 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { useTaskStore } from "@/store/tasks";
 import { useUserStore } from "@/store/user";
 import { usePlanStore } from "@/store/plans";
+import { generateRepeatTaskPayloads } from "@/services/repeat-task";
 
 const emit = defineEmits<{
   (e: "created", task: any): void;
@@ -265,7 +266,7 @@ async function handleSubmit() {
     const plans = planStore.plans;
     const actualPlanId = planId > 0 ? planId : (plans.length > 0 ? plans[0].id : 1);
 
-    const taskData = {
+    const basePayload = {
       plan_id: actualPlanId,
       user_id: user?.id || 1,
       title: form.title.trim(),
@@ -280,7 +281,12 @@ async function handleSubmit() {
       repeat_end_date: form.repeat_type !== "none" ? form.repeat_end_date : undefined,
     };
 
-    const newTask = await taskStore.createTask(taskData);
+    // 使用 generateRepeatTaskPayloads 拆分重复任务为独立记录
+    const payloads = generateRepeatTaskPayloads(basePayload);
+    let newTask: any = null;
+    for (const payload of payloads) {
+      newTask = await taskStore.createTask(payload);
+    }
     
     // 重置表单
     form.title = "";

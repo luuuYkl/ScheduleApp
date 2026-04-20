@@ -1,17 +1,16 @@
 <!-- src/components/log/LogCard.vue -->
-<!-- 日志卡片组件 -->
+<!-- 日志卡片组件 - 标准卡片风格 -->
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import type { LogEntry } from '@/services/generate-log';
-import { formatDateDisplay, formatWeekdayDisplay } from '@/utils/log-grouping';
 
 interface Props {
   log: LogEntry;
   expanded: boolean;
   efficiencyRating: 1 | 2 | 3 | 4;
   summary: string;
-  tasks?: any[]; // 任务列表
+  tasks?: any[];
 }
 
 const props = defineProps<Props>();
@@ -35,45 +34,35 @@ const completionClass = computed(() => {
   return 'low';
 });
 
-const riskLevel = computed(() => {
-  if (completionRate.value >= 75) return 'low-risk';
-  if (completionRate.value >= 50) return 'medium-risk';
-  return 'high-risk';
-});
-
-const riskLabel = computed(() => {
-  if (completionRate.value >= 75) return '低风险';
-  if (completionRate.value >= 50) return '中等风险';
-  return '高风险';
-});
-
 const moodEmoji = computed(() => {
   const emojis: Record<string, string> = {
-    happy: '😊',
-    calm: '😌',
-    anxious: '😰',
-    tired: '😴',
-    focused: '🎯',
-    stressed: '😫'
+    happy: '😊', calm: '😌', anxious: '😰',
+    tired: '😴', focused: '🎯', stressed: '😫'
   };
   return emojis[props.log.mood || ''] || '';
 });
 
-const moodLabel = computed(() => {
-  const labels: Record<string, string> = {
-    happy: '开心',
-    calm: '平静',
-    anxious: '焦虑',
-    tired: '疲劳',
-    focused: '专注',
-    stressed: '压力'
-  };
-  return labels[props.log.mood || ''] || '';
+// 日期格式化
+const formattedDate = computed(() => {
+  const date = new Date(props.log.date);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const dateStr = props.log.date;
+  const todayStr = today.toISOString().slice(0, 10);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  
+  if (dateStr === todayStr) return '今天';
+  if (dateStr === yesterdayStr) return '昨天';
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
 });
 
-// 格式化日期
-const formattedDate = computed(() => formatDateDisplay(props.log.date));
-const formattedWeekday = computed(() => formatWeekdayDisplay(props.log.date));
+const formattedWeekday = computed(() => {
+  const date = new Date(props.log.date);
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  return weekdays[date.getDay()];
+});
 
 // 报告高度变化
 function reportHeight() {
@@ -83,74 +72,72 @@ function reportHeight() {
   }
 }
 
-// 监听展开状态变化
-watch(() => props.expanded, (newVal) => {
-  // 等待过渡动画完成后报告高度
+watch(() => props.expanded, () => {
   setTimeout(() => {
     reportHeight();
-  }, 350); // grid动画时间300ms + 缓冲50ms
+  }, 350);
 });
 
-// 初始高度报告
 onMounted(() => {
   reportHeight();
 });
 </script>
 
 <template>
-  <!-- ========== 整体容器：日志卡片 ========== -->
   <div 
     ref="cardRef"
     class="log-card"
-    :class="{ expanded }"
+    :class="[completionClass, { expanded }]"
   >
-    <!-- ========== 摘要区域：折叠状态可见 ========== -->
-    <div class="log-summary" @click="$emit('toggle')">
-      <!-- 左侧信息区：日期和完成进度 -->
-      <div class="summary-left">
-        <!-- 日期信息 -->
-        <div class="log-date-info">
-          <span class="date-text">{{ formattedDate }}</span> <!-- 日期：3月23日 -->
-          <span class="date-weekday">{{ formattedWeekday }}</span> <!-- 星期：周日 -->
-        </div>
-        <!-- 任务完成进度条 -->
-        <div class="log-completion" :class="completionClass">
-          <div class="completion-bar"> <!-- 进度条背景 -->
-            <!-- 进度条填充（动态宽度） -->
-            <div 
-              class="completion-fill"
-              :style="{ width: `${completionRate}%` }"
-            ></div>
-          </div>
-          <span class="completion-text"> <!-- 完成数量：5/8 -->
-            {{ log.tasks_done }}/{{ log.tasks_total }}
-          </span>
-        </div>
+    <!-- ====== 卡片头部（摘要） ====== -->
+    <div class="log-card-header" @click="$emit('toggle')">
+      <div class="header-left">
+        <span class="log-date">
+          <span class="date-text">{{ formattedDate }}</span>
+          <span class="date-weekday">{{ formattedWeekday }}</span>
+        </span>
       </div>
       
-      <!-- 右侧信息区：效率评分和摘要 -->
-      <div class="summary-right">
-        <!-- 效率评分：⚡星星 -->
-        <div class="efficiency-rating">
-          <span v-for="i in 4" :key="i" class="star">
-            {{ i <= efficiencyRating ? '⚡' : '⚪' }}
-          </span>
+      <div class="log-completion" :class="completionClass">
+        <div class="completion-bar">
+          <div class="completion-fill" :style="{ width: completionRate + '%' }"></div>
         </div>
-        <!-- 日志摘要文本 -->
-        <div class="log-summary-text">{{ summary }}</div>
+        <span class="completion-text">{{ log.tasks_done }}/{{ log.tasks_total }}</span>
       </div>
       
-      <!-- 展开/收起指示器：▼箭头 -->
-      <span class="expand-indicator" :class="{ rotated: expanded }">▼</span>
+      <span class="expand-icon" :class="{ expanded }">▼</span>
     </div>
     
-    <!-- ========== 详细区域：展开后可见 ========== -->
+    <!-- ====== 卡片摘要体 ====== -->
+    <div class="log-card-body" @click="$emit('toggle')" style="cursor: pointer;">
+      <p class="log-content">{{ summary }}</p>
+      <div class="log-tags">
+        <span 
+          class="log-tag completion" 
+          :class="completionClass"
+        >
+          {{ completionRate }}% 完成
+        </span>
+        <span class="log-tag mood" v-if="moodEmoji">
+          {{ moodEmoji }}
+        </span>
+        <span class="log-tag" :class="completionClass === 'high' ? 'low-risk' : completionClass === 'medium' ? 'med-risk' : 'high-risk'">
+          {{ completionClass === 'high' ? '低风险' : completionClass === 'medium' ? '中等' : '高风险' }}
+        </span>
+      </div>
+    </div>
+    
+    <!-- ====== 详细区域 ====== -->
     <div class="log-details-wrapper" :class="{ expanded }">
       <div class="log-details">
         <div class="log-details-inner">
-          <!-- 任务列表部分 -->
+          <!-- 任务完成情况 -->
           <div class="detail-section" v-if="tasks && tasks.length > 0">
-            <h4 class="detail-title">📋 完成情况</h4>
+            <div class="item-header">
+              <span class="item-icon">📋</span>
+              <span class="item-title">完成情况</span>
+              <span class="detail-count">{{ log.tasks_done }}/{{ log.tasks_total }}</span>
+            </div>
             <div class="task-list">
               <div 
                 v-for="task in tasks" 
@@ -158,47 +145,50 @@ onMounted(() => {
                 class="task-item"
                 :class="{ done: task.status === 'done' }"
               >
-                <span class="task-icon"> <!-- 任务状态图标 -->
-                  {{ task.status === 'done' ? '✅' : '❌' }}
-                </span>
-                <span class="task-title">{{ task.title }}</span> <!-- 任务标题 -->
+                <span class="task-status">{{ task.status === 'done' ? '✅' : '❌' }}</span>
+                <span class="task-title">{{ task.title }}</span>
               </div>
             </div>
           </div>
           
-          <!-- 日志内容部分 -->
+          <!-- 日志内容 -->
           <div class="detail-section" v-if="log.content">
-            <h4 class="detail-title">📝 日志内容</h4>
-            <p class="detail-content">{{ log.content }}</p>
+            <div class="item-header">
+              <span class="item-icon">📝</span>
+              <span class="item-title">日志内容</span>
+            </div>
+            <p class="item-content">{{ log.content }}</p>
           </div>
           
-          <!-- AI分析部分 -->
+          <!-- 行为标签 -->
           <div class="detail-section">
-            <h4 class="detail-title">🧠 行为分析</h4>
-            <div class="analysis-grid"> <!-- 2x2网格布局 -->
-              <div class="analysis-item">
-                <label>拖延风险</label>
-                <span :class="riskLevel">{{ riskLabel }}</span> <!-- 低/中/高风险 -->
-              </div>
-              <div class="analysis-item" v-if="log.mood">
-                <label>情绪状态</label>
-                <span>{{ moodEmoji }} {{ moodLabel }}</span> <!-- 😊 开心 -->
-              </div>
-              <div class="analysis-item" v-if="log.work_hours">
-                <label>工作时长</label>
-                <span>{{ log.work_hours }} 小时</span>
-              </div>
-              <div class="analysis-item" v-if="log.efficiency_periods?.length">
-                <label>高效时段</label>
-                <span>{{ log.efficiency_periods.join('、') }}</span>
-              </div>
+            <div class="item-header">
+              <span class="item-icon">🧠</span>
+              <span class="item-title">行为分析</span>
+            </div>
+            <div class="detail-tags">
+              <span class="log-tag" :class="completionClass === 'high' ? 'low-risk' : completionClass === 'medium' ? 'med-risk' : 'high-risk'">
+                拖延风险: {{ completionClass === 'high' ? '低' : completionClass === 'medium' ? '中' : '高' }}
+              </span>
+              <span class="log-tag mood" v-if="moodEmoji">
+                情绪: {{ moodEmoji }}
+              </span>
+              <span class="log-tag info" v-if="log.work_hours">
+                时长: {{ log.work_hours }}h
+              </span>
+              <span class="log-tag info" v-if="log.efficiency_periods?.length">
+                高效: {{ log.efficiency_periods.join('、') }}
+              </span>
             </div>
           </div>
           
-          <!-- 当日亮点部分 -->
-          <div class="detail-section" v-if="log.highlight">
-            <h4 class="detail-title">🌟 当日亮点</h4>
-            <p class="detail-content highlight">{{ log.highlight }}</p>
+          <!-- 当日亮点 -->
+          <div class="detail-section highlight" v-if="log.highlight">
+            <div class="item-header">
+              <span class="item-icon">🌟</span>
+              <span class="item-title">当日亮点</span>
+            </div>
+            <p class="item-content highlight-text">{{ log.highlight }}</p>
           </div>
         </div>
       </div>
@@ -207,286 +197,309 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* ========== 卡片基础样式 ========== */
-/* 日志卡片整体容器：背景、边框、悬停效果 */
+/* ========== 卡片基础 ========== */
 .log-card {
-  background: var(--bg-main);
-  border-bottom: 1px solid var(--border-subtle);
-  transition: all 0.2s;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  animation: fadeInUp 0.3s ease-out;
+  animation-fill-mode: both;
+  transition: all var(--dur-fast) var(--ease-standard);
 }
 
-/* 最后一个卡片移除底部边框 */
-.log-card:last-child {
-  border-bottom: none;
-}
-
-/* 卡片悬停效果：背景变亮 */
 .log-card:hover {
-  background: var(--bg-card-hover);
+  border-color: var(--border-main);
+  box-shadow: var(--shadow-sm);
 }
 
-/* ========== 摘要区域样式 ========== */
-/* 摘要容器：flex布局、内边距、可点击区域 */
-.log-summary {
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 卡片头部 ========== */
+.log-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
+  padding: var(--space-3);
   cursor: pointer;
-  box-sizing: border-box;
-  transition: background-color 0.2s ease;
 }
 
-/* 摘要容器悬停效果 */
-.log-summary:hover {
-  background-color: var(--bg-card-hover);
-}
-
-/* 左右信息区的通用样式：垂直flex布局，间距6px */
-.summary-left,
-.summary-right {
+.header-left {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
 }
 
-/* 左侧区域：固定宽度，包含日期和进度 */
-.summary-left {
-  flex: 0 0 auto;
-}
-
-/* 右侧区域：弹性宽度，包含评分和摘要 */
-.summary-right {
-  flex: 1;
-  align-items: flex-end;
-  margin-right: 12px;
-}
-
-/* 日期信息布局：日期和星期并排显示 */
-.log-date-info {
+.log-date {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
-/* 日期文本：14px，加粗，主要颜色 */
 .date-text {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
 }
 
-/* 星期文本：12px，灰色 */
 .date-weekday {
   font-size: 12px;
   color: var(--text-muted);
 }
 
-/* 完成进度布局：进度条+文本 */
+/* ========== 完成度 ========== */
 .log-completion {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-/* 进度条背景：灰色轨道 */
 .completion-bar {
-  width: 80px;
-  height: 6px;
+  width: 60px;
+  height: 4px;
   background: var(--border-main);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
-/* 进度条填充：动态宽度，过渡动画 */
 .completion-fill {
   height: 100%;
-  transition: width 0.3s;
+  background: var(--ai-main);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 
-/* 进度条颜色：高完成率绿色，中等黄色，低红色 */
 .log-completion.high .completion-fill { background: var(--success); }
 .log-completion.medium .completion-fill { background: var(--warning); }
 .log-completion.low .completion-fill { background: var(--error); }
 
-/* 完成率文本：12px，加粗，如"5/8" */
 .completion-text {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-/* 效率评分样式：星星排列 */
-.efficiency-rating {
-  display: flex;
-  gap: 2px;
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-/* 单个星星样式 */
-.star {
-  color: var(--text-muted);
-}
-
-/* 摘要文本：单行显示，超出省略 */
-.log-summary-text {
-  font-size: 13px;
-  color: var(--text-secondary);
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 展开/收起箭头指示器 */
-.expand-indicator {
+.expand-icon {
   font-size: 10px;
   color: var(--text-muted);
-  transition: transform 0.3s;
+  transition: transform var(--dur-fast) var(--ease-standard);
 }
 
-/* 箭头旋转180度（展开状态） */
-.expand-indicator.rotated {
+.expand-icon.expanded {
   transform: rotate(180deg);
 }
 
-/* ========== 详细区域样式 ========== */
-/* 详细区域容器：使用grid动画实现自适应高度 */
+/* ========== 卡片摘要体 ========== */
+.log-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.log-content {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.log-tags {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.log-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.log-tag.completion.high {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.log-tag.completion.medium {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+.log-tag.completion.low {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.log-tag.mood {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--ai-main);
+}
+
+.log-tag.low-risk {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.log-tag.med-risk {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+.log-tag.high-risk {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.log-tag.info {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--text-secondary);
+}
+
+/* ========== 详细区域 ========== */
 .log-details-wrapper {
   display: grid;
-  grid-template-rows: 0fr; /* 默认折叠：0fr */
+  grid-template-rows: 0fr;
   transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
-/* 展开状态：grid-template-rows: 1fr */
 .log-details-wrapper.expanded {
   grid-template-rows: 1fr;
 }
 
-/* 详细内容包装器：处理overflow */
 .log-details {
   overflow: hidden;
   min-height: 0;
 }
 
-/* 详细内容内层：内边距 */
 .log-details-inner {
-  padding: 0 16px 16px;
+  padding: 0 var(--space-3) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
 }
 
-/* ========== 详细内容通用样式 ========== */
-/* 每个详细部分：底部间距 */
+/* ========== 详情部分 ========== */
 .detail-section {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-3);
 }
 
-/* 最后一个部分移除底部间距 */
 .detail-section:last-child {
   margin-bottom: 0;
 }
 
-/* 部分标题：如"📋 完成情况" */
-.detail-title {
-  margin: 0 0 8px 0;
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.item-icon {
+  font-size: 14px;
+}
+
+.item-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-main);
 }
 
-/* 内容文本：13px，行高1.6 */
-.detail-content {
+.detail-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: auto;
+  padding: 1px 6px;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+}
+
+.item-content {
   margin: 0;
   font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.6;
-  white-space: pre-wrap;
+  line-height: 1.5;
 }
 
-/* 亮点文本：AI主题色，加粗 */
-.detail-content.highlight {
-  color: var(--ai-main);
-  font-weight: 500;
-}
-
-/* ========== 任务列表样式 ========== */
-/* 任务列表容器：垂直排列，间距8px */
+/* ========== 任务列表 ========== */
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-/* 单个任务卡片：灰色背景，圆角 */
 .task-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
-  background: var(--bg-elevated);
+  gap: var(--space-2);
+  padding: 4px 8px;
+  background: var(--bg-main);
   border-radius: 4px;
-}
-
-/* 已完成任务：绿色背景 */
-.task-item.done {
-  background: rgba(16, 185, 129, 0.1);
-}
-
-/* 任务图标：✅/❌ */
-.task-icon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-/* 任务标题 */
-.task-title {
   font-size: 13px;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* 已完成任务标题：删除线 */
-.task-item.done .task-title {
+.task-item.done {
   color: var(--text-muted);
+}
+
+.task-item.done .task-title {
   text-decoration: line-through;
 }
 
-/* ========== 分析网格样式 ========== */
-/* 2x2网格布局 */
-.analysis-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+.task-status {
+  font-size: 12px;
 }
 
-/* 单个分析卡片：标签+值 */
-.analysis-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px;
-  background: var(--bg-elevated);
-  border-radius: 4px;
-}
-
-/* 分析项标签：小标签，灰色 */
-.analysis-item label {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-/* 分析项值：13px */
-.analysis-item span {
-  font-size: 13px;
+.task-title {
   color: var(--text-secondary);
 }
 
-/* 风险等级颜色：低风险绿色，中等黄色，高风险红色 */
-.low-risk { color: var(--success); }
-.medium-risk { color: var(--warning); }
-.high-risk { color: var(--error); }
+.task-item.done .task-title {
+  color: var(--text-muted);
+}
+
+/* ========== 详情标签 ========== */
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* ========== 亮点 ========== */
+.highlight-text {
+  background: var(--bg-main);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--ai-main);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .log-card-header {
+    padding: var(--space-2) var(--space-3);
+  }
+  
+  .log-card-body {
+    padding: 0 var(--space-2) var(--space-2);
+  }
+  
+  .log-details-inner {
+    padding: 0 var(--space-2) var(--space-2);
+    padding-top: var(--space-2);
+  }
+  
+  .completion-bar {
+    width: 40px;
+  }
+}
 </style>

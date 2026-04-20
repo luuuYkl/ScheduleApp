@@ -6,6 +6,7 @@ import { isAIFeatureEnabledSync } from "@/composables/useUserSettings";
 import type {
   AIOptimizePlanRequest,
   AIOptimizePlanResponse,
+  AIGeneratePlanRequest,
   AISuggestion,
   AIRecommendedTask,
 } from "./api.types";
@@ -677,6 +678,164 @@ export async function* optimizePlanWithAIStream(
       await new Promise((resolve) => setTimeout(resolve, 30));
     }
   }
+}
+
+/**
+ * AI 一句话生成计划（流式）
+ * 用户输入简短目标描述 → AI 生成完整计划 + 推荐任务
+ */
+export async function* generatePlanFromTextStream(
+  request: AIGeneratePlanRequest,
+): AsyncGenerator<string, void, unknown> {
+  // 检查是否启用 AI 功能
+  if (!APP_CONFIG.AI_ENABLED || !APP_CONFIG.AI_API_KEY) {
+    // 返回 Mock 数据
+    const mockResult: AIOptimizePlanResponse = generateMockFromText(request.text);
+    const jsonStr = JSON.stringify(mockResult);
+    for (let i = 0; i < jsonStr.length; i += 5) {
+      yield jsonStr.slice(i, i + 5);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    return;
+  }
+
+  try {
+    const prompt = `用户想制定一个计划，请根据以下描述生成完整的计划方案：
+
+用户描述：${request.text}
+${request.user_context ? `额外背景：${request.user_context}` : ""}
+
+请生成：
+1. 一个合适的计划标题（简洁明确）
+2. 计划描述（具体可执行）
+3. 合理的开始和结束日期（今天是 ${new Date().toISOString().slice(0, 10)}）
+4. 推荐的任务列表（每个任务有明确的时间安排）
+
+请以 JSON 格式返回，结构如下：
+{
+  "optimized_plan": {
+    "title": "计划标题",
+    "description": "计划描述",
+    "start_date": "YYYY-MM-DD",
+    "end_date": "YYYY-MM-DD",
+    "recommended_tasks": [
+      {
+        "title": "任务标题",
+        "task_date": "YYYY-MM-DD",
+        "start_time": "HH:MM",
+        "end_time": "HH:MM",
+        "note": "任务描述和执行要点",
+        "repeat_type": "none|daily|weekly|monthly",
+        "repeat_end_date": "YYYY-MM-DD（可选）"
+      }
+    ]
+  },
+  "suggestions": [
+    {"type": "suggestion", "message": "执行建议"}
+  ],
+  "reasoning": "分析思路"
+}
+
+【严格规则】：
+1. 直接输出纯JSON，不要用 \`\`\` 包裹
+2. 不要添加任何说明文字
+3. 任务要具体可执行，有明确的时间安排
+4. 任务数量根据计划时长合理分配（短期3-5个，长期5-10个）`;
+
+    const payload = {
+      model: APP_CONFIG.AI_MODEL,
+      messages: [
+        {
+          role: "system",
+          content: "你是一个专业的时间管理和日程规划助手。用户会给你一个简短的目标描述，请你生成完整的计划方案，包括标题、描述、日期和具体任务。直接返回JSON，不要添加任何额外内容。",
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.7,
+      stream: true,
+      max_tokens: 4000,
+    };
+
+    const response = await fetch(
+      `${APP_CONFIG.AI_API_BASE_URL}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${APP_CONFIG.AI_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) {
+      console.error("AI 生成计划请求失败:", response.status);
+      throw new Error(`AI 请求失败: ${response.status}`);
+    }
+
+    if (!response.body) throw new Error("响应体为空");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith("data: ")) continue;
+        const data = trimmed.slice(6);
+        if (data === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            for (const char of content) {
+              yield char;
+              await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+          }
+        } catch {
+          // 忽略解析错误
+        }
+      }
+    }
+  } catch (error) {
+    console.error("AI 生成计划失败:", error);
+    const mockResult = generateMockFromText(request.text);
+    const jsonStr = JSON.stringify(mockResult);
+    for (let i = 0; i < jsonStr.length; i += 5) {
+      yield jsonStr.slice(i, i + 5);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+  }
+}
+
+/** 根据简短文本生成 Mock 计划 */
+function generateMockFromText(text: string): AIOptimizePlanResponse {
+  const today = new Date().toISOString().slice(0, 10);
+  const endDate = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+
+  return {
+    optimized_plan: {
+      title: text.length > 20 ? text.slice(0, 20) + "..." : text,
+      description: `基于「${text}」制定的计划方案，为期14天`,
+      start_date: today,
+      end_date: endDate,
+      recommended_tasks: [
+        { title: "制定详细执行方案", task_date: today, start_time: "09:00", end_time: "10:00", note: "明确目标和步骤" },
+        { title: "每日核心任务", task_date: today, start_time: "10:00", end_time: "12:00", note: "执行主要任务", repeat_type: "daily", repeat_end_date: endDate },
+        { title: "阶段性回顾", task_date: endDate, start_time: "20:00", end_time: "21:00", note: "总结经验，调整方向" },
+      ],
+    },
+    suggestions: [{ type: "suggestion", message: "建议根据实际情况调整任务时间和内容" }],
+    reasoning: "基于用户描述生成的基础计划方案",
+  };
 }
 
 /**

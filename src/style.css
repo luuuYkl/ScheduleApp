@@ -27,3 +27,42 @@
     background-color var(--dur-normal) var(--ease-standard),
     color var(--dur-normal) var(--ease-standard);
 }
+
+/* ========================================
+   🎬 页面过渡动画
+   ======================================== */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* 列表项交错入场动画 */
+.stagger-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.stagger-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+/* 通用淡入动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

@@ -168,6 +168,114 @@ export const useTaskStore = defineStore("tasks", () => {
     }
   }
 
+  /**
+   * 拆分跨天任务并只标记指定日期为完成
+   * 用于 TimelineView 中跨天任务的逐日标记
+   * @param taskId 原任务ID
+   * @param activeDate 要标记完成的日期
+   */
+  async function splitAndToggleMultiDayTask(taskId: number, activeDate: string) {
+    const t = tasks.value.find((x) => x.id === taskId);
+    if (!t) return;
+
+    const { start_date, end_date } = t;
+
+    // 如果 activeDate 等于 start_date，只需缩小范围
+    if (activeDate === start_date) {
+      if (start_date === end_date) {
+        // 单天任务，直接切换
+        await toggleTaskStatus(taskId);
+        return;
+      }
+      // 将 start_date 往后移一天
+      const nextDay = new Date(start_date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const newStart = nextDay.toISOString().slice(0, 10);
+
+      // 创建一个单天已完成任务
+      const donePayload: CreateTaskPayload = {
+        plan_id: t.plan_id,
+        user_id: t.user_id,
+        title: t.title,
+        start_date: activeDate,
+        end_date: activeDate,
+        start_time: t.start_time,
+        end_time: t.end_time,
+        status: "done",
+        note: t.note,
+        repeat_type: "none",
+        repeat_end_date: null,
+      };
+      await createTask(donePayload);
+      // 更新原任务范围
+      await updateTask(taskId, { start_date: newStart });
+    } else if (activeDate === end_date) {
+      // 将 end_date 往前移一天
+      const prevDay = new Date(end_date);
+      prevDay.setDate(prevDay.getDate() - 1);
+      const newEnd = prevDay.toISOString().slice(0, 10);
+
+      const donePayload: CreateTaskPayload = {
+        plan_id: t.plan_id,
+        user_id: t.user_id,
+        title: t.title,
+        start_date: activeDate,
+        end_date: activeDate,
+        start_time: t.start_time,
+        end_time: t.end_time,
+        status: "done",
+        note: t.note,
+        repeat_type: "none",
+        repeat_end_date: null,
+      };
+      await createTask(donePayload);
+      await updateTask(taskId, { end_date: newEnd });
+    } else {
+      // activeDate 在中间：拆为两段 + 一个已完成单天任务
+      const prevDay = new Date(activeDate);
+      prevDay.setDate(prevDay.getDate() - 1);
+      const part1End = prevDay.toISOString().slice(0, 10);
+
+      const nextDay = new Date(activeDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const part2Start = nextDay.toISOString().slice(0, 10);
+
+      // 创建已完成单天任务
+      const donePayload: CreateTaskPayload = {
+        plan_id: t.plan_id,
+        user_id: t.user_id,
+        title: t.title,
+        start_date: activeDate,
+        end_date: activeDate,
+        start_time: t.start_time,
+        end_time: t.end_time,
+        status: "done",
+        note: t.note,
+        repeat_type: "none",
+        repeat_end_date: null,
+      };
+      await createTask(donePayload);
+
+      // 创建后半段任务
+      const part2Payload: CreateTaskPayload = {
+        plan_id: t.plan_id,
+        user_id: t.user_id,
+        title: t.title,
+        start_date: part2Start,
+        end_date: end_date,
+        start_time: t.start_time,
+        end_time: t.end_time,
+        note: t.note,
+        repeat_type: "none",
+        repeat_end_date: null,
+      };
+      await createTask(part2Payload);
+
+      // 更新前半段（原任务）
+      await updateTask(taskId, { end_date: part1End });
+    }
+  }
+
   // ========== 兼容性别名 ==========
 
   /**
@@ -194,6 +302,7 @@ export const useTaskStore = defineStore("tasks", () => {
     updateTask,
     deleteTask,
     toggleTaskStatus,
+    splitAndToggleMultiDayTask,
 
     // 旧命名（兼容）
     toggleStatus,

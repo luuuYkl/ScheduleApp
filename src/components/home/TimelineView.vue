@@ -156,77 +156,13 @@
           </div>
         </div>
 
-        <!-- 全局 Tooltip 容器 -->
-        <transition name="tooltip-fade">
-          <div 
-            v-if="activeTooltip && activeEvent"
-            class="event-tooltip-global"
-            :style="{ 
-              left: (mousePosition.x + 15) + 'px',
-              top: (mousePosition.y + 10) + 'px'
-            }"
-          >
-            <div class="tooltip-content">
-              <!-- 头部：标题 + 类型标签 -->
-              <div class="tooltip-header">
-                <div class="tooltip-title">{{ activeEvent.title }}</div>
-                <div class="tooltip-type-badge">
-                  {{ getTypeLabel(activeEvent.type) }}
-                </div>
-              </div>
-              
-              <!-- 时间信息 -->
-              <div class="tooltip-row">
-                <span class="tooltip-icon">🕐</span>
-                <span class="tooltip-label">时间</span>
-                <span class="tooltip-value">{{ formatEventTimeDetailed(activeEvent) }}</span>
-              </div>
-              
-              <!-- 描述（如果有）-->
-              <div v-if="activeEvent.originalData.description" class="tooltip-description">
-                {{ activeEvent.originalData.description }}
-              </div>
-              
-              <!-- 任务特有信息 -->
-              <template v-if="activeEvent.type === 'task'">
-                <!-- 优先级 -->
-                <div class="tooltip-row" v-if="activeEvent.originalData.priority">
-                  <span class="tooltip-icon">⚡</span>
-                  <span class="tooltip-label">优先级</span>
-                  <span class="tooltip-value">{{ getPriorityLabel(activeEvent.originalData.priority) }}</span>
-                </div>
-                
-                <!-- 进度 -->
-                <div class="tooltip-progress" v-if="activeEvent.originalData.progress !== undefined">
-                  <div class="tooltip-row">
-                    <span class="tooltip-icon">📊</span>
-                    <span class="tooltip-label">进度</span>
-                    <span class="tooltip-value">{{ activeEvent.originalData.progress }}%</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: activeEvent.originalData.progress + '%' }"></div>
-                  </div>
-                </div>
-                
-                <!-- 状态 -->
-                <div class="tooltip-row">
-                  <span class="tooltip-icon">✅</span>
-                  <span class="tooltip-label">状态</span>
-                  <span class="tooltip-value">{{ getStatusLabel(activeEvent.originalData.status) }}</span>
-                </div>
-              </template>
-              
-              <!-- 日程特有信息 -->
-              <template v-if="activeEvent.type === 'schedule'">
-                <div class="tooltip-row">
-                  <span class="tooltip-icon">✅</span>
-                  <span class="tooltip-label">状态</span>
-                  <span class="tooltip-value">{{ activeEvent.completed ? '已完成' : '未完成' }}</span>
-                </div>
-              </template>
-            </div>
-          </div>
-        </transition>
+        <!-- 全局 Tooltip -->
+        <EventTooltip
+          :visible="!!activeTooltip && !!activeEvent"
+          :event="activeEvent"
+          :position="mousePosition"
+          :format-event-time-detailed="formatEventTimeDetailed"
+        />
 
         <!-- 拖拽反馈元素 -->
         <template v-if="isDragging && draggedEvent && dragDeltaHour !== 0">
@@ -317,77 +253,13 @@
           </div>
         </div>
 
-        <!-- 全局 Tooltip 容器 -->
-        <transition name="tooltip-fade">
-          <div 
-            v-if="activeTooltip && activeEvent"
-            class="event-tooltip-global"
-            :style="{ 
-              left: (mousePosition.x + 15) + 'px',
-              top: (mousePosition.y + 10) + 'px'
-            }"
-          >
-            <div class="tooltip-content">
-              <!-- 头部：标题 + 类型标签 -->
-              <div class="tooltip-header">
-                <div class="tooltip-title">{{ activeEvent.title }}</div>
-                <div class="tooltip-type-badge">
-                  {{ getTypeLabel(activeEvent.type) }}
-                </div>
-              </div>
-              
-              <!-- 时间信息 -->
-              <div class="tooltip-row">
-                <span class="tooltip-icon">🕐</span>
-                <span class="tooltip-label">时间</span>
-                <span class="tooltip-value">{{ formatEventTimeDetailed(activeEvent) }}</span>
-              </div>
-              
-              <!-- 描述（如果有）-->
-              <div v-if="activeEvent.originalData.description" class="tooltip-description">
-                {{ activeEvent.originalData.description }}
-              </div>
-              
-              <!-- 任务特有信息 -->
-              <template v-if="activeEvent.type === 'task'">
-                <!-- 优先级 -->
-                <div class="tooltip-row" v-if="activeEvent.originalData.priority">
-                  <span class="tooltip-icon">⚡</span>
-                  <span class="tooltip-label">优先级</span>
-                  <span class="tooltip-value">{{ getPriorityLabel(activeEvent.originalData.priority) }}</span>
-                </div>
-                
-                <!-- 进度 -->
-                <div class="tooltip-progress" v-if="activeEvent.originalData.progress !== undefined">
-                  <div class="tooltip-row">
-                    <span class="tooltip-icon">📊</span>
-                    <span class="tooltip-label">进度</span>
-                    <span class="tooltip-value">{{ activeEvent.originalData.progress }}%</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: activeEvent.originalData.progress + '%' }"></div>
-                  </div>
-                </div>
-                
-                <!-- 状态 -->
-                <div class="tooltip-row">
-                  <span class="tooltip-icon">✅</span>
-                  <span class="tooltip-label">状态</span>
-                  <span class="tooltip-value">{{ getStatusLabel(activeEvent.originalData.status) }}</span>
-                </div>
-              </template>
-              
-              <!-- 日程特有信息 -->
-              <template v-if="activeEvent.type === 'schedule'">
-                <div class="tooltip-row">
-                  <span class="tooltip-icon">✅</span>
-                  <span class="tooltip-label">状态</span>
-                  <span class="tooltip-value">{{ activeEvent.completed ? '已完成' : '未完成' }}</span>
-                </div>
-              </template>
-            </div>
-          </div>
-        </transition>
+        <!-- 全局 Tooltip -->
+        <EventTooltip
+          :visible="!!activeTooltip && !!activeEvent"
+          :event="activeEvent"
+          :position="mousePosition"
+          :format-event-time-detailed="formatEventTimeDetailed"
+        />
       </div>
 
       <!-- ========== 三日视图 ========== -->
@@ -457,87 +329,48 @@
           </div>
         </div>
 
-        <!-- 全局 Tooltip 容器 -->
-        <transition name="tooltip-fade">
-          <div 
-            v-if="activeTooltip && activeEvent"
-            class="event-tooltip-global"
-            :style="{ 
-              left: (mousePosition.x + 15) + 'px',
-              top: (mousePosition.y + 10) + 'px'
-            }"
-          >
-            <div class="tooltip-content">
-              <!-- 头部：标题 + 类型标签 -->
-              <div class="tooltip-header">
-                <div class="tooltip-title">{{ activeEvent.title }}</div>
-                <div class="tooltip-type-badge">
-                  {{ getTypeLabel(activeEvent.type) }}
-                </div>
-              </div>
-              
-              <!-- 时间信息 -->
-              <div class="tooltip-row">
-                <span class="tooltip-icon">🕐</span>
-                <span class="tooltip-label">时间</span>
-                <span class="tooltip-value">{{ formatEventTimeDetailed(activeEvent) }}</span>
-              </div>
-              
-              <!-- 描述（如果有）-->
-              <div v-if="activeEvent.originalData.description" class="tooltip-description">
-                {{ activeEvent.originalData.description }}
-              </div>
-              
-              <!-- 任务特有信息 -->
-              <template v-if="activeEvent.type === 'task'">
-                <!-- 优先级 -->
-                <div class="tooltip-row" v-if="activeEvent.originalData.priority">
-                  <span class="tooltip-icon">⚡</span>
-                  <span class="tooltip-label">优先级</span>
-                  <span class="tooltip-value">{{ getPriorityLabel(activeEvent.originalData.priority) }}</span>
-                </div>
-                
-                <!-- 进度 -->
-                <div class="tooltip-progress" v-if="activeEvent.originalData.progress !== undefined">
-                  <div class="tooltip-row">
-                    <span class="tooltip-icon">📊</span>
-                    <span class="tooltip-label">进度</span>
-                    <span class="tooltip-value">{{ activeEvent.originalData.progress }}%</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: activeEvent.originalData.progress + '%' }"></div>
-                  </div>
-                </div>
-                
-                <!-- 状态 -->
-                <div class="tooltip-row">
-                  <span class="tooltip-icon">✅</span>
-                  <span class="tooltip-label">状态</span>
-                  <span class="tooltip-value">{{ getStatusLabel(activeEvent.originalData.status) }}</span>
-                </div>
-              </template>
-              
-              <!-- 日程特有信息 -->
-              <template v-if="activeEvent.type === 'schedule'">
-                <div class="tooltip-row">
-                  <span class="tooltip-icon">✅</span>
-                  <span class="tooltip-label">状态</span>
-                  <span class="tooltip-value">{{ activeEvent.completed ? '已完成' : '未完成' }}</span>
-                </div>
-              </template>
-            </div>
-          </div>
-        </transition>
+        <!-- 全局 Tooltip -->
+        <EventTooltip
+          :visible="!!activeTooltip && !!activeEvent"
+          :event="activeEvent"
+          :position="mousePosition"
+          :format-event-time-detailed="formatEventTimeDetailed"
+        />
       </div>
     </div>
+
+    <!-- ========== 任务详情弹窗（Teleport 到 body 避免父容器 transform 影响 fixed 定位） ========== -->
+    <Teleport to="body">
+      <transition name="popover-fade">
+        <div
+          v-if="popoverVisible && popoverTaskId !== null"
+          ref="popoverAnchorRef"
+          class="popover-anchor"
+          :style="{
+            left: popoverPosition.x + 'px',
+            top: popoverPosition.y + 'px'
+          }"
+        >
+          <TaskDetailPopover
+            :taskId="popoverTaskId"
+            :activeDate="popoverActiveDate"
+            @close="closePopover"
+            @popoverEnter="handlePopoverEnter"
+            @popoverLeave="handlePopoverLeave"
+          />
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watchEffect } from "vue";
+import { computed, ref, onMounted, onUnmounted, watchEffect, nextTick } from "vue";
 import { useTaskStore } from "@/store/tasks";
 import { useScheduleStore } from "@/store/schedules";
 import { useRouter } from "vue-router";
+import TaskDetailPopover from "@/components/task/TaskDetailPopover.vue";
+import EventTooltip from "./EventTooltip.vue";
 
 interface TimelineEvent {
   id: string | number;
@@ -663,6 +496,51 @@ const dayEventsRefs = ref<HTMLElement[]>([]);
 const activeTooltip = ref<string | number | null>(null);
 const mousePosition = ref({ x: 0, y: 0 });
 const activeEvent = ref<TimelineEvent | null>(null);
+
+// ========== Popover 状态管理（任务详情弹窗） ==========
+const popoverTaskId = ref<number | null>(null);
+const popoverActiveDate = ref(todayStr);
+const popoverVisible = ref(false);
+const popoverPosition = ref({ x: 0, y: 0 });
+let showPopoverTimer: number | null = null;
+let hidePopoverTimer: number | null = null;
+let pendingPopoverEvent: HTMLElement | null = null;
+let pendingPopoverMouse = { x: 0, y: 0 };
+const popoverAnchorRef = ref<HTMLElement | null>(null);
+
+function clearPopoverTimers() {
+  if (showPopoverTimer) { clearTimeout(showPopoverTimer); showPopoverTimer = null; }
+  if (hidePopoverTimer) { clearTimeout(hidePopoverTimer); hidePopoverTimer = null; }
+  // 清除延迟期间的 mousemove 追踪
+  if (pendingPopoverEvent) {
+    pendingPopoverEvent.removeEventListener('mousemove', trackPendingMouse);
+    pendingPopoverEvent = null;
+  }
+}
+
+function trackPendingMouse(e: MouseEvent) {
+  pendingPopoverMouse.x = e.clientX;
+  pendingPopoverMouse.y = e.clientY;
+}
+
+function handlePopoverEnter() {
+  // 鼠标进入弹窗，取消隐藏定时器
+  if (hidePopoverTimer) { clearTimeout(hidePopoverTimer); hidePopoverTimer = null; }
+}
+
+function handlePopoverLeave() {
+  // 鼠标离开弹窗，延迟隐藏
+  hidePopoverTimer = window.setTimeout(() => {
+    popoverVisible.value = false;
+    popoverTaskId.value = null;
+  }, 200);
+}
+
+function closePopover() {
+  clearPopoverTimers();
+  popoverVisible.value = false;
+  popoverTaskId.value = null;
+}
 
 // ========== 视图模式（单日/三日/一周） ==========
 const viewMode = ref<'single' | 'three-day' | 'week'>('single');
@@ -1318,35 +1196,98 @@ function getStatusLabel(status: string | undefined): string {
 // ========== Tooltip 事件处理 ==========
 
 function handleMouseEnter(event: MouseEvent, timelineEvent: TimelineEvent) {
-  activeTooltip.value = timelineEvent.id;
-  activeEvent.value = timelineEvent;
-  
-  // 获取事件块的位置
-  const target = event.currentTarget as HTMLElement;
-  
-  // 向上查找事件区域的容器
-  const eventsArea = target.closest('.events-area, .events-area-week, .events-area-multi') as HTMLElement;
-  
-  if (eventsArea) {
-    const containerRect = eventsArea.getBoundingClientRect();
-    // 记录鼠标相对于容器的位置
-    mousePosition.value = {
-      x: event.clientX - containerRect.left,
-      y: event.clientY - containerRect.top
-    };
+  clearPopoverTimers();
+
+  const isTask = timelineEvent.id.toString().startsWith('t-');
+
+  if (isTask) {
+    // 任务类型：延迟显示弹窗
+    activeTooltip.value = null;
+    activeEvent.value = null;
+
+    // 追踪延迟期间的鼠标位置，弹窗显示时使用最新位置
+    pendingPopoverMouse = { x: event.clientX, y: event.clientY };
+    const target = event.currentTarget as HTMLElement;
+    if (target) {
+      pendingPopoverEvent = target;
+      target.addEventListener('mousemove', trackPendingMouse);
+    }
+
+    showPopoverTimer = window.setTimeout(async () => {
+      const POPOVER_W = 340;
+      const OFFSET = 3;
+
+      let x = pendingPopoverMouse.x + OFFSET;
+      let y = pendingPopoverMouse.y + OFFSET;
+
+      // 右边缘检测
+      if (pendingPopoverMouse.x + POPOVER_W + OFFSET > window.innerWidth) {
+        x = pendingPopoverMouse.x - POPOVER_W - OFFSET;
+      }
+      if (x < 0) x = OFFSET;
+
+      // 先设置初步位置并渲染弹窗（暂不做底部检测）
+      popoverPosition.value = { x, y };
+
+      // 弹窗已定位，移除 mousemove 追踪
+      if (pendingPopoverEvent) {
+        pendingPopoverEvent.removeEventListener('mousemove', trackPendingMouse);
+        pendingPopoverEvent = null;
+      }
+
+      popoverTaskId.value = timelineEvent.originalData.id;
+      const idStr = String(timelineEvent.id);
+      const datePart = idStr.split('-').slice(2).join('-');
+      popoverActiveDate.value = datePart || todayStr;
+      popoverVisible.value = true;
+
+      // 等待 DOM 渲染后测量实际高度，精确修正垂直位置
+      await nextTick();
+      if (popoverAnchorRef.value) {
+        const actualH = popoverAnchorRef.value.offsetHeight;
+        if (pendingPopoverMouse.y + actualH + OFFSET > window.innerHeight) {
+          y = pendingPopoverMouse.y - actualH - OFFSET;
+        }
+        if (y < 0) y = OFFSET;
+        popoverPosition.value = { x, y };
+      }
+    }, 300);
+  } else {
+    // 非任务类型：使用原有的简单 tooltip
+    activeTooltip.value = timelineEvent.id;
+    activeEvent.value = timelineEvent;
+
+    const target = event.currentTarget as HTMLElement;
+    const eventsArea = target.closest('.events-area, .events-area-week, .events-area-multi') as HTMLElement;
+
+    if (eventsArea) {
+      const containerRect = eventsArea.getBoundingClientRect();
+      mousePosition.value = {
+        x: event.clientX - containerRect.left,
+        y: event.clientY - containerRect.top
+      };
+    }
   }
 }
 
 function handleMouseLeave() {
+  const wasTask = activeEvent.value?.type === 'task' || popoverVisible.value;
+
+  if (popoverVisible.value || showPopoverTimer) {
+    // 如果弹窗正在显示或即将显示，延迟隐藏
+    if (showPopoverTimer) { clearTimeout(showPopoverTimer); showPopoverTimer = null; }
+    hidePopoverTimer = window.setTimeout(() => {
+      popoverVisible.value = false;
+      popoverTaskId.value = null;
+    }, 200);
+  }
+
   activeTooltip.value = null;
   activeEvent.value = null;
 }
 
-function handleEventClick(event: TimelineEvent) {
-  if (event.id.toString().startsWith('t-')) {
-    const taskId = event.originalData.id;
-    router.push(`/task/${taskId}`);
-  }
+function handleEventClick(_event: TimelineEvent) {
+  // 点击任务不再跳转详情页，由 hover 弹窗替代
 }
 
 // ========== 拖拽功能 ==========
@@ -2449,5 +2390,30 @@ onUnmounted(() => {
   .weather-location {
     display: none;
   }
+}
+
+/* ========== 任务详情弹窗定位 ========== */
+.popover-anchor {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: auto;
+}
+
+/* 弹窗过渡动画 */
+.popover-fade-enter-active,
+.popover-fade-leave-active {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.popover-fade-enter-from,
+.popover-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-8px) scaleX(0.96);
+}
+
+.popover-fade-enter-to,
+.popover-fade-leave-from {
+  opacity: 1;
+  transform: translateX(0) scaleX(1);
 }
 </style>

@@ -1,7 +1,5 @@
 <template>
   <PageScaffold
-    title="创建日程"
-    subtitle="安排你的重要时刻"
     show-back-button
     @back="goBack"
   >

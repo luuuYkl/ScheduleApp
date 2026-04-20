@@ -70,6 +70,12 @@ export interface AISuggestion {
   field?: string; // 相关的字段（如 'start_date', 'end_date'）
 }
 
+/** AI 一句话生成计划请求 */
+export interface AIGeneratePlanRequest {
+  text: string;           // 用户输入的模糊目标描述
+  user_context?: string;  // 用户上下文（可选）
+}
+
 /** AI 优化计划请求 */
 export interface AIOptimizePlanRequest {
   title: string;
@@ -82,6 +88,7 @@ export interface AIOptimizePlanRequest {
 /** AI 推荐任务（包含时间/重复/描述） */
 export interface AIRecommendedTask {
   title: string;
+  task_date?: string; // 任务日期（兼容旧逻辑）
   start_date?: string; // 任务开始日期
   end_date?: string; // 任务结束日期
   start_time?: string; // HH:MM（具体时分）
@@ -172,8 +179,8 @@ export interface UpdateTaskPayload {
   title?: string;
   start_date?: string; // 任务开始日期
   end_date?: string; // 任务结束日期
-  start_time?: string; // HH:MM（具体时分）
-  end_time?: string; // HH:MM（具体时分）
+  start_time?: string | null; // HH:MM（具体时分）
+  end_time?: string | null; // HH:MM（具体时分）
   status?: TaskStatus;
   note?: string;
   repeat_type?: TaskRepeatType;
