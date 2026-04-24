@@ -1,7 +1,6 @@
 <template>
   <PageScaffold
-    show-back-button
-    @back="goBack"
+    back-to="/plan"
   >
     <template #actions>
       <Button variant="outline" @click="toggleViewMode">

@@ -101,6 +101,9 @@
       <button class="action-btn danger-outline" @click="confirmDelete" :disabled="deleting">
         🗑 删除
       </button>
+      <button class="action-btn outline" @click="$emit('split')">
+        ✂️ 拆解
+      </button>
     </div>
   </div>
 </template>
@@ -118,6 +121,7 @@ const props = defineProps<{
 
 defineEmits<{
   close: []
+  split: []
   popoverEnter: []
   popoverLeave: []
 }>()

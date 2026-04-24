@@ -1,11 +1,7 @@
 <template>
   <PageScaffold
+    back-to
   >
-    <template #actions>
-      <Button variant="ghost" size="small" @click="goBack">
-        ← 返回
-      </Button>
-    </template>
 
     <div class="edit-container" v-if="task">
       <Card class="form-card">

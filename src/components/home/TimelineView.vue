@@ -355,6 +355,7 @@
             :taskId="popoverTaskId"
             :activeDate="popoverActiveDate"
             @close="closePopover"
+            @split="handleSplit"
             @popoverEnter="handlePopoverEnter"
             @popoverLeave="handlePopoverLeave"
           />
@@ -535,6 +536,17 @@ function handlePopoverLeave() {
     popoverTaskId.value = null;
   }, 200);
 }
+
+
+  async function handleSplit() {
+    if (popoverTaskId.value === null) return;
+    try {
+      await taskStore.splitTask(popoverTaskId.value, popoverActiveDate.value);
+    } catch (err) {
+      console.error('拆解任务失败:', err);
+    }
+    closePopover();
+  }
 
 function closePopover() {
   clearPopoverTimers();

@@ -1,6 +1,5 @@
 <template>
-  <PageScaffold 
-    :show-back="false"
+  <PageScaffold
     class="layer-context"
   >
     <PullToRefresh @refresh="handleRefresh">

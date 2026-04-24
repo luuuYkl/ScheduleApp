@@ -1,7 +1,17 @@
   <template>
   <section class="page" role="main" aria-labelledby="page-title">
-    <header v-if="title || subtitle || $slots.actions || $slots['header-panel']" class="page__header">
+    <header v-if="backTo || title || subtitle || $slots.actions || $slots['header-panel']" class="page__header">
       <div class="page__header-main">
+        <!-- 返回按钮 -->
+        <button
+          v-if="backTo"
+          class="page__back-btn"
+          @click="handleBack"
+          :aria-label="'返回上一页'"
+          title="返回"
+        >
+          <span class="back-icon">←</span>
+        </button>
         <div v-if="title || subtitle" class="page__title-wrapper" @click="toggleHeaderPanel">
           <div class="title-row">
             <h1
@@ -51,19 +61,31 @@
 
 <script setup lang="ts">
 import { ref, useSlots } from 'vue';
+import { useRouter } from 'vue-router';
 
 interface Props {
   title?: string;
   subtitle?: string;
   collapsibleHeader?: boolean;
+  /** 返回按钮：传字符串为指定路径，传 true 为 router.back() */
+  backTo?: string | boolean;
 }
 
 const props = defineProps<Props>();
+const router = useRouter();
 
 const isHeaderPanelExpanded = ref(false);
 
 const toggleHeaderPanel = () => {
   isHeaderPanelExpanded.value = !isHeaderPanelExpanded.value;
+};
+
+const handleBack = () => {
+  if (typeof props.backTo === 'string') {
+    router.push(props.backTo);
+  } else {
+    router.back();
+  }
 };
 
 // 暴露方法给父组件
@@ -91,6 +113,38 @@ defineExpose({
   margin-bottom: var(--space-6);
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+/* 返回按钮 */
+.page__back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg-card-hover);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+.page__back-btn:hover {
+  background: var(--ai-bg);
+  color: var(--ai-main);
+  box-shadow: 0 0 0 3px var(--ai-bg);
+}
+
+.back-icon {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 600;
 }
 
 .page__title-wrapper {

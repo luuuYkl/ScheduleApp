@@ -169,12 +169,35 @@ export const useTaskStore = defineStore("tasks", () => {
   }
 
   /**
-   * 拆分跨天任务并只标记指定日期为完成
-   * 用于 TimelineView 中跨天任务的逐日标记
+   * 拆解任务：在指定日期创建一个独立副本
+   * 原任务保持完全不变，不影响其他日期的相同任务
+   * 用于 TimelineView 中任务的逐日拆解
    * @param taskId 原任务ID
-   * @param activeDate 要标记完成的日期
+   * @param activeDate 要拆解的日期
    */
-  async function splitAndToggleMultiDayTask(taskId: number, activeDate: string) {
+  async function splitTask(taskId: number, activeDate: string) {
+    const t = tasks.value.find((x) => x.id === taskId);
+    if (!t) return;
+
+    // 创建一个当天的独立副本
+    // 原任务保持不变，确保其他日期的相同任务不受影响
+    const payload: CreateTaskPayload = {
+      plan_id: t.plan_id,
+      user_id: t.user_id,
+      title: t.title,
+      start_date: activeDate,
+      end_date: activeDate,
+      start_time: t.start_time,
+      end_time: t.end_time,
+      status: 'pending',
+      note: t.note,
+      repeat_type: 'none',
+      repeat_group_id: Date.now(),
+    };
+    await createTask(payload);
+  }
+
+async function splitAndToggleMultiDayTask(taskId: number, activeDate: string) {
     const t = tasks.value.find((x) => x.id === taskId);
     if (!t) return;
 
@@ -302,6 +325,7 @@ export const useTaskStore = defineStore("tasks", () => {
     updateTask,
     deleteTask,
     toggleTaskStatus,
+    splitTask,
     splitAndToggleMultiDayTask,
 
     // 旧命名（兼容）

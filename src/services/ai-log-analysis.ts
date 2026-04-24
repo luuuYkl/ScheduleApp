@@ -1,8 +1,17 @@
 // src/services/ai-log-analysis.ts
 // AI日志分析服务 - 基于历史数据生成行为分析和个性化建议
+// 已重构：使用 ai-utils 统一客户端和 JSON 解析
 
 import { APP_CONFIG } from "@/config";
 import type { LogEntry } from "./generate-log";
+import {
+  aiLogger,
+  parseAIJSON,
+  sendAIRequest,
+  streamAIRequest,
+  extractContentFromResponse,
+  isAIAvailable,
+} from "./ai-utils";
 
 /**
  * AI日志分析结果
@@ -77,209 +86,114 @@ export async function analyzeLogsWithAI(logs: LogEntry[]): Promise<AILogAnalysis
   return generateLocalAnalysis(logs);
 }
 
+// ────────────────────────────────────────────
+// 系统 Prompt（分离配置，便于维护）
+// ────────────────────────────────────────────
+
+const SYSTEM_PROMPT_LOG_ANALYSIS = `你是时间管理和行为分析助手。分析用户工作日志数据。
+规则：直接输出纯JSON，禁止\`\`\`包裹，禁止额外文字。
+
+格式：{"trend":{"direction":"up|down|stable","label":"标签","detail":"说明","data":[{"date":"YYYY-MM-DD","completionRate":0.85}]},"risk":{"level":"low|medium|high","label":"等级","detail":"说明","factors":["因素"]},"insights":[{"type":"pattern|warning|recommendation","icon":"emoji","title":"标题","content":"内容"}],"efficiencyPeriods":["09:00-11:00"],"workPattern":"early_bird|night_owl|balanced|irregular","personalizedSuggestions":[{"id":1,"icon":"emoji","title":"标题","problem":"问题","advice":"建议","actionLabel":"按钮文字","action":"reduce_tasks|reschedule_tasks|add_reminders|improve_efficiency"}]}`;
+
 /**
- * 调用AI服务进行分析
+ * 调用AI服务进行分析（使用统一 AI 客户端）
  */
 async function callAIForAnalysis(logs: LogEntry[]): Promise<AILogAnalysis> {
-  const recentLogs = logs.slice(0, 30); // 分析最近30天的日志
-  
-  const prompt = `
-请分析以下用户的工作日志数据，提供行为分析和优化建议：
+  const recentLogs = logs.slice(0, 30);
 
-日志数据（共${recentLogs.length}条）：
-${recentLogs.map(log => `
-日期: ${log.date}
-完成任务: ${log.tasks_done}/${log.tasks_total}
-完成日程: ${log.schedules_done}/${log.schedules_total}
-内容: ${log.content}
-`).join('\n')}
+  const logData = recentLogs.map(log =>
+    `${log.date} 完成${log.tasks_done}/${log.tasks_total} 日程${log.schedules_done}/${log.schedules_total} ${log.content}`
+  ).join('\n');
 
-请以JSON格式返回分析结果，包含以下字段：
-{
-  "trend": {
-    "direction": "up|down|stable",
-    "label": "趋势标签",
-    "detail": "详细说明",
-    "data": [{"date": "YYYY-MM-DD", "completionRate": 0.85}]
-  },
-  "risk": {
-    "level": "low|medium|high",
-    "label": "风险等级",
-    "detail": "风险说明",
-    "factors": ["风险因素1", "风险因素2"]
-  },
-  "insights": [
-    {
-      "type": "pattern|warning|recommendation",
-      "icon": "图标emoji",
-      "title": "洞察标题",
-      "content": "详细内容"
-    }
-  ],
-  "efficiencyPeriods": ["09:00-11:00", "14:00-16:00"],
-  "workPattern": "early_bird|night_owl|balanced|irregular",
-  "personalizedSuggestions": [
-    {
-      "id": 1,
-      "icon": "图标emoji",
-      "title": "建议标题",
-      "problem": "问题描述",
-      "advice": "建议内容",
-      "actionLabel": "操作按钮文字",
-      "action": "reduce_tasks|reschedule_tasks|add_reminders|improve_efficiency"
-    }
-  ]
-}
+  const prompt = `分析以下${recentLogs.length}天工作日志：
+${logData}
+要求：评估效率趋势、拖延风险、行为洞察（含emoji图标）、高效时段、工作模式、个性化建议`;
 
-分析要点：
-1. 效率趋势：基于任务完成率的变化趋势
-2. 拖延风险：识别导致拖延的模式和原因
-3. 行为洞察：发现工作模式、高效时段、任务偏好等
-4. 高效时段：根据完成率最高的时间段
-5. 工作模式：早起型、夜猫型、平衡型、不规律
-6. 个性化建议：针对发现的问题提供具体可执行的建议
-`;
+  const payload = {
+    model: APP_CONFIG.AI_MODEL,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT_LOG_ANALYSIS },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.5,
+    max_tokens: 3000,
+    stream: false,
+  };
 
-  const url = `${APP_CONFIG.AI_API_BASE_URL}/chat/completions`;
-  
-  // 添加详细的调试日志
-  console.log('[AI Log Analysis] =======================');
-  console.log('[AI Log Analysis] 请求 URL:', url);
-  console.log('[AI Log Analysis] API Key 存在:', !!APP_CONFIG.AI_API_KEY);
-  console.log('[AI Log Analysis] API Key 长度:', APP_CONFIG.AI_API_KEY?.length || 0);
-  console.log('[AI Log Analysis] Model:', APP_CONFIG.AI_MODEL);
-  console.log('[AI Log Analysis] 日志数量:', recentLogs.length);
-  console.log('[AI Log Analysis] Prompt 长度:', prompt.length, '字符');
-  
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${APP_CONFIG.AI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: APP_CONFIG.AI_MODEL,
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个专业的时间管理和行为分析助手。请严格按照JSON格式返回分析结果，不要添加任何额外的文字说明。'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 3000
-      })
-    });
+  aiLogger.log("日志分析请求, 日志数量:", recentLogs.length, "Prompt 长度:", prompt.length);
 
-    console.log('[AI Log Analysis] 响应状态:', response.status, response.statusText);
-    // 响应头日志（兼容性处理）
-    try {
-      const headersObj: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        headersObj[key] = value;
-      });
-      console.log('[AI Log Analysis] 响应头:', headersObj);
-    } catch (e) {
-      console.log('[AI Log Analysis] 无法读取响应头');
-    }
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[AI Log Analysis] 错误响应内容:', errorText);
-      throw new Error(`AI请求失败: ${response.status} - ${errorText}`);
-    }
+  const result = await sendAIRequest(payload, {
+    label: "日志分析",
+    retries: 1,
+    timeout: 45000,
+  });
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      console.error('[AI Log Analysis] AI响应内容为空');
-      throw new Error('AI响应内容为空');
-    }
-
-    console.log('[AI Log Analysis] 响应内容长度:', content.length, '字符');
-    console.log('[AI Log Analysis] 响应内容（前200字符）:', content.substring(0, 200));
-    console.log('[AI Log Analysis] 响应内容（完整）:', content);
-    
-    // 解析AI返回的JSON
-    const parsed = parseAIResponse(content);
-    if (parsed) {
-      console.log('[AI Log Analysis] ✅ 解析成功');
-      return parsed;
-    }
-
-    console.error('[AI Log Analysis] ❌ 解析失败，使用本地分析');
-    // 解析失败，使用本地分析
-    return generateLocalAnalysis(logs);
-  } catch (error) {
-    console.error('[AI Log Analysis] ❌ 请求异常:', error);
-    
-    // 特定错误处理
-    if (error instanceof TypeError) {
-      if (error.message.includes('Failed to fetch')) {
-        console.error('[AI Log Analysis] 网络请求失败，可能原因：');
-        console.error('  1. API 服务不可用或网络连接问题');
-        console.error('  2. API Key 配置错误');
-        console.error('  3. 请求被浏览器阻止（CORS）');
-        console.error('  4. 网络配置变化（VPN/代理）');
-        console.error('  5. DNS 解析失败');
-      }
-    }
-    
-    throw error;
+  if (!result.ok || !result.text) {
+    aiLogger.error("日志分析请求失败:", result.status, result.statusText);
+    throw new Error(`AI 请求失败: ${result.status} ${result.statusText}`);
   }
+
+  const content = extractContentFromResponse(result.text);
+  if (!content) {
+    aiLogger.error("日志分析响应内容为空");
+    throw new Error("AI 响应内容为空");
+  }
+
+  const parsed = parseAIJSON<AILogAnalysis>(content);
+  if (parsed) {
+    aiLogger.log("日志分析解析成功");
+    return parsed;
+  }
+
+  aiLogger.error("日志分析解析失败");
+  return generateLocalAnalysis(logs);
 }
+
+// ────────────────────────────────────────────
+// 日志分析（流式）
+// ────────────────────────────────────────────
 
 /**
- * 解析AI响应
+ * 流式 AI 日志分析
  */
-function parseAIResponse(content: string): AILogAnalysis | null {
-  console.log('[AI Log Analysis] 开始解析响应...');
-  
-  try {
-    // 清理内容
-    let cleaned = content.trim();
-    
-    // 移除 markdown 代码块标记（兼容多种格式）
-    cleaned = cleaned.replace(/^```(?:json|JSON)?\s*\n?/i, '');
-    cleaned = cleaned.replace(/\n?```\s*$/i, '');
-    cleaned = cleaned.trim();
-    
-    console.log('[AI Log Analysis] 清理后的内容（前100字符）:', cleaned.substring(0, 100));
-    
-    // 尝试直接解析
-    try {
-      const parsed = JSON.parse(cleaned);
-      console.log('[AI Log Analysis] 直接解析成功');
-      return parsed;
-    } catch (directError: any) {
-      console.error('[AI Log Analysis] 直接解析失败:', directError?.message || directError);
+export async function* analyzeLogsWithAIStream(
+  logs: LogEntry[],
+  signal?: AbortSignal,
+): AsyncGenerator<string, void, unknown> {
+  if (!isAIAvailable()) {
+    const localResult = generateLocalAnalysis(logs);
+    const jsonStr = JSON.stringify(localResult);
+    for (let i = 0; i < jsonStr.length; i += 20) {
+      yield jsonStr.slice(i, i + 20);
+      await new Promise((r) => setTimeout(r, 20));
     }
-    
-    // 如果直接解析失败，尝试提取 JSON 对象
-    console.log('[AI Log Analysis] 尝试提取 JSON 对象...');
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const extracted = jsonMatch[0];
-        console.log('[AI Log Analysis] 提取的 JSON（前100字符）:', extracted.substring(0, 100));
-        const parsed = JSON.parse(extracted);
-        console.log('[AI Log Analysis] 提取解析成功');
-        return parsed;
-      } catch (extractError: any) {
-        console.error('[AI Log Analysis] 提取解析失败:', extractError?.message || extractError);
-      }
-    }
-    
-    console.error('[AI Log Analysis] 所有解析方法均失败');
-    return null;
-  } catch (error) {
-    console.error('[AI Log Analysis] 解析过程发生异常:', error);
-    return null;
+    return;
+  }
+
+  const recentLogs = logs.slice(0, 30);
+  const logData = recentLogs.map(log =>
+    `${log.date} 完成${log.tasks_done}/${log.tasks_total} 日程${log.schedules_done}/${log.schedules_total} ${log.content}`
+  ).join('\n');
+
+  const prompt = `分析以下${recentLogs.length}天工作日志：
+${logData}
+要求：评估效率趋势、拖延风险、行为洞察（含emoji图标）、高效时段、工作模式、个性化建议`;
+
+  const payload = {
+    model: APP_CONFIG.AI_MODEL,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT_LOG_ANALYSIS },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.5,
+    max_tokens: 3000,
+  };
+
+  for await (const chunk of streamAIRequest(payload, {
+    label: "日志分析-流式",
+    signal,
+  })) {
+    yield chunk;
   }
 }
 

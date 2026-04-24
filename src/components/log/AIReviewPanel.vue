@@ -50,7 +50,7 @@
             <span v-if="t.start_time && t.end_time">{{
               formatTimeRange(t)
             }}</span>
-            <span v-else>{{ t.task_date }}</span>
+            <span v-else>{{ t.start_date }}</span>
           </div>
 
           <!-- 右列：内容 -->
@@ -66,7 +66,7 @@
               <span v-if="t.start_time && t.end_time"
                 >⏱ {{ calcDurationMinutes(t) }} 分钟</span
               >
-              <span v-else>📅 {{ t.task_date }}</span>
+              <span v-else>📅 {{ t.start_date }}</span>
               <span v-if="t.note && t.note.length <= 24">· {{ t.note }}</span>
             </div>
 
@@ -251,6 +251,7 @@ import { useAIReviewStore } from "@/store/ai-review";
 import { useUserStore } from "@/store/user";
 import { useTaskStore } from "@/store/tasks";
 import type { ReviewRequest } from "@/services/ai-review";
+import { aiLogger } from "@/services/ai-utils";
 
 const reviewStore = useAIReviewStore();
 const userStore = useUserStore();
@@ -282,23 +283,23 @@ function parseLocalDate(dateStr: string): Date {
 
 // 辅助：时间范围、时长、标签、今日判断
 function formatTimeRange(t: {
-  start_time?: string;
-  end_time?: string;
+  start_time?: string | null;
+  end_time?: string | null;
 }): string {
   if (!t.start_time || !t.end_time) return "";
   return `${t.start_time} – ${t.end_time}`;
 }
 function calcDurationMinutes(t: {
-  start_time?: string;
-  end_time?: string;
+  start_time?: string | null;
+  end_time?: string | null;
 }): number {
   if (!t.start_time || !t.end_time) return 0;
   const [sh, sm] = t.start_time.split(":").map(Number);
   const [eh, em] = t.end_time.split(":").map(Number);
   return Math.max(0, eh * 60 + em - (sh * 60 + sm));
 }
-function isTodayTask(t: { task_date: string }): boolean {
-  return t.task_date === toLocalDateString(new Date());
+function isTodayTask(t: { start_date: string }): boolean {
+  return t.start_date === toLocalDateString(new Date());
 }
 function statusLabel(status: "pending" | "done" | "missed"): string {
   if (status === "done") return "✔ 已完成";
@@ -328,7 +329,7 @@ const tasksForPeriod = computed(() => {
   const todayStr = toLocalDateString(now);
 
   if (selectedPeriod.value === "today") {
-    const filtered = all.filter((t) => t.task_date === todayStr);
+    const filtered = all.filter((t) => t.start_date === todayStr);
     return filtered;
   }
 
@@ -337,7 +338,7 @@ const tasksForPeriod = computed(() => {
     const start = new Date(end);
     start.setDate(end.getDate() - 6); // 最近7天（含今日）
     return all.filter((t) => {
-      const d = parseLocalDate(t.task_date);
+      const d = parseLocalDate(t.start_date);
       return d >= start && d <= end;
     });
   }
@@ -346,7 +347,7 @@ const tasksForPeriod = computed(() => {
   const month = now.getMonth();
   const year = now.getFullYear();
   return all.filter((t) => {
-    const d = parseLocalDate(t.task_date);
+    const d = parseLocalDate(t.start_date);
     return d.getMonth() === month && d.getFullYear() === year;
   });
 });
@@ -368,27 +369,22 @@ async function generateCurrentReview() {
   if (taskStore.tasks.length === 0) {
     try {
       await taskStore.loadTasks();
-      console.log("[AIReviewPanel] 任务已加载，总数:", taskStore.tasks.length);
+      aiLogger.log("复盘面板：任务已加载，总数:", taskStore.tasks.length);
     } catch (err) {
-      console.error("[AIReviewPanel] 加载任务失败:", err);
+      aiLogger.warn("复盘面板：加载任务失败", err);
     }
   }
 
   const userId = userStore.user?.id ?? 1;
   const tasks = tasksForPeriod.value;
 
-  // 生成前校验与预览输出
   if (tasks.length === 0) {
     const todayStr = toLocalDateString(new Date());
-    const allDates = taskStore.tasks.map((t) => t.task_date);
     const todayMatches = taskStore.tasks.filter(
-      (t) => t.task_date === todayStr,
+      (t) => t.start_date === todayStr,
     ).length;
     errorMessage.value = `未找到${periodLabel.value}的任务。当前任务总数: ${taskStore.tasks.length}，今天(${todayStr})匹配数: ${todayMatches}。`;
-    console.warn("[AIReviewPanel] 无任务可用于生成复盘", {
-      todayStr,
-      allDates,
-    });
+    aiLogger.warn("无任务可用于生成复盘", { todayStr });
     return;
   }
 
@@ -404,16 +400,10 @@ async function generateCurrentReview() {
       "我是一个工作效率爱好者，希望通过数据驱动的方式不断提升自己的生产力。",
   };
 
-  console.log("[AIReviewPanel] 生成复盘请求:", {
+  aiLogger.log("生成复盘请求:", {
     period: selectedPeriod.value,
     tasks_total: tasks.length,
     tasks_done: tasks.filter((t) => t.status === "done").length,
-    tasks_detail: tasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      date: t.task_date,
-      status: t.status,
-    })),
   });
 
   await reviewStore.generateReview(request);
@@ -429,12 +419,9 @@ onMounted(async () => {
     // 加载任务列表
     try {
       await taskStore.loadTasks();
-      console.log(
-        "[AIReviewPanel] 组件挂载 - 任务已加载，总数:",
-        taskStore.tasks.length,
-      );
+      aiLogger.log("复盘面板挂载：任务已加载，总数:", taskStore.tasks.length);
     } catch (err) {
-      console.error("[AIReviewPanel] 组件挂载 - 加载任务失败:", err);
+      aiLogger.warn("复盘面板挂载：加载任务失败", err);
     }
   }
 });
@@ -447,12 +434,9 @@ watch(
       reviewStore.loadReviewsFromStorage(userId);
       try {
         await taskStore.loadTasks();
-        console.log(
-          "[AIReviewPanel] 用户变化 - 任务已加载，总数:",
-          taskStore.tasks.length,
-        );
+        aiLogger.log("复盘面板：用户变化，任务已加载，总数:", taskStore.tasks.length);
       } catch (err) {
-        console.error("[AIReviewPanel] 用户变化 - 加载任务失败:", err);
+        aiLogger.warn("复盘面板：用户变化，加载任务失败", err);
       }
     }
   },

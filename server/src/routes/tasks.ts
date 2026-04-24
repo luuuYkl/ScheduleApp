@@ -102,7 +102,7 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
     }
 
     const { id } = req.params;
-    const { title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date } = req.body;
+    const { title, start_date, end_date, start_time, end_time, status, note, repeat_type, repeat_end_date, repeat_group_id } = req.body;
 
     // 检查任务是否存在且属于当前用户
     const [existingTasks] = await pool.execute(
@@ -159,6 +159,7 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
     if (note !== undefined) { updates.push('note = ?'); values.push(note); }
     if (repeat_type !== undefined) { updates.push('repeat_type = ?'); values.push(repeat_type); }
     if (repeat_end_date !== undefined) { updates.push('repeat_end_date = ?'); values.push(repeat_end_date); }
+    if (repeat_group_id !== undefined) { updates.push('repeat_group_id = ?'); values.push(repeat_group_id); }
 
     if (updates.length === 0) {
       res.status(400).json({ error: '没有提供更新内容' });

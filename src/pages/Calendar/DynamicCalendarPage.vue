@@ -1,7 +1,6 @@
 <template>
   <PageScaffold
-    show-back-button
-    @back="goBack"
+    back-to="/home"
     class="layer-context"
   >
     <template #actions>

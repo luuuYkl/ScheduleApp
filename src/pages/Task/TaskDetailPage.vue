@@ -1,12 +1,10 @@
 <template>
   <PageScaffold
+    back-to
     class="layer-context"
   >
     <template #actions>
       <div class="header-actions">
-        <Button variant="ghost" size="small" @click="goBack" class="back-btn">
-          ← 返回
-        </Button>
         <Button variant="outline" size="small" @click="editTask">
           ✏️ 编辑
         </Button>

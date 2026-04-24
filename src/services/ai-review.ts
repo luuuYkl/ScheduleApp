@@ -2,7 +2,7 @@
 // AI 复盘服务 - 调用 DeepSeek API 生成时间维度的复盘总结
 
 import type { Task, ScheduleItem } from "./api.types";
-import { APP_CONFIG } from "@/config";
+import { aiLogger, sendAIRequest, parseAIJSON, extractContentFromResponse, isAIAvailable, deduplicatedAICall } from "./ai-utils";
 
 /** AI 复盘内容 */
 export interface AIReview {
@@ -43,7 +43,7 @@ export async function generateAIReview(
 
   // 过滤出时间范围内的任务和日程
   const filteredTasks = tasks.filter((t) => {
-    const taskDate = new Date(t.task_date);
+    const taskDate = new Date(t.start_date);
     return taskDate >= dateRange.start && taskDate <= dateRange.end;
   });
 
@@ -159,7 +159,7 @@ function calculateConsistencyScore(
     new Map();
 
   tasks.forEach((t) => {
-    const date = t.task_date;
+    const date = t.start_date;
     const record = dailyCompletion.get(date) || { total: 0, done: 0 };
     record.total++;
     if (t.status === "done") record.done++;
@@ -186,8 +186,10 @@ function calculateConsistencyScore(
   return daysWithData > 0 ? Math.round(totalScore / daysWithData) : 0;
 }
 
+const SYSTEM_PROMPT_REVIEW = "你是生产力顾问，分析用户任务完成情况并给出建设性建议。返回JSON：{\"summary\":\"2-3句总结\",\"insights\":[\"洞察1\",\"洞察2\",\"洞察3\"],\"suggestions\":[\"建议1\",\"建议2\",\"建议3\"]}";
+
 /**
- * 构建发送给 AI 的提示词
+ * 构建发送给 AI 的提示词（精简版）
  */
 function buildPrompt(
   period: "today" | "week" | "month",
@@ -196,98 +198,40 @@ function buildPrompt(
   metrics: AIReview["metrics"],
   context?: string,
 ): string {
-  const periodText = {
-    today: "今天",
-    week: "这周",
-    month: "这个月",
-  }[period];
-
-  const tasksList = tasks
-    .map(
-      (t) =>
-        `- ${t.title} (状态: ${t.status === "done" ? "✓已完成" : "✗未完成"})`,
-    )
-    .join("\n");
-
-  const schedulesList = schedules
-    .map((s) => `- ${s.title} (状态: ${s.completed ? "✓已完成" : "✗未完成"})`)
-    .join("\n");
-
-  return `请为用户生成一份${periodText}的工作和生活复盘总结。
-
-【时间维度】${periodText}
-
-【完成指标】
-- 完成率: ${metrics.completion_rate}%
-- 生产力评分: ${metrics.productivity_score}/100
-- 坚持度评分: ${metrics.consistency_score}/100
-
-【任务完成情况】
-${tasksList || "暂无任务"}
-
-【日程完成情况】
-${schedulesList || "暂无日程"}
-
-${context ? `【用户背景】\n${context}` : ""}
-
-请提供：
-1. 一段简洁的总结（2-3句）
-2. 3个关键洞察
-3. 3个改进建议
-
-格式要求：返回 JSON 格式，包含 summary, insights (数组), suggestions (数组) 三个字段`;
+  const periodText = { today: "今天", week: "这周", month: "这个月" }[period];
+  const tasksList = tasks.map(t => `${t.title}(${t.status === "done" ? "✓" : "✗"})`).join(",");
+  const schedulesList = schedules.map(s => `${s.title}(${s.completed ? "✓" : "✗"})`).join(",");
+  return `${periodText}复盘|完成率${metrics.completion_rate}%|生产力${metrics.productivity_score}|坚持度${metrics.consistency_score}|任务[${tasksList}]|日程[${schedulesList}]${context ? `|背景:${context}` : ""}`;
 }
 
 /**
  * 调用 DeepSeek API
  */
 async function callDeepSeekAPI(prompt: string): Promise<string> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY || "";
-
-  if (!apiKey) {
-    console.warn("[AI Review] DeepSeek API key not found, using mock response");
+  if (!isAIAvailable()) {
+    aiLogger.warn("复盘：AI 不可用，使用 Mock 响应");
     return generateMockResponse();
   }
 
-  try {
-    const response = await fetch(
-      "https://api.deepseek.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "deepseek-chat",
-          messages: [
-            {
-              role: "system",
-              content:
-                "你是一个专业的生产力顾问，善于分析用户的任务完成情况并提供建设性的建议。",
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 1000,
-        }),
-      },
-    );
+  const result = await sendAIRequest(
+    {
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT_REVIEW },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 800,
+    },
+    { label: "AI复盘" },
+  );
 
-    if (!response.ok) {
-      throw new Error(`DeepSeek API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error("[AI Review] DeepSeek API call failed:", error);
-    // 降级到 Mock 响应
+  if (!result.ok) {
+    aiLogger.warn("复盘请求失败，降级到 Mock");
     return generateMockResponse();
   }
+
+  return extractContentFromResponse(result.text);
 }
 
 /**
@@ -318,13 +262,9 @@ function parseReviewResponse(
   period: "today" | "week" | "month",
   metrics: AIReview["metrics"],
 ): AIReview {
-  try {
-    // 尝试从 JSON 块中提取
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch
-      ? JSON.parse(jsonMatch[0])
-      : parseSimpleFormat(content);
+  const parsed = parseAIJSON<{ summary: string; insights: string[]; suggestions: string[] }>(content);
 
+  if (parsed) {
     return {
       period,
       summary: parsed.summary || "无法生成总结",
@@ -333,17 +273,17 @@ function parseReviewResponse(
       metrics,
       generated_at: new Date().toISOString(),
     };
-  } catch (error) {
-    console.error("[AI Review] Failed to parse response:", error);
-    return {
-      period,
-      summary: content,
-      insights: [],
-      suggestions: [],
-      metrics,
-      generated_at: new Date().toISOString(),
-    };
   }
+
+  aiLogger.warn("复盘响应解析失败，返回原始文本");
+  return {
+    period,
+    summary: content,
+    insights: [],
+    suggestions: [],
+    metrics,
+    generated_at: new Date().toISOString(),
+  };
 }
 
 /**
@@ -423,10 +363,9 @@ function getTimeUntilNext1AM(): number {
  * 执行每日AI复盘
  */
 async function executeDailyAIReview(): Promise<void> {
-  console.log("[AI Review Scheduler] 开始执行每日AI复盘...");
+  aiLogger.log("开始执行每日AI复盘...");
   
   try {
-    // 从localStorage获取用户数据
     const userId = Number(localStorage.getItem("user_id")) || 1;
     const tasksData = localStorage.getItem("tasks");
     const schedulesData = localStorage.getItem("schedules");
@@ -435,19 +374,11 @@ async function executeDailyAIReview(): Promise<void> {
     let schedules: ScheduleItem[] = [];
     
     if (tasksData) {
-      try {
-        tasks = JSON.parse(tasksData);
-      } catch (e) {
-        console.error("[AI Review Scheduler] 解析任务数据失败:", e);
-      }
+      try { tasks = JSON.parse(tasksData); } catch (e) { aiLogger.warn("解析任务数据失败", e); }
     }
     
     if (schedulesData) {
-      try {
-        schedules = JSON.parse(schedulesData);
-      } catch (e) {
-        console.error("[AI Review Scheduler] 解析日程数据失败:", e);
-      }
+      try { schedules = JSON.parse(schedulesData); } catch (e) { aiLogger.warn("解析日程数据失败", e); }
     }
     
     // 生成复盘
@@ -466,15 +397,14 @@ async function executeDailyAIReview(): Promise<void> {
     localStorage.setItem("ai_daily_review", JSON.stringify(review));
     localStorage.setItem("ai_review_date", lastReviewDate);
     
-    console.log("[AI Review Scheduler] AI复盘完成:", review.summary);
+    aiLogger.log("AI复盘完成:", review.summary);
     
-    // 调用回调
     if (onReviewComplete) {
       onReviewComplete(review);
     }
     
   } catch (error) {
-    console.error("[AI Review Scheduler] 执行每日复盘失败:", error);
+    aiLogger.error("执行每日复盘失败:", error);
   }
 }
 
@@ -489,7 +419,7 @@ function scheduleNextReview(): void {
   
   const timeUntilNext = getTimeUntilNext1AM();
   
-  console.log(`[AI Review Scheduler] 下次复盘将在 ${Math.round(timeUntilNext / 1000 / 60)} 分钟后执行`);
+  aiLogger.log(`下次复盘将在 ${Math.round(timeUntilNext / 1000 / 60)} 分钟后执行`);
   
   scheduledTimerId = setTimeout(() => {
     executeDailyAIReview();
@@ -504,7 +434,7 @@ function scheduleNextReview(): void {
  * - 设置每日凌晨1点的定时任务
  */
 export function initAIReviewScheduler(): void {
-  console.log("[AI Review Scheduler] 初始化AI复盘定时任务...");
+  aiLogger.log("初始化AI复盘定时任务...");
   
   // 检查缓存
   const cachedDate = localStorage.getItem("ai_review_date");
@@ -520,9 +450,9 @@ export function initAIReviewScheduler(): void {
       try {
         cachedReview = JSON.parse(cachedData);
         lastReviewDate = cachedDate;
-        console.log("[AI Review Scheduler] 使用缓存的复盘数据");
+        aiLogger.log("使用缓存的复盘数据");
       } catch (e) {
-        console.error("[AI Review Scheduler] 解析缓存失败:", e);
+        aiLogger.warn("解析缓存失败:", e);
       }
     }
   }
@@ -534,7 +464,7 @@ export function initAIReviewScheduler(): void {
     today1AM.setHours(1, 0, 0, 0);
     
     if (now > today1AM) {
-      console.log("[AI Review Scheduler] 无缓存，立即执行复盘");
+      aiLogger.log("无缓存，立即执行复盘");
       executeDailyAIReview();
     }
   }
@@ -550,7 +480,7 @@ export function stopAIReviewScheduler(): void {
   if (scheduledTimerId) {
     clearTimeout(scheduledTimerId);
     scheduledTimerId = null;
-    console.log("[AI Review Scheduler] 定时任务已停止");
+    aiLogger.log("定时任务已停止");
   }
 }
 

@@ -162,7 +162,17 @@
           </div>
           
           <div class="section-content" v-show="analysisExpanded">
-            <div class="analysis-details">
+            <!-- AI 分析加载状态 -->
+            <div v-if="loadingAnalysis" class="ai-loading-state">
+              <div class="loading-spinner">
+                <svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.25"/>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+              </div>
+              <p class="ai-loading-text">AI 正在分析您的日志数据...</p>
+            </div>
+            <div class="analysis-details" v-else>
               <!-- 效率趋势说明 -->
               <div class="analysis-item">
                 <div class="item-header">
@@ -305,6 +315,7 @@ import { useTaskStore } from "@/store/tasks";
 import type { LogEntry } from "@/services/generate-log";
 import type { AILogAnalysis } from "@/services/ai-log-analysis";
 import { analyzeLogsWithAI } from "@/services/ai-log-analysis";
+import { aiLogger } from "@/services/ai-utils";
 import { 
   optimizeTaskQuantity as optimizeTaskQuantityFn, 
   rescheduleTasksByEfficiency, 
@@ -921,6 +932,20 @@ async function refreshData(userId: number) {
   await taskStore.loadTasks();
 }
 
+// 检查是否应该自动执行AI分析（凌晨4点后首次打开页面）
+function shouldAutoAnalyze(): boolean {
+  const now = new Date();
+  const hour = now.getHours();
+  const today = now.toISOString().slice(0, 10);
+  const lastDate = localStorage.getItem('last_analysis_date');
+
+  // 只在凌晨4点之后、且今天还没有分析过时才自动触发
+  if (hour >= 4 && lastDate !== today) {
+    return true;
+  }
+  return false;
+}
+
 // 执行AI分析
 async function performAIAnalysis() {
   if (filteredLogs.value.length < 3) {
@@ -932,9 +957,12 @@ async function performAIAnalysis() {
   try {
     const analysis = await analyzeLogsWithAI(filteredLogs.value);
     aiAnalysis.value = analysis;
+    // 记录今天已执行过分析
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem('last_analysis_date', today);
     Message.success('AI分析完成');
   } catch (error) {
-    console.error('AI分析失败:', error);
+    aiLogger.warn('AI分析失败，降级到本地分析', error);
     Message.warning('AI分析失败，使用本地分析');
   } finally {
     loadingAnalysis.value = false;
@@ -1013,16 +1041,11 @@ ${aiAnalysis.value.personalizedSuggestions.map(s => `- ${s.title}: ${s.advice}`)
   Message.success('报告已生成');
 }
 
-// 下拉刷新
+// 下拉刷新（仅刷新数据，不重新触发AI分析）
 async function handleRefresh() {
   const userId = userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
   await logStore.loadLogs(userId);
   await taskStore.loadTasks();
-  
-  // 刷新后自动执行AI分析
-  if (filteredLogs.value.length >= 3) {
-    await performAIAnalysis();
-  }
 }
 
 // 监听日志分组变化，自动初始化展开状态
@@ -1041,8 +1064,8 @@ onMounted(async () => {
     await logStore.loadLogs(userId);
     await taskStore.loadTasks();
     
-    // 如果有足够的日志数据，自动执行AI分析
-    if (filteredLogs.value.length >= 3) {
+    // 凌晨4点后首次打开页面时自动执行AI分析（每天仅一次）
+    if (filteredLogs.value.length >= 3 && shouldAutoAnalyze()) {
       await performAIAnalysis();
     }
   } catch (e) {
@@ -1449,6 +1472,26 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--text-muted);
   line-height: 1.5;
+}
+
+/* AI 分析加载状态 */
+.ai-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8) var(--space-4);
+  gap: var(--space-3);
+}
+
+.ai-loading-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* ============ 第三部分：AI 行为分析 ============ */

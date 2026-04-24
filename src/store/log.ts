@@ -6,14 +6,18 @@ import { ref } from "vue";
 import type { LogEntry } from "@/services/generate-log";
 import { generateDailyLog } from "@/services/generate-log";
 import type { Task, ScheduleItem } from "@/services/api.types";
-import * as API from "@/services/api";
+import { APP_CONFIG } from "@/config";
 import {
   getStorageSync,
   setStorageSync,
   STORAGE_KEYS,
 } from "@/services/local-storage";
 
-const APIAny = API as any;
+/** 获取认证 token */
+function getAuthHeaders(): Record<string, string> {
+  const token = getStorageSync<string>("auth_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 /**
  * 日志 Store
@@ -24,6 +28,9 @@ export const useLogStore = defineStore("log", () => {
 
   /** 日志列表 */
   const logs = ref<LogEntry[]>([]);
+
+  /** 加载状态 */
+  const loading = ref(false);
 
   // ========== 辅助方法 ==========
 
@@ -39,19 +46,67 @@ export const useLogStore = defineStore("log", () => {
   /**
    * 加载用户的历史日志
    * @param userId 用户ID
+   * @param startDate 起始日期（可选）
+   * @param endDate 结束日期（可选）
    * @returns 日志列表
    */
-  async function loadLogs(userId: number) {
-    if (APIAny.fetchLogs) {
-      // 有后端接口，调用后端
-      logs.value = await APIAny.fetchLogs(userId);
-    } else {
-      // Mock 模式：从本地存储读取
-      const key = getLogStorageKey(userId);
-      const stored = getStorageSync<LogEntry[]>(key);
-      logs.value = stored ?? [];
+  async function loadLogs(userId: number, startDate?: string, endDate?: string) {
+    loading.value = true;
+    try {
+      if (!APP_CONFIG.USE_MOCK) {
+        // 后端模式：调用 /logs API
+        const params = new URLSearchParams();
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
+        const qs = params.toString() ? `?${params.toString()}` : "";
+
+        const response = await fetch(`${APP_CONFIG.API_BASE_URL}/logs${qs}`, {
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          logs.value = await response.json();
+        } else {
+          console.warn("加载日志失败，使用本地缓存");
+          const key = getLogStorageKey(userId);
+          logs.value = getStorageSync<LogEntry[]>(key) ?? [];
+        }
+      } else {
+        // Mock 模式：从本地存储读取
+        const key = getLogStorageKey(userId);
+        logs.value = getStorageSync<LogEntry[]>(key) ?? [];
+      }
+      return logs.value;
+    } finally {
+      loading.value = false;
     }
-    return logs.value;
+  }
+
+  /**
+   * 获取指定日期的日志
+   */
+  async function getLogByDate(date: string): Promise<LogEntry | null> {
+    if (!APP_CONFIG.USE_MOCK) {
+      try {
+        const response = await fetch(`${APP_CONFIG.API_BASE_URL}/logs/${date}`, {
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+        });
+        if (response.ok) {
+          return await response.json();
+        }
+      } catch {
+        // 忽略错误
+      }
+    }
+
+    // 降级：从本地缓存查找
+    return logs.value.find((log) => log.date === date) ?? null;
   }
 
   /**
@@ -68,35 +123,54 @@ export const useLogStore = defineStore("log", () => {
     schedules: ScheduleItem[] = [],
   ) {
     const today = new Date().toISOString().slice(0, 10);
-    const key = getLogStorageKey(userId);
 
-    // 从本地存储读取现有日志（确保唯一性）
+    // 生成新的日志内容（客户端 AI 生成）
+    const newLog = await generateDailyLog(userId, tasks, schedules);
+
+    if (!APP_CONFIG.USE_MOCK) {
+      // 后端模式：调用 /logs/generate 触发服务端保存
+      try {
+        const response = await fetch(`${APP_CONFIG.API_BASE_URL}/logs/generate`, {
+          method: "POST",
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ date: today }),
+        });
+
+        if (response.ok) {
+          const serverLog = await response.json();
+          // 合并客户端 AI 生成的内容（如果服务端没有 AI 能力）
+          const mergedLog = serverLog.content ? serverLog : { ...serverLog, ...newLog };
+          // 更新本地列表
+          const idx = logs.value.findIndex((l) => l.date === today);
+          if (idx !== -1) {
+            logs.value[idx] = mergedLog;
+          } else {
+            logs.value.unshift(mergedLog);
+          }
+          return mergedLog;
+        }
+      } catch (error) {
+        console.warn("服务端日志保存失败，使用本地存储", error);
+      }
+    }
+
+    // Mock 模式 / 降级：保存到本地存储
+    const key = getLogStorageKey(userId);
     let existingLogs: LogEntry[] = getStorageSync<LogEntry[]>(key) ?? [];
     const todayLogIndex = existingLogs.findIndex((log) => log.date === today);
 
-    // 生成新的日志内容（包含任务和日程）
-    const newLog = await generateDailyLog(userId, tasks, schedules);
-
     if (todayLogIndex !== -1) {
-      // 当天已有日志，覆盖更新（保持ID）
       newLog.id = existingLogs[todayLogIndex].id;
       existingLogs[todayLogIndex] = newLog;
     } else {
-      // 新增当天日志（移除可能的同日旧记录）
       existingLogs = existingLogs.filter((log) => log.date !== today);
-      existingLogs.unshift(newLog); // 插入到最前面
+      existingLogs.unshift(newLog);
     }
 
-    // 保存日志
-    if (APIAny.saveLog) {
-      // 有后端接口，调用后端保存
-      await APIAny.saveLog(newLog);
-    } else {
-      // Mock 模式：保存到本地存储
-      setStorageSync(key, existingLogs);
-    }
-
-    // 更新内存中的日志列表
+    setStorageSync(key, existingLogs);
     logs.value = [...existingLogs];
     return newLog;
   }
@@ -105,7 +179,9 @@ export const useLogStore = defineStore("log", () => {
 
   return {
     logs,
+    loading,
     loadLogs,
+    getLogByDate,
     generateTodayLog,
   };
 });

@@ -1,7 +1,6 @@
 <template>
   <PageScaffold
-    show-back-button
-    @back="goBack"
+    back-to="/plan"
   >
     <template #actions>
       <Button 
@@ -36,16 +35,26 @@
                   allow-clear
                   class="ai-generate-input"
                 />
-                <Button
-                  variant="ai"
-                  @click="handleAIGenerate"
-                  :loading="aiGenerateLoading"
-                  :disabled="!aiGenerateText.trim()"
-                  class="ai-generate-btn"
-                >
-                  <template #icon><span>🚀</span></template>
-                  {{ aiGenerateLoading ? '生成中...' : '生成' }}
-                </Button>
+                <div class="ai-generate-actions">
+                  <Button
+                    variant="ai"
+                    @click="handleAIGenerate"
+                    :loading="aiGenerateLoading"
+                    :disabled="!aiGenerateText.trim()"
+                    class="ai-generate-btn"
+                  >
+                    <template #icon><span>🚀</span></template>
+                    {{ aiGenerateLoading ? `生成中 ${aiGenerateElapsed}s` : '生成' }}
+                  </Button>
+                  <Button
+                    v-if="aiGenerateLoading"
+                    variant="outline"
+                    @click="cancelAIGenerate"
+                    class="ai-cancel-btn"
+                  >
+                    取消
+                  </Button>
+                </div>
               </div>
               <!-- 生成结果简洁提示 -->
               <div class="ai-generate-result" v-if="aiGenerateDone">
@@ -153,9 +162,9 @@
       <!-- 右侧：AI 建议和预览区域 -->
       <div class="preview-section" ref="previewSection">
         <!-- AI 建议面板（流式） -->
-        <div class="ai-panel" v-if="aiLoading || streamContent.length > 0 || aiResponse">
+        <div class="ai-panel" v-if="aiLoading || aiGenerateLoading || streamContent.length > 0 || aiResponse">
           <AISuggestionsStream
-            :loading="aiLoading"
+            :loading="aiLoading || aiGenerateLoading"
             :response="aiResponse"
             :stream-content="streamContent"
             :closeable="true"
@@ -268,12 +277,13 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed } from "vue";
+import { reactive, ref, onMounted, onUnmounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Message } from "@arco-design/web-vue";
 import { usePlanStore } from "@/store/plans";
 import { useUserStore } from "@/store/user";
 import { optimizePlanWithAI, optimizePlanWithAIStream, quickValidatePlan, generatePlanFromTextStream } from "@/services/ai";
+import { parseAIJSON } from "@/services/ai-utils";
 import type {
   AIOptimizePlanResponse,
   AIRecommendedTask,
@@ -348,6 +358,9 @@ const pendingTasks = ref<AIRecommendedTask[]>([]); // 用户选择要创建的�
 const aiGenerateText = ref("");
 const aiGenerateLoading = ref(false);
 const aiGenerateDone = ref(false);
+const aiGenerateElapsed = ref(0); // 已用时间（秒）
+let aiGenerateTimer: ReturnType<typeof setInterval> | null = null;
+let aiGenerateAbort: AbortController | null = null;
 
 // 是否可以进行 AI 优化（基本字段已填写）
 const canOptimize = computed(() => {
@@ -356,7 +369,7 @@ const canOptimize = computed(() => {
 
 // 右侧是否有预览内容
 const hasPreviewContent = computed(() => {
-  return aiLoading.value || streamContent.value.length > 0 || aiResponse.value
+  return aiLoading.value || aiGenerateLoading.value || streamContent.value.length > 0 || aiResponse.value
     || pendingTasks.value.length > 0
     || form.title;
 });
@@ -540,22 +553,10 @@ async function getAISuggestions() {
       streamContent.value += chunk;
     }
 
-    // 流式完成后，解析完整的响应
-    try {
-      const trimmed = streamContent.value.trim();
-      let cleaned = trimmed
-        .replace(/^```(?:json)?\s*/gm, "")
-        .replace(/```$/gm, "")
-        .replace(/```/g, "")
-        .trim();
-      
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        aiResponse.value = JSON.parse(jsonMatch[0]);
-      }
-    } catch (error) {
-      console.error("解析流式响应失败:", error);
-      // 如果解析失败，保留流式内容供用户查看
+    // 流式完成后，使用统一 JSON 解析器
+    const parsed = parseAIJSON<AIOptimizePlanResponse>(streamContent.value);
+    if (parsed) {
+      aiResponse.value = parsed;
     }
   } catch (error) {
     console.error("AI 流式优化失败:", error);
@@ -570,59 +571,83 @@ function clearAISuggestions() {
   streamContent.value = "";
 }
 
-// AI 一句话生成计划
+// AI 一句话生成计划（流式实时预览 + 计时 + 可取消）
 async function handleAIGenerate() {
   if (!aiGenerateText.value.trim()) return;
   aiGenerateLoading.value = true;
   aiGenerateDone.value = false;
+  aiGenerateElapsed.value = 0;
+
+  // 启动计时器
+  const startTime = Date.now();
+  aiGenerateTimer = setInterval(() => {
+    aiGenerateElapsed.value = Math.floor((Date.now() - startTime) / 1000);
+  }, 1000);
+
+  // 创建 AbortController 用于取消
+  aiGenerateAbort = new AbortController();
+
+  // 清空之前的流式内容和 AI 面板
+  streamContent.value = "";
+  aiResponse.value = null;
 
   try {
-    let fullContent = "";
-    const stream = generatePlanFromTextStream({
-      text: aiGenerateText.value.trim(),
-      user_context: `用户ID: ${userStore.user?.id}, 用户名: ${userStore.user?.username}`,
-    });
+    const stream = generatePlanFromTextStream(
+      {
+        text: aiGenerateText.value.trim(),
+        user_context: `用户ID: ${userStore.user?.id}, 用户名: ${userStore.user?.username}`,
+      },
+      aiGenerateAbort.signal,
+    );
 
+    // 实时接收流式内容，更新 streamContent 让右侧面板实时展示
     for await (const chunk of stream) {
-      fullContent += chunk;
+      streamContent.value += chunk;
     }
 
-    // 解析 AI 返回的 JSON
-    const trimmed = fullContent.trim()
-      .replace(/^```(?:json)?\s*/gm, "")
-      .replace(/```$/gm, "")
-      .replace(/```/g, "")
-      .trim();
-
-    const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      // 填充表单
-      if (parsed.optimized_plan) {
-        const plan = parsed.optimized_plan;
-        if (plan.title) form.title = plan.title;
-        if (plan.description) form.description = plan.description;
-        if (plan.start_date) form.start_date = plan.start_date;
-        if (plan.end_date) form.end_date = plan.end_date;
-        // 添加推荐任务
-        if (plan.recommended_tasks) {
-          pendingTasks.value = [];
-          plan.recommended_tasks.forEach((task: AIRecommendedTask) => {
-            pendingTasks.value.push({
-              ...task,
-              task_date: task.task_date || plan.start_date || "",
-            });
+    // 流式完成后解析
+    const parsed = parseAIJSON<AIOptimizePlanResponse>(streamContent.value);
+    if (parsed?.optimized_plan) {
+      const plan = parsed.optimized_plan;
+      if (plan.title) form.title = plan.title;
+      if (plan.description) form.description = plan.description;
+      if (plan.start_date) form.start_date = plan.start_date;
+      if (plan.end_date) form.end_date = plan.end_date;
+      // 添加推荐任务
+      if (plan.recommended_tasks) {
+        pendingTasks.value = [];
+        plan.recommended_tasks.forEach((task: AIRecommendedTask) => {
+          pendingTasks.value.push({
+            ...task,
+            task_date: task.task_date || plan.start_date || "",
           });
-        }
+        });
       }
       aiGenerateDone.value = true;
+      aiResponse.value = parsed; // 让 AISuggestionsStream 展示完整结果
       Message.success("AI 已生成计划方案！");
     }
-  } catch (error) {
-    console.error("AI 生成计划失败:", error);
-    Message.error("AI 生成失败，请稍后重试");
+  } catch (error: any) {
+    if (error?.name === "AbortError") {
+      Message.info("已取消生成");
+    } else {
+      console.error("AI 生成计划失败:", error);
+      Message.error("AI 生成失败，请稍后重试");
+    }
   } finally {
     aiGenerateLoading.value = false;
+    if (aiGenerateTimer) {
+      clearInterval(aiGenerateTimer);
+      aiGenerateTimer = null;
+    }
+    aiGenerateAbort = null;
+  }
+}
+
+/** 取消 AI 生成 */
+function cancelAIGenerate() {
+  if (aiGenerateAbort) {
+    aiGenerateAbort.abort();
   }
 }
 
@@ -795,6 +820,18 @@ async function handleRefresh() {
 onMounted(async () => {
   if (editId.value) {
     await loadForEdit();
+  }
+});
+
+// 组件卸载时清理计时器和 AbortController
+onUnmounted(() => {
+  if (aiGenerateTimer) {
+    clearInterval(aiGenerateTimer);
+    aiGenerateTimer = null;
+  }
+  if (aiGenerateAbort) {
+    aiGenerateAbort.abort();
+    aiGenerateAbort = null;
   }
 });
 </script>
@@ -1186,10 +1223,24 @@ onMounted(async () => {
   flex: 1;
 }
 
-.ai-generate-btn {
+.ai-generate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   flex-shrink: 0;
+}
+
+.ai-generate-btn {
   min-width: 90px;
   white-space: nowrap;
+}
+
+.ai-cancel-btn {
+  font-size: 12px;
+  padding: 4px 12px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  border-color: var(--border-main);
 }
 
 .ai-generate-result {

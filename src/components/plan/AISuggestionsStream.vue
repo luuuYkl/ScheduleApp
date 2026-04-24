@@ -167,6 +167,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from "vue";
+import { parseAIJSON } from "@/services/ai-utils";
 import type {
   AISuggestion,
   AIOptimizePlanResponse,
@@ -203,52 +204,39 @@ const contentContainer = ref<HTMLElement>();
 const reasoningExpanded = ref(false);
 const showReasoning = ref(true);
 
+// 空结构常量
+const EMPTY_PARSED: AIOptimizePlanResponse = {
+  suggestions: [],
+  optimized_plan: {
+    title: "",
+    description: "",
+    start_date: "",
+    end_date: "",
+    recommended_tasks: [],
+  },
+  reasoning: "",
+};
+
 // 计算属性
 const parsedData = computed(() => {
   // 如果有完整的 response，优先使用
   if (props.response) {
     return props.response;
   }
-  
-  // 否则尝试解析流式内容
+
+  // 否则使用统一 JSON 解析器解析流式内容
   if (props.streamContent) {
-    try {
-      // 尝试解析 JSON
-      const trimmed = props.streamContent.trim();
-      
-      // 移除可能的 Markdown 标记
-      let cleaned = trimmed
-        .replace(/^```(?:json)?\s*/gm, "")
-        .replace(/```$/gm, "")
-        .replace(/```/g, "")
-        .trim();
-      
-      // 尝试提取 JSON 对象
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const extracted = jsonMatch[0];
-        try {
-          return JSON.parse(extracted);
-        } catch (e) {
-          // 如果解析失败，返回部分解析的数据
-          return {
-            suggestions: [],
-            optimized_plan: { recommended_tasks: [] },
-            reasoning: "正在分析中...",
-          };
-        }
-      }
-    } catch (e) {
-      console.warn("解析流式内容失败:", e);
-    }
+    const parsed = parseAIJSON<AIOptimizePlanResponse>(props.streamContent);
+    if (parsed) return parsed;
+
+    // 流式传输中尚未形成完整 JSON 时
+    return {
+      ...EMPTY_PARSED,
+      reasoning: "正在分析中...",
+    };
   }
-  
-  // 返回空结构
-  return {
-    suggestions: [],
-    optimized_plan: { recommended_tasks: [] },
-    reasoning: "",
-  };
+
+  return EMPTY_PARSED;
 });
 
 const hasOptimization = computed(() => {

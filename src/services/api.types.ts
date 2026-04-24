@@ -185,6 +185,7 @@ export interface UpdateTaskPayload {
   note?: string;
   repeat_type?: TaskRepeatType;
   repeat_end_date?: string;
+  repeat_group_id?: number | null; // 重复任务组ID
 }
 
 /**

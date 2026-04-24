@@ -12,6 +12,7 @@ import plansRoutes from './routes/plans';
 import tasksRoutes from './routes/tasks';
 import schedulesRoutes from './routes/schedules';
 import streakRoutes from './routes/streak';
+import logRoutes from './routes/logs';
 
 // 加载环境变量
 dotenv.config();
@@ -53,6 +54,7 @@ app.use('/plans', plansRoutes);
 app.use('/tasks', tasksRoutes);
 app.use('/schedules', schedulesRoutes);
 app.use('/streak', streakRoutes);
+app.use('/logs', logRoutes);
 
 // 根路由 - 健康检查
 app.get('/', (req: express.Request, res: express.Response) => {
