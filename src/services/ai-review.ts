@@ -240,16 +240,15 @@ async function callDeepSeekAPI(prompt: string): Promise<string> {
 function generateMockResponse(): string {
   return JSON.stringify({
     summary:
-      "今天你完成了大部分任务，表现出色。继续保持这样的势头，相信你能达到更多目标。",
+      "完成率达标，任务执行情况良好。部分时段效率有波动。",
     insights: [
-      "你的时间管理能力逐渐提升，任务完成率达到了新的高度",
-      "早晨的任务完成率最高，建议保持这个时间段的产出",
-      "下午容易出现效率下降，可以尝试在此时安排一些简单的任务",
+      "上午完成率高于下午",
+      "单任务平均耗时在合理范围内",
+      "待办任务主要集中在下午时段",
     ],
     suggestions: [
-      "建议为重要任务预留充足的准备时间",
-      "尝试使用番茄工作法来管理长任务",
-      "定期审视你的目标，确保与当前的优先级保持一致",
+      "重要任务优先安排在高效时段",
+      "长任务可拆分为多个子任务",
     ],
   });
 }
@@ -342,21 +341,21 @@ export function getCachedAIReview(): AIReview | null {
 }
 
 /**
- * 计算距离下一个凌晨1点的毫秒数
+ * 计算距离下一个凌晨4点的毫秒数
  */
-function getTimeUntilNext1AM(): number {
+function getTimeUntilNext4AM(): number {
   const now = new Date();
-  const next1AM = new Date(now);
+  const next4AM = new Date(now);
   
-  // 设置为凌晨1点
-  next1AM.setHours(1, 0, 0, 0);
+  // 设置为凌晨4点
+  next4AM.setHours(4, 0, 0, 0);
   
-  // 如果已经过了今天的1点，设置为明天1点
-  if (now >= next1AM) {
-    next1AM.setDate(next1AM.getDate() + 1);
+  // 如果已经过了今天的4点，设置为明天4点
+  if (now >= next4AM) {
+    next4AM.setDate(next4AM.getDate() + 1);
   }
   
-  return next1AM.getTime() - now.getTime();
+  return next4AM.getTime() - now.getTime();
 }
 
 /**
@@ -417,7 +416,7 @@ function scheduleNextReview(): void {
     clearTimeout(scheduledTimerId);
   }
   
-  const timeUntilNext = getTimeUntilNext1AM();
+  const timeUntilNext = getTimeUntilNext4AM();
   
   aiLogger.log(`下次复盘将在 ${Math.round(timeUntilNext / 1000 / 60)} 分钟后执行`);
   
@@ -431,10 +430,10 @@ function scheduleNextReview(): void {
 /**
  * 初始化AI复盘定时任务
  * - 检查是否有今日的复盘缓存
- * - 设置每日凌晨1点的定时任务
+ * - 设置每日凌晨4点的定时任务（复盘前一天数据）
  */
 export function initAIReviewScheduler(): void {
-  aiLogger.log("初始化AI复盘定时任务...");
+  aiLogger.log("初始化AI复盘定时任务（凌晨4点复盘前一天）...");
   
   // 检查缓存
   const cachedDate = localStorage.getItem("ai_review_date");
@@ -457,14 +456,14 @@ export function initAIReviewScheduler(): void {
     }
   }
   
-  // 如果没有有效缓存且当前时间已过今天1点，立即执行一次
+  // 如果没有有效缓存且当前时间已过今天4点，立即执行一次复盘（复盘昨天）
   if (!cachedReview) {
     const now = new Date();
-    const today1AM = new Date(now);
-    today1AM.setHours(1, 0, 0, 0);
+    const today4AM = new Date(now);
+    today4AM.setHours(4, 0, 0, 0);
     
-    if (now > today1AM) {
-      aiLogger.log("无缓存，立即执行复盘");
+    if (now > today4AM) {
+      aiLogger.log("无缓存，立即执行复盘（复盘昨天数据）");
       executeDailyAIReview();
     }
   }

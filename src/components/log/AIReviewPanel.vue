@@ -64,9 +64,9 @@
             <!-- 第二行：副信息（影响决策） -->
             <div class="row meta">
               <span v-if="t.start_time && t.end_time"
-                >⏱ {{ calcDurationMinutes(t) }} 分钟</span
+                >{{ calcDurationMinutes(t) }}分钟</span
               >
-              <span v-else>📅 {{ t.start_date }}</span>
+              <span v-else>{{ t.start_date }}</span>
               <span v-if="t.note && t.note.length <= 24">· {{ t.note }}</span>
             </div>
 
@@ -112,7 +112,7 @@
       <div v-else-if="currentReview" class="review-body modern-card">
         <!-- 总结部分 -->
         <div class="review-section">
-          <h3 class="section-title">📊 复盘总结</h3>
+          <h3 class="section-title">总结</h3>
           <p class="summary-text">{{ currentReview.summary }}</p>
         </div>
 
@@ -172,7 +172,7 @@
 
         <!-- 关键洞察 -->
         <div class="review-section" v-if="currentReview.insights.length > 0">
-          <h3 class="section-title">💡 关键洞察</h3>
+          <h3 class="section-title">关键洞察</h3>
           <ul class="insights-list">
             <li
               v-for="(insight, idx) in currentReview.insights"
@@ -186,7 +186,7 @@
 
         <!-- 改进建议 -->
         <div class="review-section" v-if="currentReview.suggestions.length > 0">
-          <h3 class="section-title">🎯 改进建议</h3>
+          <h3 class="section-title">改进建议</h3>
           <ul class="suggestions-list">
             <li
               v-for="(suggestion, idx) in currentReview.suggestions"

@@ -34,12 +34,12 @@ const completionClass = computed(() => {
   return 'low';
 });
 
-const moodEmoji = computed(() => {
-  const emojis: Record<string, string> = {
-    happy: '😊', calm: '😌', anxious: '😰',
-    tired: '😴', focused: '🎯', stressed: '😫'
+const moodLabel = computed(() => {
+  const labels: Record<string, string> = {
+    happy: '良好', calm: '平静', anxious: '焦虑',
+    tired: '疲惫', focused: '专注', stressed: '紧张'
   };
-  return emojis[props.log.mood || ''] || '';
+  return labels[props.log.mood || ''] || '';
 });
 
 // 日期格式化
@@ -108,22 +108,24 @@ onMounted(() => {
       <span class="expand-icon" :class="{ expanded }">▼</span>
     </div>
     
-    <!-- ====== 卡片摘要体 ====== -->
-    <div class="log-card-body" @click="$emit('toggle')" style="cursor: pointer;">
-      <p class="log-content">{{ summary }}</p>
-      <div class="log-tags">
-        <span 
-          class="log-tag completion" 
-          :class="completionClass"
-        >
-          {{ completionRate }}% 完成
-        </span>
-        <span class="log-tag mood" v-if="moodEmoji">
-          {{ moodEmoji }}
-        </span>
-        <span class="log-tag" :class="completionClass === 'high' ? 'low-risk' : completionClass === 'medium' ? 'med-risk' : 'high-risk'">
-          {{ completionClass === 'high' ? '低风险' : completionClass === 'medium' ? '中等' : '高风险' }}
-        </span>
+    <!-- ====== 卡片摘要体（展开时隐藏） ====== -->
+    <div class="log-card-body" :class="{ collapsed: expanded }" @click="$emit('toggle')" style="cursor: pointer;">
+      <div class="log-card-body-inner">
+        <p class="log-content">{{ summary }}</p>
+        <div class="log-tags">
+          <span 
+            class="log-tag completion" 
+            :class="completionClass"
+          >
+            {{ completionRate }}% 完成
+          </span>
+          <span class="log-tag mood" v-if="moodLabel">
+            {{ moodLabel }}
+          </span>
+          <span class="log-tag" :class="completionClass === 'high' ? 'low-risk' : completionClass === 'medium' ? 'med-risk' : 'high-risk'">
+            {{ completionClass === 'high' ? '低风险' : completionClass === 'medium' ? '中等' : '高风险' }}
+          </span>
+        </div>
       </div>
     </div>
     
@@ -134,7 +136,6 @@ onMounted(() => {
           <!-- 任务完成情况 -->
           <div class="detail-section" v-if="tasks && tasks.length > 0">
             <div class="item-header">
-              <span class="item-icon">📋</span>
               <span class="item-title">完成情况</span>
               <span class="detail-count">{{ log.tasks_done }}/{{ log.tasks_total }}</span>
             </div>
@@ -145,7 +146,7 @@ onMounted(() => {
                 class="task-item"
                 :class="{ done: task.status === 'done' }"
               >
-                <span class="task-status">{{ task.status === 'done' ? '✅' : '❌' }}</span>
+                <span class="task-dot" :class="task.status === 'done' ? 'dot-done' : 'dot-pending'"></span>
                 <span class="task-title">{{ task.title }}</span>
               </div>
             </div>
@@ -154,8 +155,7 @@ onMounted(() => {
           <!-- 日志内容 -->
           <div class="detail-section" v-if="log.content">
             <div class="item-header">
-              <span class="item-icon">📝</span>
-              <span class="item-title">日志内容</span>
+              <span class="item-title">日志</span>
             </div>
             <p class="item-content">{{ log.content }}</p>
           </div>
@@ -163,21 +163,20 @@ onMounted(() => {
           <!-- 行为标签 -->
           <div class="detail-section">
             <div class="item-header">
-              <span class="item-icon">🧠</span>
-              <span class="item-title">行为分析</span>
+              <span class="item-title">分析</span>
             </div>
             <div class="detail-tags">
               <span class="log-tag" :class="completionClass === 'high' ? 'low-risk' : completionClass === 'medium' ? 'med-risk' : 'high-risk'">
-                拖延风险: {{ completionClass === 'high' ? '低' : completionClass === 'medium' ? '中' : '高' }}
+                {{ completionClass === 'high' ? '低风险' : completionClass === 'medium' ? '中风险' : '高风险' }}
               </span>
-              <span class="log-tag mood" v-if="moodEmoji">
-                情绪: {{ moodEmoji }}
+              <span class="log-tag mood" v-if="moodLabel">
+                {{ moodLabel }}
               </span>
               <span class="log-tag info" v-if="log.work_hours">
-                时长: {{ log.work_hours }}h
+                {{ log.work_hours }}h
               </span>
               <span class="log-tag info" v-if="log.efficiency_periods?.length">
-                高效: {{ log.efficiency_periods.join('、') }}
+                高效 {{ log.efficiency_periods.join('、') }}
               </span>
             </div>
           </div>
@@ -185,8 +184,7 @@ onMounted(() => {
           <!-- 当日亮点 -->
           <div class="detail-section highlight" v-if="log.highlight">
             <div class="item-header">
-              <span class="item-icon">🌟</span>
-              <span class="item-title">当日亮点</span>
+              <span class="item-title">亮点</span>
             </div>
             <p class="item-content highlight-text">{{ log.highlight }}</p>
           </div>
@@ -291,8 +289,24 @@ onMounted(() => {
   transform: rotate(180deg);
 }
 
-/* ========== 卡片摘要体 ========== */
+/* ========== 卡片摘要体（展开时收起） ========== */
 .log-card-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease;
+  opacity: 1;
+}
+
+.log-card-body.collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.log-card-body-inner {
+  overflow: hidden;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -368,7 +382,7 @@ onMounted(() => {
 .log-details-wrapper {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
@@ -456,8 +470,17 @@ onMounted(() => {
   text-decoration: line-through;
 }
 
-.task-status {
-  font-size: 12px;
+.task-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.task-dot.dot-done {
+  background: var(--success);
+}
+.task-dot.dot-pending {
+  background: var(--text-muted);
 }
 
 .task-title {
@@ -489,7 +512,7 @@ onMounted(() => {
     padding: var(--space-2) var(--space-3);
   }
   
-  .log-card-body {
+  .log-card-body-inner {
     padding: 0 var(--space-2) var(--space-2);
   }
   

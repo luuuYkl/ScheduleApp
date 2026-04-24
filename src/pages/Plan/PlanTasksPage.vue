@@ -225,19 +225,41 @@
         <div class="task-list-container">
           <!-- 月视图 -->
           <div v-if="viewMode === 'month'" class="month-view-container">
-            <!-- 月视图导航（横向并置） -->
+            <!-- 月视图导航 -->
             <div class="month-nav-compact">
-              <button class="nav-compact" @click="goPrevMonth" title="上个月">←</button>
-              <span class="month-label-compact">{{ monthLabel }}</span>
-              <button class="nav-compact" @click="goNextMonth" title="下个月">→</button>
-              <div class="nav-divider"></div>
-              <button class="today-compact" @click="goToToday">今天</button>
+              <div class="month-nav-left">
+                <button class="nav-arrow-btn" @click="goPrevMonth" title="上个月">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <span class="month-label-compact">{{ monthLabel }}</span>
+                <button class="nav-arrow-btn" @click="goNextMonth" title="下个月">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              <button class="today-compact" @click="goToToday">📍 今天</button>
             </div>
 
-            <!-- 日历网格（弹性高度） -->
+            <!-- 月度进度概览 -->
+            <div class="month-stats-bar">
+              <div class="month-stats-info">
+                <span class="month-stats-label">本月进度</span>
+                <span class="month-stats-numbers">{{ monthStats.completed }}/{{ monthStats.total }}</span>
+              </div>
+              <div class="month-progress-track">
+                <div class="month-progress-fill" :style="{ width: monthStats.percent + '%' }"></div>
+              </div>
+              <span class="month-stats-percent" :class="getPercentClass(monthStats.percent)">{{ monthStats.percent }}%</span>
+            </div>
+
+            <!-- 日历网格 -->
             <div class="calendar-wrapper">
               <div class="calendar-grid">
-                <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
+                <div 
+                  v-for="(day, idx) in weekdayLabels" 
+                  :key="day.label" 
+                  class="weekday"
+                  :class="{ 'is-weekend': idx === 0 || idx === 6 }"
+                >{{ day.label }}</div>
                 
                 <!-- 空白填充 -->
                 <div
@@ -253,50 +275,33 @@
                   class="calendar-cell"
                   :class="{
                     'is-today': day.isToday,
+                    'is-weekend': day.isWeekend,
                     'has-tasks': day.tasks.length > 0,
-                    'all-done': day.allDone
+                    'all-done': day.allDone,
+                    'is-selected': selectedCalendarDay?.date === day.date
                   }"
                   @click="selectCalendarDay(day)"
                 >
                   <span class="cell-date">{{ day.day }}</span>
-                  <div v-if="day.tasks.length > 0" class="task-indicators">
+                  <!-- 任务指示条 -->
+                  <div v-if="day.tasks.length > 0" class="task-bars">
                     <div
-                      v-for="(task, idx) in day.tasks.slice(0, 4)"
+                      v-for="(task, idx) in day.tasks.slice(0, 3)"
                       :key="'task-' + idx"
-                      class="task-dot"
+                      class="task-bar-item"
                       :class="{ 'task-done': task.status === 'done' }"
                       :title="task.title"
-                    ></div>
-                    <div v-if="day.tasks.length > 4" class="more-tasks">
-                      +{{ day.tasks.length - 4 }}
+                    >
+                      <span class="task-bar-text">{{ task.title }}</span>
+                    </div>
+                    <div v-if="day.tasks.length > 3" class="task-bar-more">
+                      +{{ day.tasks.length - 3 }}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- 选中日期的任务详情 -->
-            <div v-if="selectedCalendarDay" class="selected-day-tasks">
-              <div class="selected-day-header">
-                <h3>{{ selectedCalendarDay.date }}</h3>
-                <button class="close-btn" @click="selectedCalendarDay = null">✕</button>
-              </div>
-              <ul class="selected-day-list">
-                <li
-                  v-for="task in selectedCalendarDay.tasks"
-                  :key="task.id"
-                  class="selected-task-item"
-                  :class="{ completed: task.status === 'done' }"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="task.status === 'done'"
-                    @change="toggleTask(task)"
-                  />
-                  <span class="task-title">{{ task.title }}</span>
-                </li>
-              </ul>
-            </div>
           </div>
 
           <div v-if="viewMode !== 'month' && filteredGroups.length > 0" class="task-groups">
@@ -319,8 +324,10 @@
                   class="task-item"
                   :class="{
                     completed: task.isMerged ? task.doneCount === task.totalCount : task.status === 'done',
-                    'merged-task': task.isMerged
+                    'merged-task': task.isMerged,
+                    'is-selected': selectedTask?.id === task.id
                   }"
+                  @click="selectTask(task)"
                 >
                   <!-- 编辑态 -->
                   <template v-if="editingId === task.id">
@@ -391,6 +398,73 @@
         </div>
       </div>
     </main>
+
+    <!-- 右侧详情栏 -->
+    <aside v-if="selectedTask || selectedCalendarDay" class="detail-panel">
+      <!-- 列表视图：选中任务详情 -->
+      <template v-if="selectedTask && viewMode !== 'month'">
+        <div class="detail-header">
+          <h3>任务详情</h3>
+          <button class="close-btn" @click="selectedTask = null">✕</button>
+        </div>
+        <div class="detail-body">
+          <div class="detail-title-row">
+            <span class="detail-status-dot" :class="selectedTask.status"></span>
+            <span class="detail-task-name">{{ selectedTask.title }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">状态</span>
+            <span class="detail-value">{{ selectedTask.status === 'done' ? '✅ 已完成' : '⏳ 进行中' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">日期</span>
+            <span class="detail-value">{{ formatDateRange(selectedTask.start_date, selectedTask.end_date) }}</span>
+          </div>
+          <div v-if="selectedTask.start_time" class="detail-field">
+            <span class="detail-label">时间</span>
+            <span class="detail-value">{{ selectedTask.start_time }} - {{ selectedTask.end_time }}</span>
+          </div>
+          <div v-if="selectedTask.repeat_type && selectedTask.repeat_type !== 'none'" class="detail-field">
+            <span class="detail-label">重复</span>
+            <span class="detail-value">{{ selectedTask.repeat_type === 'daily' ? '每日' : selectedTask.repeat_type === 'weekly' ? '每周' : '每月' }}</span>
+          </div>
+          <div v-if="selectedTask.note" class="detail-field">
+            <span class="detail-label">备注</span>
+            <span class="detail-value detail-note">{{ selectedTask.note }}</span>
+          </div>
+          <div v-if="selectedTask.isMerged" class="detail-field">
+            <span class="detail-label">进度</span>
+            <span class="detail-value">{{ selectedTask.doneCount }}/{{ selectedTask.totalCount }}</span>
+          </div>
+          <div class="detail-actions">
+            <button class="detail-action-btn edit" @click="startEdit(selectedTask); selectedTask = null">✏️ 编辑</button>
+            <button class="detail-action-btn delete" @click="deleteTask(selectedTask); selectedTask = null">🗑️ 删除</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- 月视图：选中日期任务列表 -->
+      <template v-if="selectedCalendarDay && viewMode === 'month'">
+        <div class="detail-header">
+          <h3>{{ formatSelectedDate(selectedCalendarDay.date) }}</h3>
+          <button class="close-btn" @click="selectedCalendarDay = null">✕</button>
+        </div>
+        <div class="detail-body">
+          <div class="detail-date-summary">
+            <span class="detail-date-count">{{ selectedCalendarDay.tasks.length }} 个任务</span>
+            <span class="detail-date-done">{{ selectedCalendarDay.tasks.filter((t: any) => t.status === 'done').length }} 已完成</span>
+          </div>
+          <ul class="detail-day-list">
+            <li v-for="task in selectedCalendarDay.tasks" :key="task.id" class="detail-day-item" :class="{ completed: task.status === 'done' }">
+              <input type="checkbox" class="selected-task-checkbox" :checked="task.status === 'done'" @change="toggleTask(task)" />
+              <span class="selected-task-title">{{ task.title }}</span>
+              <span class="selected-task-status" :class="task.status">{{ task.status === 'done' ? '✓' : '○' }}</span>
+            </li>
+          </ul>
+          <div v-if="selectedCalendarDay.tasks.length === 0" class="detail-empty">当天暂无任务</div>
+        </div>
+      </template>
+    </aside>
   </div>
 </template>
 
@@ -417,10 +491,16 @@ const submitting = ref(false);
 const editingId = ref<number | null>(null);
 const showAdvanced = ref(false); // 高级选项展开状态
 
+// 列表视图选中任务
+const selectedTask = ref<any>(null);
+
 // 月视图状态
 const currentDate = ref(new Date());
 const selectedCalendarDay = ref<{date: string; tasks: any[]; allDone: boolean} | null>(null);
-const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+const weekdayLabels = [
+  { label: '日' }, { label: '一' }, { label: '二' }, { label: '三' },
+  { label: '四' }, { label: '五' }, { label: '六' }
+];
 
 // 快速添加表单
 const quickForm = reactive({
@@ -703,12 +783,16 @@ const calendarDays = computed(() => {
     );
     const allDone = tasks.length > 0 && tasks.every(t => t.status === 'done');
     
+    const dateObj = new Date(dateStr);
+    const dayOfWeek = dateObj.getDay();
+    
     days.push({
       date: dateStr,
       day,
       tasks,
       allDone,
-      isToday: dateStr === new Date().toISOString().slice(0, 10)
+      isToday: dateStr === new Date().toISOString().slice(0, 10),
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6
     });
   }
   
@@ -723,6 +807,36 @@ const leadingBlanks = computed(() => {
 const monthLabel = computed(() => {
   return `${currentDate.value.getFullYear()}年${currentDate.value.getMonth() + 1}月`;
 });
+
+// 月度统计
+const monthStats = computed(() => {
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth();
+  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  const monthTasks = taskStore.tasks.filter(t =>
+    t.plan_id === planId &&
+    t.start_date <= monthEnd &&
+    t.end_date >= monthStart
+  );
+
+  const completed = monthTasks.filter(t => t.status === 'done').length;
+  const total = monthTasks.length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return { completed, total, percent };
+});
+
+// 格式化选中日期的显示
+function formatSelectedDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const today = new Date().toISOString().slice(0, 10);
+  if (dateStr === today) return '今天';
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  return `${date.getMonth() + 1}月${date.getDate()}日 ${weekdays[date.getDay()]}`;
+}
 
 // ========== 辅助数据和函数 ==========
 
@@ -946,6 +1060,13 @@ function goToToday() {
 
 function selectCalendarDay(day: any) {
   selectedCalendarDay.value = day;
+  selectedTask.value = null; // 清除列表选中
+}
+
+// 列表视图选中任务
+function selectTask(task: any) {
+  selectedTask.value = task;
+  selectedCalendarDay.value = null; // 清除日历选中
 }
 
 // ========== 计算天数方法 ==========
@@ -971,7 +1092,7 @@ onMounted(async () => {
 /* ========== 整体布局 ========== */
 .plan-tasks-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px 1fr auto;
   min-height: 100vh;
   background: var(--bg-main);
 }
@@ -1540,10 +1661,25 @@ onMounted(async () => {
   background: var(--bg-elevated);
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 分组头部左侧色条 */
+.group-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--text-muted);
+  border-radius: 0 2px 2px 0;
 }
 
 .group-icon {
   font-size: 14px;
+  margin-left: var(--space-1);
 }
 
 .group-title {
@@ -1563,9 +1699,23 @@ onMounted(async () => {
 .group-today .group-header {
   background: var(--success-bg);
 }
+.group-today .group-header::before {
+  background: var(--success);
+}
 
 .group-overdue .group-header {
   background: var(--error-bg);
+}
+.group-overdue .group-header::before {
+  background: var(--error);
+}
+
+.group-future .group-header::before {
+  background: var(--ai-main);
+}
+
+.group-week .group-header::before {
+  background: var(--info);
 }
 
 /* ========== 任务项 ========== */
@@ -1573,78 +1723,139 @@ onMounted(async () => {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .task-item {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  transition: all 0.2s;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: all var(--dur-normal) var(--ease-standard);
+  border: 1px solid transparent;
 }
 
 .task-item:hover {
   background: var(--bg-card-hover);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-xs);
+}
+
+.task-item.completed {
+  opacity: 0.7;
 }
 
 .task-item.completed .task-title {
   text-decoration: line-through;
   color: var(--text-muted);
+  text-decoration-color: var(--text-muted);
+  text-decoration-thickness: 1.5px;
 }
 
+/* 自定义复选框 */
 .task-checkbox {
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
   cursor: pointer;
   flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid var(--border-emphasis);
+  border-radius: 6px;
+  background: transparent;
+  transition: all var(--dur-normal) var(--ease-standard);
+  position: relative;
 }
 
+.task-checkbox:hover {
+  border-color: var(--ai-main);
+  background: var(--ai-bg);
+}
+
+.task-checkbox:checked {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.task-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* 状态点增强 */
 .task-status-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-  margin-top: 6px;
+  margin-top: 5px;
+  transition: all var(--dur-normal) var(--ease-standard);
 }
 
 .task-status-dot.pending {
   background: var(--warning);
+  box-shadow: 0 0 0 2px var(--warning-bg);
 }
 
 .task-status-dot.done {
   background: var(--success);
+  box-shadow: 0 0 0 2px var(--success-bg);
 }
 
 .task-status-dot.partial {
   background: linear-gradient(135deg, var(--success), var(--warning));
+  box-shadow: 0 0 0 2px var(--warning-bg);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 2px var(--warning-bg); }
+  50% { box-shadow: 0 0 0 4px var(--warning-bg); }
 }
 
 /* ========== 合并任务样式 ========== */
 .task-item.merged-task {
   padding: var(--space-3) var(--space-4);
-  border-left: 3px solid var(--ai-main);
+  border-left: 3px solid transparent;
+  border-image: linear-gradient(180deg, var(--ai-main), var(--success)) 1;
   background: var(--ai-bg);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
+  border-top: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .task-item.merged-task:hover {
   background: rgba(79, 70, 229, 0.08);
+  border-color: var(--border-main);
+  border-left-color: transparent;
+  box-shadow: var(--shadow-sm);
 }
 
 .merged-badge {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   font-size: 11px;
   font-weight: 500;
   color: var(--ai-main);
   background: rgba(79, 70, 229, 0.1);
-  padding: 1px 8px;
+  padding: 2px 10px;
   border-radius: var(--radius-full);
   margin-left: var(--space-2);
   vertical-align: middle;
+  border: 1px solid rgba(79, 70, 229, 0.15);
 }
 
 /* 任务进度条 */
@@ -1656,11 +1867,12 @@ onMounted(async () => {
 }
 
 .progress-bar {
-  width: 60px;
-  height: 6px;
-  background: rgba(120, 120, 120, 0.15);
+  width: 80px;
+  height: 8px;
+  background: rgba(120, 120, 120, 0.12);
   border-radius: var(--radius-full);
   overflow: hidden;
+  position: relative;
 }
 
 .progress-fill {
@@ -1668,13 +1880,31 @@ onMounted(async () => {
   height: 100%;
   background: linear-gradient(90deg, var(--ai-main), var(--success));
   border-radius: var(--radius-full);
-  transition: width 0.3s ease;
+  transition: width 0.5s var(--ease-out);
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .progress-text {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 12px;
 }
 
 .task-content {
@@ -1724,9 +1954,10 @@ onMounted(async () => {
 
 .task-actions {
   display: flex;
-  gap: var(--space-1);
+  gap: 4px;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity var(--dur-normal) var(--ease-standard);
+  flex-shrink: 0;
 }
 
 .task-item:hover .task-actions {
@@ -1734,22 +1965,28 @@ onMounted(async () => {
 }
 
 .action-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
   background: var(--bg-main);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--dur-normal) var(--ease-standard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .action-btn:hover {
   background: var(--bg-elevated);
+  border-color: var(--border-main);
+  transform: scale(1.08);
 }
 
 .action-btn.delete:hover {
   background: var(--error-bg);
+  border-color: var(--error);
 }
 
 /* ========== 编辑表单 ========== */
@@ -1837,61 +2074,62 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-/* 压缩导航栏（横向并置） */
+/* 导航栏 */
 .month-nav-compact {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   background: var(--bg-elevated);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   flex-shrink: 0;
 }
 
-.nav-compact {
-  padding: var(--space-1) var(--space-2);
+.month-nav-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.nav-arrow-btn {
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-main);
   color: var(--text-main);
   border-radius: var(--radius-sm);
-  font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s;
-  min-width: 28px;
-  height: 28px;
+  transition: all var(--dur-normal) var(--ease-standard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.nav-compact:hover {
+.nav-arrow-btn:hover {
   background: var(--bg-card-hover);
   border-color: var(--ai-main);
+  color: var(--ai-main);
 }
 
 .month-label-compact {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-main);
-  min-width: 100px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-emphasis);
+  min-width: 120px;
   text-align: center;
-}
-
-.nav-divider {
-  width: 1px;
-  height: 16px;
-  background: var(--border-subtle);
-  flex-shrink: 0;
+  letter-spacing: 0.02em;
 }
 
 .today-compact {
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--ai-main);
   background: var(--ai-bg);
   color: var(--ai-main);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--dur-normal) var(--ease-standard);
 }
 
 .today-compact:hover {
@@ -1899,7 +2137,65 @@ onMounted(async () => {
   color: white;
 }
 
-/* 日历网格（弹性高度） */
+/* 月度进度条 */
+.month-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.month-stats-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.month-stats-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.month-stats-numbers {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.month-progress-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(120, 120, 120, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.month-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ai-main), var(--success));
+  border-radius: var(--radius-full);
+  transition: width 0.6s var(--ease-out);
+}
+
+.month-stats-percent {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: right;
+}
+
+.month-stats-percent.high { color: var(--success); }
+.month-stats-percent.medium { color: var(--warning); }
+.month-stats-percent.low { color: var(--error); }
+
+/* 日历网格 */
 .calendar-wrapper {
   flex: 1;
   overflow-y: auto;
@@ -1911,42 +2207,43 @@ onMounted(async () => {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(6, 1fr);
-  gap: 4px;
-  height: 100%;
-  min-height: 400px;
-  background: rgba(120, 120, 120, 0.02);
-  backdrop-filter: blur(10px);
+  gap: 6px;
+  background: var(--bg-card);
   border-radius: var(--radius-md);
   padding: var(--space-2);
 }
 
 .weekday {
   text-align: center;
-  font-weight: 500;
-  font-size: 11px;
+  font-weight: 600;
+  font-size: 12px;
   color: var(--text-muted);
-  padding: var(--space-1) 0;
+  padding: var(--space-2) 0;
   letter-spacing: 0.05em;
+}
+
+.weekday.is-weekend {
+  color: var(--ai-main);
 }
 
 .calendar-cell {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: var(--space-1);
-  background: transparent;
-  border: 1px solid rgba(120, 120, 120, 0.1);
+  align-items: stretch;
+  gap: 2px;
+  padding: var(--space-2);
+  background: var(--bg-main);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 0;
+  transition: all var(--dur-normal) var(--ease-standard);
+  min-height: 60px;
 }
 
 .calendar-cell:hover {
-  background: rgba(120, 120, 120, 0.08);
-  border-color: rgba(79, 70, 229, 0.3);
+  background: var(--bg-card-hover);
+  border-color: var(--ai-main);
+  box-shadow: var(--shadow-xs);
   transform: translateY(-1px);
 }
 
@@ -1956,96 +2253,148 @@ onMounted(async () => {
   cursor: default;
   opacity: 0;
   pointer-events: none;
+  min-height: 0;
 }
 
 .calendar-cell.blank-cell:hover {
   transform: none;
+  box-shadow: none;
 }
 
-/* 今天高亮（渐变） */
+/* 周末日期 */
+.calendar-cell.is-weekend {
+  background: rgba(79, 70, 229, 0.03);
+}
+.calendar-cell.is-weekend .cell-date {
+  color: var(--ai-main);
+}
+
+/* 今天高亮 */
 .calendar-cell.is-today {
-  background: linear-gradient(135deg, 
-    rgba(79, 70, 229, 0.12), 
-    rgba(79, 70, 229, 0.06)
+  background: linear-gradient(135deg,
+    rgba(79, 70, 229, 0.1),
+    rgba(79, 70, 229, 0.05)
   );
-  border: 1.5px solid rgba(79, 70, 229, 0.4);
+  border: 2px solid var(--ai-main);
+  box-shadow: 0 0 0 2px var(--ai-bg);
 }
 
 .calendar-cell.is-today .cell-date {
-  color: var(--ai-main);
+  background: var(--ai-main);
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 600;
 }
 
+/* 选中日期 */
+.calendar-cell.is-selected {
+  background: var(--ai-bg);
+  border-color: var(--ai-main);
+  box-shadow: 0 0 0 1px var(--ai-main);
+}
+
 .calendar-cell.has-tasks {
-  background: rgba(120, 120, 120, 0.06);
+  background: var(--bg-card);
 }
 
 .calendar-cell.all-done {
   background: linear-gradient(135deg,
-    rgba(34, 197, 94, 0.1),
-    rgba(34, 197, 94, 0.05)
+    rgba(34, 197, 94, 0.08),
+    rgba(34, 197, 94, 0.03)
   );
-  border-color: rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.calendar-cell.all-done .cell-date {
+  color: var(--success);
+  font-weight: 600;
 }
 
 .cell-date {
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--text-secondary);
+  margin-bottom: 2px;
 }
 
-/* 任务指示点（增强） */
-.task-indicators {
+/* 任务指示条（替代圆点） */
+.task-bars {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.task-bar-item {
+  width: 100%;
+  height: 16px;
+  background: linear-gradient(90deg, rgba(79, 70, 229, 0.15), rgba(79, 70, 229, 0.08));
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
   align-items: center;
+  padding: 0 4px;
+  border-left: 2px solid var(--ai-main);
 }
 
-.task-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--ai-main), var(--ai-light));
-  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
-  transition: all 0.3s ease;
-  animation: pulse 2s infinite;
+.task-bar-item.task-done {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.05));
+  border-left-color: var(--success);
 }
 
-.task-dot.task-done {
-  background: linear-gradient(135deg, var(--success), rgba(34, 197, 94, 0.6));
-  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.25);
-  animation: none;
+.task-bar-text {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(0.95);
-  }
+.task-bar-item.task-done .task-bar-text {
+  text-decoration: line-through;
+  color: var(--text-muted);
 }
 
-.more-tasks {
+.task-bar-more {
   font-size: 9px;
   color: var(--text-muted);
-  font-weight: 500;
-  padding: 0 2px;
+  font-weight: 600;
+  text-align: center;
+  padding: 1px 0;
 }
 
-/* 侧滑详情面板 */
+/* slide-up 动画 */
+.slide-up-enter-active {
+  transition: all 0.3s var(--ease-out);
+}
+.slide-up-leave-active {
+  transition: all 0.2s var(--ease-in);
+}
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(16px);
+}
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 选中日期详情面板 */
 .selected-day-tasks {
   flex-shrink: 0;
   margin-top: var(--space-3);
-  padding: var(--space-3);
+  padding: var(--space-4);
   background: var(--bg-elevated);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  max-height: 300px;
+  border: 1px solid var(--border-main);
+  max-height: 320px;
   overflow-y: auto;
 }
 
@@ -2053,30 +2402,47 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.selected-day-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-main);
+.selected-day-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.selected-day-date {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-emphasis);
+}
+
+.selected-day-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .close-btn {
-  width: 24px;
-  height: 24px;
-  border: none;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-subtle);
   background: var(--bg-main);
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--dur-normal) var(--ease-standard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-btn:hover {
   background: var(--error-bg);
+  border-color: var(--error);
   color: var(--error);
 }
 
@@ -2084,16 +2450,18 @@ onMounted(async () => {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .selected-task-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: all 0.2s;
-  margin-bottom: var(--space-1);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  transition: all var(--dur-normal) var(--ease-standard);
   background: var(--bg-main);
   border: 1px solid var(--border-subtle);
 }
@@ -2101,27 +2469,273 @@ onMounted(async () => {
 .selected-task-item:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-main);
+  box-shadow: var(--shadow-xs);
 }
 
-.selected-task-item.completed .task-title {
+.selected-task-item.completed .selected-task-title {
   text-decoration: line-through;
   color: var(--text-muted);
 }
 
-.selected-task-item input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+.selected-task-checkbox {
+  width: 18px;
+  height: 18px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.selected-task-item .task-title {
+.selected-task-title {
   flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-task-status {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.selected-task-status.done {
+  color: var(--success);
+}
+
+.selected-task-status.pending {
+  color: var(--text-muted);
+}
+
+/* 任务项选中态 */
+.task-item.is-selected {
+  background: var(--ai-bg);
+  border-color: var(--ai-main);
+  box-shadow: inset 3px 0 0 var(--ai-main);
+}
+
+.task-item.is-selected:hover {
+  background: rgba(79, 70, 229, 0.1);
+}
+
+/* ========== 右侧详情栏 ========== */
+.detail-panel {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-main);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  animation: detail-slide-in 0.3s var(--ease-out);
+}
+
+@keyframes detail-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-emphasis);
+}
+
+.detail-body {
+  flex: 1;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.detail-status-dot.done {
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-bg);
+}
+
+.detail-status-dot.pending {
+  background: var(--warning);
+  box-shadow: 0 0 0 3px var(--warning-bg);
+}
+
+.detail-status-dot.partial {
+  background: linear-gradient(135deg, var(--success), var(--warning));
+  box-shadow: 0 0 0 3px var(--warning-bg);
+}
+
+.detail-task-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.detail-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.detail-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.detail-value {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-main);
+  text-align: right;
+  word-break: break-word;
+}
+
+.detail-note {
+  background: var(--bg-main);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  text-align: left;
+  line-height: 1.5;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.detail-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.detail-action-btn {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-main);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--dur-normal) var(--ease-standard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.detail-action-btn.edit:hover {
+  background: var(--ai-bg);
+  border-color: var(--ai-main);
+  color: var(--ai-main);
+}
+
+.detail-action-btn.delete:hover {
+  background: var(--error-bg);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* 月视图详情：日期摘要 */
+.detail-date-summary {
+  display: flex;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-date-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.detail-date-done {
+  font-size: 13px;
+  color: var(--success);
+  font-weight: 500;
+}
+
+.detail-day-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.detail-day-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--dur-normal) var(--ease-standard);
+}
+
+.detail-day-item:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-main);
+}
+
+.detail-day-item.completed .selected-task-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.detail-empty {
+  text-align: center;
+  padding: var(--space-6);
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 /* ========== 响应式 ========== */
+@media (max-width: 1100px) {
+  .detail-panel {
+    width: 280px;
+  }
+}
+
 @media (max-width: 900px) {
   .plan-tasks-layout {
     grid-template-columns: 1fr;
@@ -2129,6 +2743,27 @@ onMounted(async () => {
 
   .sidebar-nav {
     display: none;
+  }
+
+  /* 详情栏在移动端变为底部浮动 */
+  .detail-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 50vh;
+    border-left: none;
+    border-top: 1px solid var(--border-main);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    animation: detail-slide-up 0.3s var(--ease-out);
+  }
+
+  @keyframes detail-slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
   }
 
   .main-content {
@@ -2191,67 +2826,63 @@ onMounted(async () => {
 
   /* 月视图移动端适配 */
   .month-nav-compact {
-    padding: var(--space-1) var(--space-2);
-    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
   }
 
-  .nav-compact {
-    min-width: 24px;
-    height: 24px;
-    font-size: 12px;
+  .nav-arrow-btn {
+    width: 28px;
+    height: 28px;
   }
 
   .month-label-compact {
-    font-size: 13px;
-    min-width: 80px;
+    font-size: 14px;
+    min-width: 100px;
   }
 
-  .today-compact {
-    font-size: 11px;
-    padding: var(--space-1);
+  .month-stats-bar {
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
   }
 
-  .calendar-wrapper {
-    padding: var(--space-2) var(--space-2) 0;
-  }
+  .month-stats-label { display: none; }
 
   .calendar-grid {
-    gap: 2px;
+    gap: 3px;
     padding: var(--space-1);
-    min-height: 300px;
-  }
-
-  .weekday {
-    font-size: 10px;
-    padding: var(--space-0.5) 0;
   }
 
   .calendar-cell {
-    gap: 2px;
-    padding: var(--space-0.5);
+    min-height: 44px;
+    padding: 2px;
   }
 
   .cell-date {
     font-size: 11px;
   }
 
-  .task-dot {
-    width: 5px;
-    height: 5px;
-    gap: 2px;
+  .task-bar-item {
+    height: 12px;
   }
 
-  .more-tasks {
-    font-size: 8px;
+  .task-bar-text {
+    font-size: 7px;
+  }
+
+  .task-bar-more {
+    font-size: 7px;
   }
 
   .selected-day-tasks {
-    padding: var(--space-2);
+    padding: var(--space-3);
     max-height: 250px;
   }
 
-  .selected-day-header h3 {
-    font-size: 13px;
+  .selected-day-date {
+    font-size: 14px;
+  }
+
+  .selected-task-item {
+    padding: var(--space-2);
   }
 }
 </style>

@@ -23,7 +23,7 @@ app.use(ArcoVue);
 
 app.mount("#app");
 
-// 初始化AI复盘定时任务（每日凌晨1点自动执行）
+// 初始化AI复盘定时任务（每日凌晨4点自动执行，复盘前一天数据）
 initAIReviewScheduler();
 
 // 调试：打印注册路由（此处应该能看到 /plan/:id/tasks）

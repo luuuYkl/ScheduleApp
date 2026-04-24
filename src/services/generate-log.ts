@@ -168,25 +168,25 @@ function generateFallbackLog(
   const totalDone = tasksDone + schedules.filter(s => s.completed).length;
 
   if (totalDone === 0) {
-    return '今天还没有完成任何任务或日程，明天继续加油！';
+    return '今日无完成任务。';
   }
 
-  let content = '今天完成了：\n';
+  let content = '完成：\n';
   
   for (const t of doneTasks) {
-    content += `✓ ${t.title}\n`;
+    content += `- ${t.title}\n`;
   }
   for (const s of doneSchedules) {
-    content += `✓ ${s.title}\n`;
+    content += `- ${s.title}\n`;
   }
 
   const completionRate = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0;
   if (completionRate >= 80) {
-    content += `\n完成率 ${completionRate}%，表现出色！`;
+    content += `\n完成率 ${completionRate}%`;
   } else if (completionRate >= 50) {
-    content += `\n完成率 ${completionRate}%，继续努力！`;
+    content += `\n完成率 ${completionRate}%，可优化任务分配`;
   } else {
-    content += `\n完成率 ${completionRate}%，明天可以尝试减少任务数量。`;
+    content += `\n完成率 ${completionRate}%，建议减少任务数量`;
   }
 
   return content;
@@ -269,11 +269,11 @@ export async function generateDailyLog(
             const parts: string[] = [];
             if (aiResult.summary) parts.push(aiResult.summary);
             if (aiResult.highlight) {
-              parts.push(`\n🌟 亮点：${aiResult.highlight}`);
+              parts.push(`\n亮点：${aiResult.highlight}`);
               highlight = aiResult.highlight;
             }
             if (aiResult.suggestions?.length > 0) {
-              parts.push(`\n💡 建议：${aiResult.suggestions.join('；')}`);
+              parts.push(`\n建议：${aiResult.suggestions.join('；')}`);
             }
             content = parts.join('\n');
             mood = aiResult.mood || 'calm';

@@ -135,37 +135,13 @@ export const useTaskStore = defineStore("tasks", () => {
 
   /**
    * 切换任务状态（对外接口）
-   * 完成/未完成切换，并自动触发日志生成
+   * 完成/未完成切换
+   * 注意：日志生成已移至凌晨4点定时复盘时统一处理，不再在任务完成时触发
    * @param taskId 任务ID
    */
   async function toggleTaskStatus(taskId: number) {
-    // 先切换状态
+    // 只切换状态，不触发日志生成
     await toggleStatus(taskId);
-
-    // 切换成功后，自动生成当日日志
-    try {
-      const { useLogStore } = await import("@/store/log");
-      const { useUserStore } = await import("@/store/user");
-
-      const logStore = useLogStore();
-      const userStore = useUserStore();
-      const userId =
-        userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
-
-      // 筛选今天的任务（检查任务日期范围是否包含今天）
-      const today = new Date().toISOString().slice(0, 10);
-      const todayTasks = tasks.value.filter((t) => 
-        t.start_date <= today && t.end_date >= today
-      );
-
-      if (todayTasks.length > 0) {
-        await logStore.generateTodayLog(userId, todayTasks);
-        console.log("✅ 日志已自动生成/更新");
-      }
-    } catch (e) {
-      console.warn("生成日志失败:", e);
-      // 不阻断任务状态切换
-    }
   }
 
   /**

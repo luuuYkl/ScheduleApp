@@ -141,7 +141,8 @@ export const usePlanStore = defineStore("plans", () => {
 
   /**
    * 切换任务完成状态
-   * done <-> pending，并自动触发日志生成
+   * done <-> pending
+   * 注意：日志生成已移至凌晨4点定时复盘时统一处理，不再在任务完成时触发
    * @param id 任务ID
    * @returns 更新后的任务对象或 null
    */
@@ -149,34 +150,11 @@ export const usePlanStore = defineStore("plans", () => {
     const t = tasks.value.find((x) => x.id === id);
     if (!t) return null;
 
-    // 切换状态
+    // 只切换状态，不触发日志生成
     const newStatus = t.status === "done" ? "pending" : "done";
     const updated = await API.updateTask(id, { status: newStatus });
     const i = tasks.value.findIndex((x) => x.id === id);
     if (i !== -1) tasks.value[i] = updated;
-
-    // 自动生成当日日志
-    try {
-      const { useLogStore } = await import("@/store/log");
-      const { useUserStore } = await import("@/store/user");
-
-      const logStore = useLogStore();
-      const userStore = useUserStore();
-      const userId =
-        userStore.user?.id ?? Number(localStorage.getItem("user_id")) ?? 1;
-
-      // 筛选今天的任务
-      const today = new Date().toISOString().slice(0, 10);
-      const todayTasks = tasks.value.filter((t) => t.task_date === today);
-
-      if (todayTasks.length > 0) {
-        await logStore.generateTodayLog(userId, todayTasks);
-        console.log("✅ 日志已自动生成/更新");
-      }
-    } catch (e) {
-      console.warn("生成日志失败:", e);
-      // 不阻断任务状态切换
-    }
 
     return updated;
   }
